@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="合同管理系统/合同管理系统.vcxproj" Id="b45c94df-24e4-4383-9136-3b752be2f807" />
+</Solution>
