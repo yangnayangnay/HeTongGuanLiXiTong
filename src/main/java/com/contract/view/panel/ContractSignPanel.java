@@ -1,0 +1,221 @@
+package com.contract.view.panel;
+
+import com.contract.entity.Contract;
+import com.contract.entity.ContractProcess;
+import com.contract.service.ContractService;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+/**
+ * 签订合同面板
+ * <p>
+ * 该面板用于处理合同的签订流程。签订是合同生命周期中的最后一步，
+ * 在审批通过后，由指定的签订人员完成最终的合同签署确认。
+ * </p>
+ *
+ * <p>主要功能：</p>
+ * <ul>
+ *   <li>显示当前用户待签订的合同列表</li>
+ *   <li>查看合同基本信息（编号、名称、客户、状态等）</li>
+ *   <li>输入签订信息（如签署备注等）</li>
+ *   <li>提交签订结果，完成整个合同流程</li>
+ * </ul>
+ *
+ * <p>业务说明：</p>
+ * <ul>
+ *   <li>只有被分配为签订人员的用户才能看到待签订的合同</li>
+ *   <li>只有审批通过的合同才能进入签订阶段</li>
+ *   <li>签订完成后，合同状态变为"签订完成"，整个合同生命周期结束</li>
+ * </ul>
+ *
+ * @author 合同管理系统
+ * @version 1.0
+ * @since 2024-01-01
+ */
+public class ContractSignPanel extends JPanel {
+    // 待签订合同列表表格
+    private JTable table;
+    // 表格数据模型
+    private DefaultTableModel tableModel;
+    // 签订信息输入区域（用于填写签订时的备注信息）
+    private JTextArea txtSignInfo;
+    // 合同业务服务类
+    private ContractService contractService = new ContractService();
+    // 当前登录用户信息（用于过滤显示该用户待签订的合同）
+    private com.contract.entity.User currentUser;
+
+    /**
+     * 构造方法：初始化签订合同面板
+     *
+     * @param user 当前登录的用户对象，用于过滤显示该用户待签订的合同
+     */
+    public ContractSignPanel(com.contract.entity.User user) {
+        this.currentUser = user;
+        // 使用BorderLayout作为主布局管理器
+        setLayout(new BorderLayout());
+        // 设置面板边距为15像素
+        setBorder(new EmptyBorder(15, 15, 15, 15));
+        // 初始化界面组件
+        initUI();
+        // 加载待签订合同数据
+        loadData();
+    }
+
+    /**
+     * 初始化用户界面组件
+     * <p>
+     * 布局结构：
+     * - 北部(NORTH)：标题"签订合同"
+     * - 中部(CENTER)：待签订合同列表表格
+     * - 南部(SOUTH)：签订操作区
+     *   · 上方：签订信息输入框
+     *   · 下方：操作按钮组（确认签订/刷新列表）
+     * </p>
+     */
+    private void initUI() {
+        // ===== 标题区域 =====
+        JLabel lblTitle = new JLabel("签订合同");
+        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 18));
+        lblTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        add(lblTitle, BorderLayout.NORTH);
+
+        // ===== 待签订合同列表表格 =====
+        // 定义表格列名：流程ID、合同编号、合同名称、客户、合同状态、操作类型、状态
+        String[] columns = {"流程ID", "合同编号", "合同名称", "客户", "合同状态", "操作类型", "状态"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }  // 表格不可编辑
+        };
+        table = new JTable(tableModel);
+        table.setFont(new Font("微软雅黑", Font.PLAIN, 12));  // 设置表格字体
+        table.setRowHeight(28);  // 设置行高以提升可读性
+        table.getTableHeader().setFont(new Font("微软雅黑", Font.BOLD, 12));  // 表头加粗
+        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        // ===== 签订操作面板 =====
+        JPanel opPanel = new JPanel(new BorderLayout(5, 5));
+        opPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        // 签订信息输入区域
+        JPanel formPanel = new JPanel(new BorderLayout(5, 5));
+        formPanel.add(new JLabel("签订信息:"), BorderLayout.NORTH);
+        txtSignInfo = new JTextArea(3, 30);  // 3行30列的多行文本框
+        txtSignInfo.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtSignInfo.setLineWrap(true);  // 启用自动换行
+        formPanel.add(new JScrollPane(txtSignInfo), BorderLayout.CENTER);
+        opPanel.add(formPanel, BorderLayout.CENTER);
+
+        // 操作按钮组（水平排列）
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+
+        // 确认签订按钮（主操作按钮）
+        JButton btnSign = new JButton("确认签订");
+        btnSign.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        btnSign.setBackground(new Color(66, 133, 244));  // 蓝色背景
+        btnSign.setOpaque(true);
+        btnSign.setContentAreaFilled(true);
+        btnSign.setForeground(Color.BLACK);
+        btnSign.setFocusPainted(false);
+        btnSign.addActionListener(e -> doSign());  // 点击后执行签订逻辑
+        btnPanel.add(btnSign);
+
+        // 刷新列表按钮
+        JButton btnRefresh = new JButton("刷新列表");
+        btnRefresh.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnRefresh.addActionListener(e -> loadData());  // 点击后重新加载数据
+        btnPanel.add(btnRefresh);
+
+        opPanel.add(btnPanel, BorderLayout.SOUTH);
+        add(opPanel, BorderLayout.SOUTH);
+    }
+
+    /**
+     * 加载当前用户待签订的合同列表
+     * <p>
+     * 从数据库查询分配给当前用户的、类型为"签订"(type=3)且状态为"未完成"(state=0)的流程节点。
+     * 只有审批通过的合同才会出现在此列表中。
+     * 查询结果显示在表格中，包括：
+     * <ul>
+     *   <li>流程ID：用于标识具体的流程节点记录</li>
+     *   <li>合同编号：合同的唯一标识符</li>
+     *   <li>合同名称：便于识别合同用途</li>
+     *   <li>客户：合同关联的客户信息</li>
+     *   <li>合同状态：当前合同所处的生命周期阶段</li>
+     *   <li>操作类型：显示"签订"</li>
+     *   <li>状态：显示"未完成"/"已完成"/"已否决"</li>
+     * </ul>
+     * </p>
+     */
+    private void loadData() {
+        // 清空表格现有数据
+        tableModel.setRowCount(0);
+        // 查询当前用户待处理的签订流程（type=3表示签订类型）
+        List<ContractProcess> processes = contractService.getUserPendingProcesses(currentUser.getName(), 3);
+        for (ContractProcess cp : processes) {
+            // 根据合同编号查询完整的合同信息
+            Contract contract = contractService.findByNum(cp.getConNum());
+            String contractName = contract != null ? contract.getName() : "";
+            String customer = contract != null ? contract.getCustomer() : "";
+            // 获取合同的当前状态描述
+            String stateName = contract != null ? contractService.getContractStateName(cp.getConNum()) : "";
+            // 将一条流程记录添加到表格中
+            tableModel.addRow(new Object[]{cp.getId(), cp.getConNum(), contractName, customer, stateName, cp.getTypeName(), cp.getStateName()});
+        }
+    }
+
+    /**
+     * 执行签订操作
+     * <p>
+     * 处理流程：
+     * <ol>
+     *   <li>检查是否选中了要签订的合同</li>
+     *   <li>验证签订信息不能为空</li>
+     *   <li>调用服务层执行签订操作，将流程节点状态更新为"已完成"</li>
+     *   <li>更新合同整体状态为"签订完成"</li>
+     *   <li>显示操作结果提示</li>
+     *   <li>清空签订信息并刷新列表</li>
+     * </ol>
+     * </p>
+     *
+     * <p>业务规则：</p>
+     * <ul>
+     *   <li>必须先选择一个待签订的合同</li>
+     *   <li>签订信息为必填项（用于记录签订备注）</li>
+     *   <li>签订成功后自动刷新列表，已完成的合同不再显示</li>
+     *   <li>签订完成标志着合同生命周期的终结</li>
+     * </ul>
+     */
+    private void doSign() {
+        // 获取选中的表格行索引
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请选择要签订的合同！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 获取选中行的流程ID（第一列）
+        int processId = (int) tableModel.getValueAt(row, 0);
+        // 获取用户输入的签订信息
+        String signInfo = txtSignInfo.getText().trim();
+        // 校验签订信息不能为空
+        if (signInfo.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "签订信息不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 调用服务层执行签订操作（传入流程ID、签订信息、操作人姓名）
+        if (contractService.signContract(processId, signInfo, currentUser.getName())) {
+            // 签订成功提示
+            JOptionPane.showMessageDialog(this, "签订成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            // 清空签订信息输入框
+            txtSignInfo.setText("");
+            // 刷新列表，移除已完成的合同
+            loadData();
+        } else {
+            // 签订失败提示
+            JOptionPane.showMessageDialog(this, "签订失败！", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}

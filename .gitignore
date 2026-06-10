@@ -1,0 +1,32 @@
+# 编译输出
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 临时文件
+*.log
+*.tmp
+*.bak
+*~
+
+# 转换脚本（辅助工具）
+doc/convert_to_docx.py

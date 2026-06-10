@@ -1,0 +1,217 @@
+package com.contract.view.panel;
+
+import com.contract.entity.Contract;
+import com.contract.entity.ContractProcess;
+import com.contract.service.ContractService;
+
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.util.List;
+
+/**
+ * 会签合同面板
+ * <p>
+ * 该面板用于处理合同的会签流程。会签是合同生命周期中的第二步，
+ * 在起草完成后，由指定的会签人员对合同进行审核并签署意见。
+ * </p>
+ *
+ * <p>主要功能：</p>
+ * <ul>
+ *   <li>显示当前用户待会签的合同列表</li>
+ *   <li>查看合同基本信息（编号、名称、客户、状态等）</li>
+ *   <li>输入会签意见</li>
+ *   <li>提交会签结果到系统</li>
+ *   <li>刷新列表获取最新数据</li>
+ * </ul>
+ *
+ * <p>业务说明：</p>
+ * <ul>
+ *   <li>只有被分配为会签人员的用户才能看到待会签的合同</li>
+ *   <li>会签是多人并行操作，每个会签人员独立签署意见</li>
+ *   <li>所有会签人员都完成后，合同才能进入定稿阶段</li>
+ * </ul>
+ *
+ * @author 合同管理系统
+ * @version 1.0
+ * @since 2024-01-01
+ */
+public class ContractCountersignPanel extends JPanel {
+    // 合同列表表格组件
+    private JTable table;
+    // 表格数据模型（用于动态更新表格内容）
+    private DefaultTableModel tableModel;
+    // 会签意见输入区域
+    private JTextArea txtOpinion;
+    // 合同业务服务类，用于查询和操作合同数据
+    private ContractService contractService = new ContractService();
+    // 当前登录用户信息（用于筛选该用户的待办任务）
+    private com.contract.entity.User currentUser;
+
+    /**
+     * 构造方法：初始化会签合同面板
+     *
+     * @param user 当前登录的用户对象，用于过滤显示该用户待会签的合同
+     */
+    public ContractCountersignPanel(com.contract.entity.User user) {
+        this.currentUser = user;
+        // 使用BorderLayout作为主布局管理器
+        setLayout(new BorderLayout());
+        // 设置面板边距为15像素
+        setBorder(new EmptyBorder(15, 15, 15, 15));
+        // 初始化界面组件
+        initUI();
+        // 加载待会签合同数据
+        loadData();
+    }
+
+    /**
+     * 初始化用户界面组件
+     * <p>
+     * 布局结构：
+     * - 北部(NORTH)：标题"会签合同"
+     * - 中部(CENTER)：待会签合同列表表格
+     * - 南部(SOUTH)：会签操作区（意见输入 + 操作按钮）
+     * </p>
+     */
+    private void initUI() {
+        // ===== 标题区域 =====
+        JLabel lblTitle = new JLabel("会签合同");
+        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 18));
+        lblTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
+        add(lblTitle, BorderLayout.NORTH);
+
+        // ===== 待会签合同列表表格 =====
+        // 定义表格列名：流程ID、合同编号、合同名称、客户、合同状态、操作类型、状态
+        String[] columns = {"流程ID", "合同编号", "合同名称", "客户", "合同状态", "操作类型", "状态"};
+        // 创建不可编辑的数据模型（防止用户直接修改表格单元格）
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        table.setFont(new Font("微软雅黑", Font.PLAIN, 12));  // 设置表格字体
+        table.setRowHeight(28);  // 设置行高以提升可读性
+        table.getTableHeader().setFont(new Font("微软雅黑", Font.BOLD, 12));  // 表头加粗
+        JScrollPane scrollPane = new JScrollPane(table);  // 添加滚动条支持
+        add(scrollPane, BorderLayout.CENTER);
+
+        // ===== 会签操作面板 =====
+        JPanel opPanel = new JPanel(new BorderLayout(5, 5));
+        opPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        // 会签意见输入区域
+        JPanel formPanel = new JPanel(new BorderLayout(5, 5));
+        formPanel.add(new JLabel("会签意见:"), BorderLayout.NORTH);
+        txtOpinion = new JTextArea(3, 30);  // 3行30列的多行文本框
+        txtOpinion.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtOpinion.setLineWrap(true);  // 启用自动换行
+        formPanel.add(new JScrollPane(txtOpinion), BorderLayout.CENTER);
+        opPanel.add(formPanel, BorderLayout.CENTER);
+
+        // 确认会签按钮（主操作按钮）
+        JButton btnCountersign = new JButton("确认会签");
+        btnCountersign.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        btnCountersign.setBackground(new Color(66, 133, 244));  // 蓝色背景
+        btnCountersign.setOpaque(true);
+        btnCountersign.setContentAreaFilled(true);
+        btnCountersign.setForeground(Color.BLACK);
+        btnCountersign.setFocusPainted(false);
+        btnCountersign.addActionListener(e -> doCountersign());  // 点击后执行会签逻辑
+        opPanel.add(btnCountersign, BorderLayout.EAST);
+
+        // 刷新按钮（重新加载待会签列表）
+        JButton btnRefresh = new JButton("刷新列表");
+        btnRefresh.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnRefresh.addActionListener(e -> loadData());  // 点击后重新加载数据
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        refreshPanel.add(btnRefresh);
+        opPanel.add(refreshPanel, BorderLayout.SOUTH);
+
+        add(opPanel, BorderLayout.SOUTH);
+    }
+
+    /**
+     * 加载当前用户待会签的合同列表
+     * <p>
+     * 从数据库查询分配给当前用户的、类型为"会签"(type=1)且状态为"未完成"(state=0)的流程节点。
+     * 查询结果显示在表格中，包括：
+     * <ul>
+     *   <li>流程ID：用于标识具体的流程节点记录</li>
+     *   <li>合同编号：合同的唯一标识符</li>
+     *   <li>合同名称：便于识别合同用途</li>
+     *   <li>客户：合同关联的客户信息</li>
+     *   <li>合同状态：当前合同所处的生命周期阶段</li>
+     *   <li>操作类型：显示"会签"</li>
+     *   <li>状态：显示"未完成"/"已完成"/"已否决"</li>
+     * </ul>
+     * </p>
+     */
+    private void loadData() {
+        // 清空表格现有数据
+        tableModel.setRowCount(0);
+        // 查询当前用户待处理的会签流程（type=1表示会签类型）
+        List<ContractProcess> processes = contractService.getUserPendingProcesses(currentUser.getName(), 1);
+        for (ContractProcess cp : processes) {
+            // 根据合同编号查询完整的合同信息
+            Contract contract = contractService.findByNum(cp.getConNum());
+            String contractName = contract != null ? contract.getName() : "";
+            String customer = contract != null ? contract.getCustomer() : "";
+            // 获取合同的当前状态描述
+            String stateName = contract != null ? contractService.getContractStateName(cp.getConNum()) : "";
+            // 将一条流程记录添加到表格中
+            tableModel.addRow(new Object[]{cp.getId(), cp.getConNum(), contractName, customer, stateName, cp.getTypeName(), cp.getStateName()});
+        }
+    }
+
+    /**
+     * 执行会签操作
+     * <p>
+     * 处理流程：
+     * <ol>
+     *   <li>检查是否选中了要会签的合同</li>
+     *   <li>验证会签意见不能为空</li>
+     *   <li>调用服务层执行会签操作，将流程节点状态更新为"已完成"</li>
+     *   <li>显示操作结果提示</li>
+     *   <li>清空意见输入框并刷新列表</li>
+     * </ol>
+     * </p>
+     *
+     * <p>业务规则：</p>
+     * <ul>
+     *   <li>必须先选择一个待会签的合同</li>
+     *   <li>会签意见为必填项</li>
+     *   <li>会签成功后自动刷新列表，已完成的合同不再显示</li>
+     * </ul>
+     */
+    private void doCountersign() {
+        // 获取选中的表格行索引
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请选择要会签的合同！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 获取选中行的流程ID（第一列）
+        int processId = (int) tableModel.getValueAt(row, 0);
+        // 获取用户输入的会签意见
+        String opinion = txtOpinion.getText().trim();
+        // 校验会签意见不能为空
+        if (opinion.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "会签意见不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 调用服务层执行会签操作
+        if (contractService.countersignContract(processId, opinion)) {
+            // 会签成功提示
+            JOptionPane.showMessageDialog(this, "会签成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            // 清空意见输入框
+            txtOpinion.setText("");
+            // 刷新列表，移除已完成的合同
+            loadData();
+        } else {
+            // 会签失败提示
+            JOptionPane.showMessageDialog(this, "会签失败！", "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
