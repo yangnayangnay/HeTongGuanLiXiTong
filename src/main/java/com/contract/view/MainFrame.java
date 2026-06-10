@@ -129,8 +129,7 @@ public class MainFrame extends JFrame {
 
         // 查询统计分组
         btnPanel.add(createSectionLabel("查询统计"));
-        if (functions.contains("F07")) btnPanel.add(createNavButton("合同查询", "query"));         // F07:查询权限
-        if (functions.contains("F08")) btnPanel.add(createNavButton("流程查询", "processQuery"));  // F08:流程查询权限
+        if (functions.contains("F07")) btnPanel.add(createNavButton("合同查询", "query"));         // F07:查询权限(含流程历史)
 
         // 基础数据管理分组
         btnPanel.add(createSectionLabel("基础数据管理"));
@@ -262,9 +261,6 @@ public class MainFrame extends JFrame {
                 break;
             case "query":
                 contentPanel.add(new ContractQueryPanel(currentUser), BorderLayout.CENTER);
-                break;
-            case "processQuery":
-                contentPanel.add(new ContractProcessQueryPanel(), BorderLayout.CENTER);
                 break;
             case "customer":
                 contentPanel.add(new CustomerManagePanel(), BorderLayout.CENTER);

@@ -2,6 +2,7 @@ package com.contract.view.panel;
 
 import com.contract.entity.User;
 import com.contract.entity.Role;
+import com.contract.entity.Right;
 import com.contract.service.UserService;
 import com.contract.service.RoleService;
 import com.contract.service.RightService;
@@ -227,8 +228,8 @@ public class UserManagePanel extends JPanel {
 
         panel.add(toolPanel, BorderLayout.NORTH);
 
-        // 已有用户表格
-        String[] columns = {"ID", "用户名", "密码", "状态"};
+        // 已有用户表格（含角色列）
+        String[] columns = {"ID", "用户名", "密码", "状态", "角色"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) { return false; }  // 表格不可编辑
@@ -282,8 +283,18 @@ public class UserManagePanel extends JPanel {
                 case UserService.STATUS_REJECTED:  statusText = "已拒绝"; break;   // 2-已拒绝
                 default: statusText = "未知";  // 未知状态
             }
-            // 将用户信息添加到表格行
-            tableModel.addRow(new Object[]{u.getId(), u.getName(), u.getPassword(), statusText});
+            // 查询该用户拥有的角色名称列表
+            List<Right> rights = rightService.findByUserName(u.getName());
+            StringBuilder roleNames = new StringBuilder();
+            for (int i = 0; i < rights.size(); i++) {
+                if (i > 0) roleNames.append(", ");
+                roleNames.append(rights.get(i).getRoleName());
+            }
+            if (roleNames.length() == 0) {
+                roleNames.append("未分配");
+            }
+            // 将用户信息添加到表格行（含角色列）
+            tableModel.addRow(new Object[]{u.getId(), u.getName(), u.getPassword(), statusText, roleNames.toString()});
         }
     }
 
