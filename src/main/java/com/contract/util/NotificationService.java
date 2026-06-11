@@ -3,6 +3,8 @@ package com.contract.util;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 待办任务通知服务类
@@ -67,5 +69,87 @@ public class NotificationService {
             DBUtil.close(conn, pstmt, rs);
         }
         return 0;  // 默认返回0（无待办任务或查询异常）
+    }
+
+    /**
+     * 待办任务详细信息内部数据类
+     * <p>用于封装待办任务的详细字段信息，供UI层展示使用</p>
+     */
+    public static class PendingTaskInfo {
+        /** 合同编号 */
+        private String conNum;
+        /** 合同名称 */
+        private String contractName;
+        /** 任务类型名称（会签/审批/签订） */
+        private String typeName;
+        /** 状态名称（待处理） */
+        private String stateName;
+        /** 分配时间 */
+        private String time;
+
+        public PendingTaskInfo(String conNum, String contractName, String typeName, String stateName, String time) {
+            this.conNum = conNum;
+            this.contractName = contractName;
+            this.typeName = typeName;
+            this.stateName = stateName;
+            this.time = time;
+        }
+
+        public String getConNum() { return conNum; }
+        public String getContractName() { return contractName; }
+        public String getTypeName() { return typeName; }
+        public String getStateName() { return stateName; }
+        public String getTime() { return time; }
+    }
+
+    /**
+     * 查询指定用户的待办任务详细列表
+     * <p>
+     * 通过关联查询t_contract_process表和t_contract表，获取当前用户所有待处理任务的详细信息。
+     * 查询条件：state=0（待处理）且userName匹配当前用户。
+     * 返回包含合同编号、合同名称、任务类型、状态和分配时间的列表。
+     * </p>
+     *
+     * @param userName 当前登录用户的用户名
+     * @return 待办任务详细列表；查询异常时返回空列表
+     */
+    public static List<PendingTaskInfo> getPendingTaskDetails(String userName) {
+        List<PendingTaskInfo> list = new ArrayList<>();
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            conn = DBUtil.getConnection();
+            // 关联查询t_contract_process和t_contract表，获取待办任务详情
+            // type: 1-会签, 2-审批, 3-签订；state=0表示待处理
+            String sql = "SELECT p.con_num, c.name AS contract_name, p.type, p.state, p.time " +
+                         "FROM t_contract_process p LEFT JOIN t_contract c ON p.con_num = c.num " +
+                         "WHERE p.state = 0 AND p.user_name = ? ORDER BY p.time DESC";
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, userName);
+            rs = pstmt.executeQuery();
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            while (rs.next()) {
+                String conNum = rs.getString("con_num");
+                String contractName = rs.getString("contract_name");
+                int type = rs.getInt("type");
+                // 将类型码转换为中文名称
+                String typeName;
+                switch (type) {
+                    case 1: typeName = "会签"; break;
+                    case 2: typeName = "审批"; break;
+                    case 3: typeName = "签订"; break;
+                    default: typeName = "未知"; break;
+                }
+                String stateName = "待处理";
+                String time = rs.getTimestamp("time") != null ? sdf.format(rs.getTimestamp("time")) : "";
+                list.add(new PendingTaskInfo(conNum, contractName, typeName, stateName, time));
+            }
+        } catch (Exception e) {
+            System.err.println("[通知] 待办任务详情查询异常: " + e.getMessage());
+        } finally {
+            DBUtil.close(conn, pstmt, rs);
+        }
+        return list;
     }
 }

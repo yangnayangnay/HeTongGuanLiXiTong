@@ -39,8 +39,8 @@ public class LoginFrame extends JFrame {
      * 构造方法：初始化登录窗口
      */
     public LoginFrame() {
-        setTitle("合同管理系统 - 登录");
-        setSize(420, 320);
+        setTitle("🔐 合同管理系统 - 登录");
+        setSize(420, 380);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // 关闭窗口时退出程序
         setLocationRelativeTo(null);  // 窗口居中显示
         setResizable(false);  // 禁止调整大小
@@ -55,11 +55,23 @@ public class LoginFrame extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
         mainPanel.setBackground(new Color(245, 245, 250));  // 浅灰背景
 
-        // 标题标签
-        JLabel lblTitle = new JLabel("合同管理系统", SwingConstants.CENTER);
+        // 标题区域面板
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setOpaque(false);
+
+        // 主标题标签
+        JLabel lblTitle = new JLabel("📋 合同管理系统", SwingConstants.CENTER);
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 24));
-        lblTitle.setForeground(new Color(51, 51, 102));  // 深蓝色标题
-        mainPanel.add(lblTitle, BorderLayout.NORTH);
+        lblTitle.setForeground(new Color(44, 62, 80));  // #2C3E50 深蓝灰
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+
+        // 副标题
+        JLabel lblSubtitle = new JLabel("Enterprise Contract Management System", SwingConstants.CENTER);
+        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblSubtitle.setForeground(new Color(52, 152, 219));  // #3498DB 亮蓝
+        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
+
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
 
         // 表单面板（用户名、密码输入区）
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -90,25 +102,36 @@ public class LoginFrame extends JFrame {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         btnPanel.setOpaque(false);
 
-        JButton btnLogin = new JButton("登 录");
-        btnLogin.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        btnLogin.setPreferredSize(new Dimension(100, 35));
-        btnLogin.setBackground(new Color(66, 133, 244));  // 蓝色登录按钮
+        JButton btnLogin = new JButton("🔐 登 录");
+        btnLogin.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        btnLogin.setPreferredSize(new Dimension(120, 38));
+        btnLogin.setBackground(new Color(52, 152, 219));  // #3498DB 亮蓝
         btnLogin.setOpaque(true);
-        btnLogin.setForeground(Color.BLACK);
+        btnLogin.setForeground(Color.WHITE);  // 白色文字
         btnLogin.setFocusPainted(false);  // 去除焦点边框
 
-        JButton btnRegister = new JButton("注 册");
-        btnRegister.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        btnRegister.setPreferredSize(new Dimension(100, 35));
-        btnRegister.setBackground(new Color(52, 168, 83));  // 绿色注册按钮
-        btnRegister.setOpaque(true);
-        btnRegister.setContentAreaFilled(true);
-        btnRegister.setForeground(Color.BLACK);
-        btnRegister.setFocusPainted(false);
+        // 注册链接（蓝色超链接样式）
+        JLabel lblRegister = new JLabel("<html><a href='#' style='color:#3498DB;text-decoration:none;'>📝 还没有账号？点击注册</a></html>");
+        lblRegister.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        lblRegister.setForeground(new Color(52, 152, 219));  // 蓝色超链接
+        lblRegister.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblRegister.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                new RegisterFrame().setVisible(true);
+            }
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                lblRegister.setForeground(new Color(41, 128, 185));  // 悬停加深
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                lblRegister.setForeground(new Color(52, 152, 219));  // 恢复蓝色
+            }
+        });
 
         btnPanel.add(btnLogin);
-        btnPanel.add(btnRegister);
+        btnPanel.add(lblRegister);
         mainPanel.add(btnPanel, BorderLayout.SOUTH);
 
         add(mainPanel);
@@ -118,14 +141,6 @@ public class LoginFrame extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 login();
-            }
-        });
-
-        // 注册按钮事件：打开注册窗口
-        btnRegister.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                new RegisterFrame().setVisible(true);
             }
         });
 

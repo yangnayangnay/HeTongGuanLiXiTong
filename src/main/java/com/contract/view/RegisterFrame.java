@@ -34,8 +34,8 @@ public class RegisterFrame extends JFrame {
      * 构造方法：初始化注册窗口
      */
     public RegisterFrame() {
-        setTitle("合同管理系统 - 注册");
-        setSize(400, 360);
+        setTitle("📝 合同管理系统 - 注册");
+        setSize(420, 400);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);  // 关闭时只销毁本窗口，不退出程序
         setLocationRelativeTo(null);
         setResizable(false);
@@ -50,11 +50,22 @@ public class RegisterFrame extends JFrame {
         mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 40, 25, 40));
         mainPanel.setBackground(new Color(245, 245, 250));
 
-        // 标题
-        JLabel lblTitle = new JLabel("用户注册", SwingConstants.CENTER);
+        // 标题区域面板
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setOpaque(false);
+
+        // 主标题
+        JLabel lblTitle = new JLabel("👤 用户注册", SwingConstants.CENTER);
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(51, 51, 102));
-        mainPanel.add(lblTitle, BorderLayout.NORTH);
+        lblTitle.setForeground(new Color(44, 62, 80));  // #2C3E50 深蓝灰
+        titlePanel.add(lblTitle, BorderLayout.CENTER);
+
+        // 副标题
+        JLabel lblSubtitle = new JLabel("Create Your Account", SwingConstants.CENTER);
+        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+        lblSubtitle.setForeground(new Color(52, 152, 219));  // #3498DB 亮蓝
+        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
 
         // 表单面板
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -98,21 +109,21 @@ public class RegisterFrame extends JFrame {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         btnPanel.setOpaque(false);
 
-        JButton btnRegister = new JButton("注 册");
-        btnRegister.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        btnRegister.setPreferredSize(new Dimension(100, 35));
-        btnRegister.setBackground(new Color(52, 168, 83));  // 绿色
+        JButton btnRegister = new JButton("📝 注 册");
+        btnRegister.setFont(new Font("微软雅黑", Font.BOLD, 14));
+        btnRegister.setPreferredSize(new Dimension(120, 38));
+        btnRegister.setBackground(new Color(39, 174, 96));  // #27AE60 绿色
         btnRegister.setOpaque(true);
-        btnRegister.setForeground(Color.BLACK);
+        btnRegister.setForeground(Color.WHITE);  // 白色文字
         btnRegister.setFocusPainted(false);
 
         JButton btnCancel = new JButton("取 消");
         btnCancel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         btnCancel.setPreferredSize(new Dimension(100, 35));
-        btnCancel.setBackground(new Color(158, 158, 158));  // 灰色
+        btnCancel.setBackground(new Color(149, 165, 166));  // 灰色
         btnCancel.setOpaque(true);
         btnCancel.setContentAreaFilled(true);
-        btnCancel.setForeground(Color.BLACK);
+        btnCancel.setForeground(Color.WHITE);
         btnCancel.setFocusPainted(false);
 
         btnPanel.add(btnRegister);

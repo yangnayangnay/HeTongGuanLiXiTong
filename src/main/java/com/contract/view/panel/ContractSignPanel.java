@@ -3,9 +3,12 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
+import com.contract.util.AIAssistantService;
+import com.contract.util.SignaturePad;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.List;
@@ -43,6 +46,8 @@ public class ContractSignPanel extends JPanel {
     private DefaultTableModel tableModel;
     // 签订信息输入区域（用于填写签订时的备注信息）
     private JTextArea txtSignInfo;
+    // 电子签名板组件（用于手写电子签名）
+    private SignaturePad signaturePad;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
     // 当前登录用户信息（用于过滤显示该用户待签订的合同）
@@ -100,6 +105,22 @@ public class ContractSignPanel extends JPanel {
         JPanel opPanel = new JPanel(new BorderLayout(5, 5));
         opPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
+        // 电子签名区域（放在签订信息上方）
+        JPanel signArea = new JPanel(new BorderLayout(5, 5));
+        signArea.setBorder(BorderFactory.createTitledBorder("电子签名（请在下方签字）"));
+        signaturePad = new SignaturePad();
+        signArea.add(signaturePad, BorderLayout.CENTER);
+
+        // 签名操作按钮（清除/确认）
+        JPanel signBtnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnClearSign = new JButton("清除签名");
+        btnClearSign.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        btnClearSign.setFocusPainted(false);
+        btnClearSign.addActionListener(e -> signaturePad.resetCanvas());
+        signBtnPanel.add(btnClearSign);
+        signArea.add(signBtnPanel, BorderLayout.SOUTH);
+        opPanel.add(signArea, BorderLayout.NORTH);
+
         // 签订信息输入区域
         JPanel formPanel = new JPanel(new BorderLayout(5, 5));
         formPanel.add(new JLabel("签订信息:"), BorderLayout.NORTH);
@@ -135,6 +156,17 @@ public class ContractSignPanel extends JPanel {
         btnViewContract.setFocusPainted(false);
         btnViewContract.addActionListener(e -> viewContractContent());
         btnPanel.add(btnViewContract);
+
+        // AI审查按钮（调用AI服务审查合同内容）
+        JButton btnAIReview = new JButton("🤖 AI审查");
+        btnAIReview.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnAIReview.setBackground(new Color(155, 89, 182));  // 紫色背景
+        btnAIReview.setOpaque(true);
+        btnAIReview.setContentAreaFilled(true);
+        btnAIReview.setForeground(Color.WHITE);
+        btnAIReview.setFocusPainted(false);
+        btnAIReview.addActionListener(e -> showAIReviewDialog());
+        btnPanel.add(btnAIReview);
 
         opPanel.add(btnPanel, BorderLayout.SOUTH);
         add(opPanel, BorderLayout.SOUTH);
@@ -212,12 +244,23 @@ public class ContractSignPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "签订信息不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        // 校验电子签名（签订前必须完成手写签名）
+        if (!signaturePad.hasSignature()) {
+            JOptionPane.showMessageDialog(this, "请先进行电子签名！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 获取签名数据（可用于后续存入数据库）
+        byte[] signatureBytes = signaturePad.getSignatureBytes();
+        System.out.println("[签订面板] 电子签名已校验通过，签名数据大小: " +
+            (signatureBytes != null ? signatureBytes.length : 0) + " 字节");
         // 调用服务层执行签订操作（传入流程ID、签订信息、操作人姓名）
         if (contractService.signContract(processId, signInfo, currentUser.getName())) {
             // 签订成功提示
             JOptionPane.showMessageDialog(this, "签订成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             // 清空签订信息输入框
             txtSignInfo.setText("");
+            // 重置电子签名板
+            signaturePad.resetCanvas();
             // 刷新列表，移除已完成的合同
             loadData();
         } else {
@@ -276,5 +319,63 @@ public class ContractSignPanel extends JPanel {
         dialog.add(btnPanel, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+    }
+
+    /**
+     * 显示AI审查对话框
+     * <p>
+     * 弹出对话框调用AI服务对选中合同的内容进行智能审查，
+     * 以异步方式执行避免阻塞UI线程。
+     * </p>
+     */
+    private void showAIReviewDialog() {
+        // 获取选中的表格行索引
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择要审查的合同！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 获取选中行的合同编号
+        String conNum = (String) tableModel.getValueAt(row, 1);
+        Contract contract = contractService.findByNum(conNum);
+        if (contract == null || contract.getContent() == null || contract.getContent().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "没有可供审查的合同内容！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String content = contract.getContent();
+
+        // 创建AI审查结果对话框
+        JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "🤖 AI智能审查 - " + conNum, false);
+        dialog.setLayout(new BorderLayout(5, 5));
+        dialog.setSize(700, 550);
+        dialog.setLocationRelativeTo(this);  // 居中显示
+
+        // AI审查结果显示区域
+        JTextArea txtResult = new JTextArea();
+        txtResult.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtResult.setLineWrap(true);
+        txtResult.setWrapStyleWord(true);
+        txtResult.setEditable(false);
+        txtResult.setText("⏳ 正在调用AI审查，请稍候...");
+        dialog.add(new JScrollPane(txtResult), BorderLayout.CENTER);
+
+        // 关闭按钮
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnClose = new JButton("关闭");
+        btnClose.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        btnPanel.add(btnClose);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+
+        // 异步调用AI服务（避免阻塞UI）
+        new Thread(() -> {
+            String result = AIAssistantService.reviewContract(content);
+            // 在EDT线程中更新UI
+            SwingUtilities.invokeLater(() -> txtResult.setText(result));
+        }).start();
     }
 }

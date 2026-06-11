@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.entity.Customer;
 import com.contract.service.ContractService;
 import com.contract.service.CustomerService;
+import com.contract.util.AIAssistantService;
 import com.contract.util.CalendarPickerUtil;
 import com.contract.util.FileUploadUtil;
 
@@ -278,6 +279,17 @@ public class ContractDraftPanel extends JPanel {
         btnReset.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         btnReset.addActionListener(e -> resetForm());
         btnPanel.add(btnReset);
+
+        // AI审查按钮（调用AI服务对合同内容进行智能审查）
+        JButton btnAIReview = new JButton("🤖 AI审查");
+        btnAIReview.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        btnAIReview.setBackground(new Color(155, 89, 182));  // 紫色背景
+        btnAIReview.setOpaque(true);
+        btnAIReview.setContentAreaFilled(true);
+        btnAIReview.setForeground(Color.WHITE);
+        btnAIReview.setFocusPainted(false);
+        btnAIReview.addActionListener(e -> showAIReviewDialog());
+        btnPanel.add(btnAIReview);
 
         add(btnPanel, BorderLayout.SOUTH);
     }
@@ -760,5 +772,53 @@ public class ContractDraftPanel extends JPanel {
         lblFileName.setText("未选择文件"); // 重置文件名显示
         lblFileName.setForeground(Color.GRAY);  // 恢复默认灰色
         btnDownloadFile.setEnabled(false);      // 禁用下载按钮（无文件可下载）
+    }
+
+    /**
+     * 显示AI审查对话框
+     * <p>
+     * 弹出对话框调用AI服务对当前编辑的合同内容进行智能审查，
+     * 以异步方式执行避免阻塞UI线程。
+     * </p>
+     */
+    private void showAIReviewDialog() {
+        String content = txtContent.getText().trim();
+        if (content.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "没有可供审查的合同内容，请先填写合同内容！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 创建AI审查结果对话框
+        JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "🤖 AI智能审查", false);
+        dialog.setLayout(new BorderLayout(5, 5));
+        dialog.setSize(700, 550);
+        dialog.setLocationRelativeTo(this);
+
+        // AI审查结果显示区域
+        JTextArea txtResult = new JTextArea();
+        txtResult.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtResult.setLineWrap(true);
+        txtResult.setWrapStyleWord(true);
+        txtResult.setEditable(false);
+        txtResult.setText("⏳ 正在调用AI审查，请稍候...");
+        dialog.add(new JScrollPane(txtResult), BorderLayout.CENTER);
+
+        // 关闭按钮
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnClose = new JButton("关闭");
+        btnClose.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        btnPanel.add(btnClose);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+
+        // 异步调用AI服务（避免阻塞UI）
+        new Thread(() -> {
+            String result = AIAssistantService.reviewContract(content);
+            SwingUtilities.invokeLater(() -> txtResult.setText(result));
+        }).start();
     }
 }

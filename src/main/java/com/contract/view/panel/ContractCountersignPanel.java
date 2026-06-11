@@ -3,6 +3,7 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
+import com.contract.util.AIAssistantService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -134,6 +135,17 @@ public class ContractCountersignPanel extends JPanel {
         btnViewContract.setFocusPainted(false);
         btnViewContract.addActionListener(e -> viewContractContent());
         refreshPanel.add(btnViewContract);
+
+        // AI审查按钮（调用AI服务审查合同内容）
+        JButton btnAIReview = new JButton("🤖 AI审查");
+        btnAIReview.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnAIReview.setBackground(new Color(155, 89, 182));  // 紫色背景
+        btnAIReview.setOpaque(true);
+        btnAIReview.setContentAreaFilled(true);
+        btnAIReview.setForeground(Color.WHITE);
+        btnAIReview.setFocusPainted(false);
+        btnAIReview.addActionListener(e -> showAIReviewDialog());
+        refreshPanel.add(btnAIReview);
 
         opPanel.add(refreshPanel, BorderLayout.SOUTH);
 
@@ -273,5 +285,56 @@ public class ContractCountersignPanel extends JPanel {
         dialog.add(btnPanel, BorderLayout.SOUTH);
 
         dialog.setVisible(true);
+    }
+
+    /**
+     * 显示AI审查对话框
+     * <p>
+     * 弹出对话框调用AI服务对选中合同的内容进行智能审查，
+     * 以异步方式执行避免阻塞UI线程。
+     * </p>
+     */
+    private void showAIReviewDialog() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择要审查的合同！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String conNum = (String) tableModel.getValueAt(row, 1);
+        Contract contract = contractService.findByNum(conNum);
+        if (contract == null || contract.getContent() == null || contract.getContent().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "没有可供审查的合同内容！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String content = contract.getContent();
+
+        JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "🤖 AI智能审查 - 会签", false);
+        dialog.setLayout(new BorderLayout(5, 5));
+        dialog.setSize(700, 550);
+        dialog.setLocationRelativeTo(this);
+
+        JTextArea txtResult = new JTextArea();
+        txtResult.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtResult.setLineWrap(true);
+        txtResult.setWrapStyleWord(true);
+        txtResult.setEditable(false);
+        txtResult.setText("⏳ 正在调用AI审查，请稍候...");
+        dialog.add(new JScrollPane(txtResult), BorderLayout.CENTER);
+
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnClose = new JButton("关闭");
+        btnClose.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        btnPanel.add(btnClose);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+
+        new Thread(() -> {
+            String result = AIAssistantService.reviewContract(content);
+            SwingUtilities.invokeLater(() -> txtResult.setText(result));
+        }).start();
     }
 }
