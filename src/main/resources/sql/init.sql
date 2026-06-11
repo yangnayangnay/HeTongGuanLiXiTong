@@ -42,7 +42,8 @@ CREATE TABLE t_user (
     id NUMBER PRIMARY KEY,
     name VARCHAR2(40) NOT NULL UNIQUE,
     password VARCHAR2(100) NOT NULL,
-    status NUMBER(1) DEFAULT 0   -- 0:待审核 1:已通过 2:已拒绝
+    status NUMBER(1) DEFAULT 0,   -- 0:待审核 1:已通过 2:已拒绝
+    email VARCHAR2(100) DEFAULT 'default@example.com'  -- 邮箱地址，用于接收任务通知
 );
 
 -- 2. 角色表
@@ -79,7 +80,10 @@ CREATE TABLE t_contract (
     beginTime DATE,
     endTime DATE,
     content CLOB,
-    userName VARCHAR2(40)
+    userName VARCHAR2(40),
+    file_data BLOB,           -- 合同附件二进制数据（PDF/DOCX等）
+    file_name VARCHAR2(100),  -- 附件原始文件名
+    file_type VARCHAR2(20)    -- 文件类型（pdf/docx/doc等）
 );
 
 -- 6. 合同操作流程表
@@ -129,7 +133,8 @@ CREATE TABLE t_contract_attachment (
     fileName VARCHAR2(100),
     path VARCHAR2(200),
     type VARCHAR2(20),
-    uploadTime DATE
+    uploadTime DATE,
+    file_data BLOB            -- 附件实际二进制数据
 );
 
 -- 插入初始功能数据
@@ -154,7 +159,7 @@ INSERT INTO t_role VALUES (seq_role.NEXTVAL, '审批人员', '审批合同', 'F0
 INSERT INTO t_role VALUES (seq_role.NEXTVAL, '签订人员', '签订合同', 'F05,F07,F08');
 
 -- 插入初始管理员用户（密码: admin123，状态: 已通过）
-INSERT INTO t_user VALUES (seq_user.NEXTVAL, 'admin', 'admin123', 1);
+INSERT INTO t_user VALUES (seq_user.NEXTVAL, 'admin', 'admin123', 1, 'admin@example.com');
 
 -- 给管理员分配角色
 INSERT INTO t_right VALUES (seq_right.NEXTVAL, 'admin', '管理员', '系统管理员');

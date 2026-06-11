@@ -25,6 +25,8 @@ public class RegisterFrame extends JFrame {
     private JPasswordField txtPassword;
     /** 确认密码输入框 */
     private JPasswordField txtConfirmPassword;
+    /** 邮箱输入框（必填，用于接收任务通知邮件） */
+    private JTextField txtEmail;
     /** 用户服务对象 */
     private UserService userService = new UserService();
 
@@ -33,7 +35,7 @@ public class RegisterFrame extends JFrame {
      */
     public RegisterFrame() {
         setTitle("合同管理系统 - 注册");
-        setSize(400, 300);
+        setSize(400, 360);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);  // 关闭时只销毁本窗口，不退出程序
         setLocationRelativeTo(null);
         setResizable(false);
@@ -81,6 +83,14 @@ public class RegisterFrame extends JFrame {
         gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1;
         txtConfirmPassword = new JPasswordField(15);
         formPanel.add(txtConfirmPassword, gbc);
+
+        // 邮箱（必填，用于接收任务通知）
+        gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
+        formPanel.add(createLabel("邮  箱:*"), gbc);
+        gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 1;
+        txtEmail = new JTextField(15);
+        txtEmail.setToolTipText("请输入有效的邮箱地址，用于接收合同任务通知邮件");
+        formPanel.add(txtEmail, gbc);
 
         mainPanel.add(formPanel, BorderLayout.CENTER);
 
@@ -145,10 +155,11 @@ public class RegisterFrame extends JFrame {
         String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword()).trim();
         String confirmPassword = new String(txtConfirmPassword.getPassword()).trim();
+        String email = txtEmail.getText().trim();
 
         // 校验所有字段非空
-        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "所有字段不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
+        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || email.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "所有字段不能为空！（邮箱为必填项）", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         // 校验两次密码一致
@@ -156,9 +167,14 @@ public class RegisterFrame extends JFrame {
             JOptionPane.showMessageDialog(this, "两次输入的密码不一致！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
+        // 校验邮箱格式（简单正则校验）
+        if (!email.matches("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$")) {
+            JOptionPane.showMessageDialog(this, "请输入有效的邮箱地址格式！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-        // 调用Service进行注册
-        boolean success = userService.register(username, password);
+        // 调用Service进行注册（传入邮箱参数）
+        boolean success = userService.register(username, password, email);
         if (success) {
             JOptionPane.showMessageDialog(this,
                 "注册成功！请等待管理员审核通过后即可登录。",

@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.entity.User;
 import com.contract.service.ContractService;
 import com.contract.service.UserService;
+import com.contract.util.EmailService;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -257,6 +258,33 @@ public class ContractAssignPanel extends JPanel {
         if (contractService.assignContract(conNum, countersignUsers, approveUsers, signUsers)) {
             // 分配成功提示
             JOptionPane.showMessageDialog(this, "分配成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+
+            // 发送任务通知邮件给被分配的人员
+            // 遍历会签人员列表，为每个会签人员发送"会签"任务通知邮件
+            for (String countersignUser : countersignUsers) {
+                User u = userService.findByName(countersignUser);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendTaskNotification(u.getEmail(), countersignUser, conNum,
+                        tableModel.getValueAt(row, 1).toString(), "会签");
+                }
+            }
+            // 遍历审批人员列表，为每个审批人员发送"审批"任务通知邮件
+            for (String approveUser : approveUsers) {
+                User u = userService.findByName(approveUser);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendTaskNotification(u.getEmail(), approveUser, conNum,
+                        tableModel.getValueAt(row, 1).toString(), "审批");
+                }
+            }
+            // 遍历签订人员列表，为每个签订人员发送"签订"任务通知邮件
+            for (String signUser : signUsers) {
+                User u = userService.findByName(signUser);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendTaskNotification(u.getEmail(), signUser, conNum,
+                        tableModel.getValueAt(row, 1).toString(), "签订");
+                }
+            }
+
             // 刷新列表，移除已分配的合同
             loadData();
         } else {

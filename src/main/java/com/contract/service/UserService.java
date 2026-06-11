@@ -82,9 +82,10 @@ public class UserService {
      *
      * @param name     用户名（不能重复）
      * @param password 密码
+     * @param email    邮箱地址（必填，用于接收任务通知）
      * @return true-注册成功；false-用户名已存在或数据库操作失败
      */
-    public boolean register(String name, String password) {
+    public boolean register(String name, String password, String email) {
         // 检查用户名是否已存在，防止重复注册
         if (userDao.findByName(name) != null) {
             return false;  // 用户名已存在，注册失败
@@ -92,11 +93,12 @@ public class UserService {
         User user = new User();
         user.setName(name);
         user.setPassword(password);
+        user.setEmail(email);  // 设置邮箱地址
         user.setStatus(STATUS_PENDING);  // 新注册用户默认待审核状态
         boolean result = userDao.insert(user);
         if (result) {
             // 注册成功后记录日志
-            logDao.insert(new Log(0, name, "注册新用户: " + name + "，等待管理员审核", null));
+            logDao.insert(new Log(0, name, "注册新用户: " + name + "，邮箱: " + email + "，等待管理员审核", null));
         }
         return result;
     }

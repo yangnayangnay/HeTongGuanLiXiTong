@@ -111,6 +111,14 @@ public class ContractFinalizePanel extends JPanel {
         btnRefresh.addActionListener(e -> loadData());
         JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         refreshPanel.add(btnRefresh);
+
+        // 查看合同内容按钮（灰色次要按钮）
+        JButton btnViewContract = new JButton("查看合同");
+        btnViewContract.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnViewContract.setFocusPainted(false);
+        btnViewContract.addActionListener(e -> viewContractContent());
+        refreshPanel.add(btnViewContract);
+
         topPanel.add(refreshPanel, BorderLayout.SOUTH);
 
         add(topPanel, BorderLayout.CENTER);
@@ -264,5 +272,57 @@ public class ContractFinalizePanel extends JPanel {
             // 定稿失败提示（可能是合同状态不正确等原因）
             JOptionPane.showMessageDialog(this, "定稿失败！合同状态可能不正确。", "错误", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    /**
+     * 查看选中合同的完整内容
+     * <p>
+     * 弹出一个对话框，显示当前选中合同的完整正文内容。
+     * 用户可以在定稿前查看合同详细内容以便做出准确的定稿判断。
+     * </p>
+     */
+    private void viewContractContent() {
+        // 获取选中的表格行索引
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择要查看的合同！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // 获取选中行的合同编号和名称
+        String conNum = (String) tableModel.getValueAt(row, 0);
+        String conName = (String) tableModel.getValueAt(row, 1);
+        // 根据合同编号查询完整的合同实体
+        Contract contract = contractService.findByNum(conNum);
+        if (contract == null) {
+            JOptionPane.showMessageDialog(this, "未找到合同信息！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 创建对话框显示合同内容
+        JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "合同内容 - " + conName, false);
+        dialog.setLayout(new BorderLayout(5, 5));
+        dialog.setSize(600, 500);
+        dialog.setLocationRelativeTo(this);  // 居中显示
+
+        // 合同内容文本区域（只读）
+        JTextArea txtContent = new JTextArea();
+        txtContent.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtContent.setLineWrap(true);
+        txtContent.setWrapStyleWord(true);
+        txtContent.setEditable(false);
+        txtContent.setText(contract.getContent() != null ? contract.getContent() : "(无合同内容)");
+        dialog.add(new JScrollPane(txtContent), BorderLayout.CENTER);
+
+        // 关闭按钮
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton btnClose = new JButton("关闭");
+        btnClose.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        btnPanel.add(btnClose);
+        dialog.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
     }
 }

@@ -56,8 +56,10 @@ public class UserDao {
             rs = pstmt.executeQuery();  // 执行查询
             if (rs.next()) {
                 // 将结果集映射为User对象并返回
-                return new User(rs.getInt("id"), rs.getString("name"),
+                User user = new User(rs.getInt("id"), rs.getString("name"),
                     rs.getString("password"), rs.getInt("status"));
+                user.setEmail(rs.getString("email"));  // 设置邮箱字段
+                return user;
             }
         } catch (Exception e) {
             e.printStackTrace();  // 打印异常堆栈信息，便于调试
@@ -87,8 +89,10 @@ public class UserDao {
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 // 遍历结果集，将每条记录转换为User对象添加到列表
-                list.add(new User(rs.getInt("id"), rs.getString("name"),
-                    rs.getString("password"), rs.getInt("status")));
+                User user = new User(rs.getInt("id"), rs.getString("name"),
+                    rs.getString("password"), rs.getInt("status"));
+                user.setEmail(rs.getString("email"));  // 设置邮箱字段
+                list.add(user);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -116,8 +120,10 @@ public class UserDao {
             pstmt = conn.prepareStatement("SELECT * FROM t_user WHERE status = 0 ORDER BY id");
             rs = pstmt.executeQuery();
             while (rs.next()) {
-                list.add(new User(rs.getInt("id"), rs.getString("name"),
-                    rs.getString("password"), rs.getInt("status")));
+                User user = new User(rs.getInt("id"), rs.getString("name"),
+                    rs.getString("password"), rs.getInt("status"));
+                user.setEmail(rs.getString("email"));  // 设置邮箱字段
+                list.add(user);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -143,11 +149,12 @@ public class UserDao {
             // 获取下一个自增ID，保证主键唯一
             int id = DBUtil.getNextId("seq_user");
             // 插入新用户记录，使用参数化防止SQL注入
-            pstmt = conn.prepareStatement("INSERT INTO t_user(id, name, password, status) VALUES(?, ?, ?, ?)");
+            pstmt = conn.prepareStatement("INSERT INTO t_user(id, name, password, status, email) VALUES(?, ?, ?, ?, ?)");
             pstmt.setInt(1, id);                    // 参数1：用户ID
             pstmt.setString(2, user.getName());      // 参数2：用户名
             pstmt.setString(3, user.getPassword());  // 参数3：密码
             pstmt.setInt(4, user.getStatus());       // 参数4：状态
+            pstmt.setString(5, user.getEmail());      // 参数5：邮箱
             // executeUpdate返回受影响的行数，大于0表示插入成功
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
@@ -171,11 +178,12 @@ public class UserDao {
         try {
             conn = DBUtil.getConnection();
             // 根据ID更新用户信息
-            pstmt = conn.prepareStatement("UPDATE t_user SET name=?, password=?, status=? WHERE id=?");
+            pstmt = conn.prepareStatement("UPDATE t_user SET name=?, password=?, status=?, email=? WHERE id=?");
             pstmt.setString(1, user.getName());      // 参数1：新用户名
             pstmt.setString(2, user.getPassword());  // 参数2：新密码
             pstmt.setInt(3, user.getStatus());       // 参数3：新状态
-            pstmt.setInt(4, user.getId());           // 参数4：条件-用户ID
+            pstmt.setString(4, user.getEmail());      // 参数4：新邮箱
+            pstmt.setInt(5, user.getId());           // 参数5：条件-用户ID
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();

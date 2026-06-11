@@ -75,6 +75,24 @@ public class Contract {
      * <p>记录谁创建或负责此合同，用于责任追溯和工作流分配</p>
      */
     private String userName;
+    /**
+     * 合同附件的二进制数据
+     * <p>存储合同附件文件（如PDF、DOCX等）的完整二进制内容</p>
+     * <p>对应数据库t_contract表的FILE_DATA列（BLOB类型）</p>
+     */
+    private byte[] fileData;
+    /**
+     * 附件原始文件名
+     * <p>保留用户上传时的原始文件名，用于下载时恢复文件名</p>
+     * <p>例如："采购合同2024.pdf"</p>
+     */
+    private String fileName;
+    /**
+     * 附件文件类型
+     * <p>记录文件扩展名类型，用于前端显示图标和校验</p>
+     * <p>取值范围：pdf、docx、doc</p>
+     */
+    private String fileType;
 
     /**
      * 无参构造方法
@@ -201,6 +219,42 @@ public class Contract {
      * @param userName 创建人用户名
      */
     public void setUserName(String userName) { this.userName = userName; }
+
+    /**
+     * 获取合同附件的二进制数据
+     * @return 附件文件内容的字节数组
+     */
+    public byte[] getFileData() { return fileData; }
+
+    /**
+     * 设置合同附件的二进制数据
+     * @param fileData 附件文件内容的字节数组
+     */
+    public void setFileData(byte[] fileData) { this.fileData = fileData; }
+
+    /**
+     * 获取附件原始文件名
+     * @return 文件名字符串
+     */
+    public String getFileName() { return fileName; }
+
+    /**
+     * 设置附件原始文件名
+     * @param fileName 原始文件名
+     */
+    public void setFileName(String fileName) { this.fileName = fileName; }
+
+    /**
+     * 获取附件文件类型
+     * @return 文件类型（如pdf、docx、doc）
+     */
+    public String getFileType() { return fileType; }
+
+    /**
+     * 设置附件文件类型
+     * @param fileType 文件类型扩展名
+     */
+    public void setFileType(String fileType) { this.fileType = fileType; }
 
     /**
      * 返回合同编号和名称的组合字符串

@@ -257,6 +257,59 @@ public class App {
                 stmt.executeUpdate("UPDATE t_user SET status = 1 WHERE status IS NULL");
                 System.out.println("[迁移] 已为t_user表添加status列，现有用户状态设为已通过");
             }
+
+            // 检查t_user表是否有email列
+            boolean hasEmailColumn = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tab_columns WHERE table_name='T_USER' AND column_name='EMAIL'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    hasEmailColumn = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!hasEmailColumn) {
+                // 添加email列，默认值为default@example.com，兼容已有用户
+                stmt.execute("ALTER TABLE t_user ADD email VARCHAR2(100) DEFAULT 'default@example.com'");
+                stmt.executeUpdate("UPDATE t_user SET email = 'default@example.com' WHERE email IS NULL");
+                System.out.println("[迁移] 已为t_user表添加email列，现有用户邮箱设为默认值");
+            }
+
+            // 检查t_contract表是否有file_data列（用于合同附件功能）
+            boolean contractHasFileData = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tab_columns WHERE table_name='T_CONTRACT' AND column_name='FILE_DATA'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    contractHasFileData = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!contractHasFileData) {
+                // 为t_contract表添加附件相关三列
+                stmt.execute("ALTER TABLE t_contract ADD file_data BLOB");           // 合同附件二进制数据
+                stmt.execute("ALTER TABLE t_contract ADD file_name VARCHAR2(100)");  // 附件原始文件名
+                stmt.execute("ALTER TABLE t_contract ADD file_type VARCHAR2(20)");   // 文件类型（pdf/docx等）
+                System.out.println("[迁移] 已为t_contract表添加file_data/file_name/file_type列（合同附件支持）");
+            }
+
+            // 检查t_contract_process表是否有file_data列（用于流程附件功能）
+            boolean processHasFileData = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tab_columns WHERE table_name='T_CONTRACT_PROCESS' AND column_name='FILE_DATA'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    processHasFileData = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!processHasFileData) {
+                // 为t_contract_process表添加附件相关三列
+                stmt.execute("ALTER TABLE t_contract_process ADD file_data BLOB");           // 流程附件二进制数据
+                stmt.execute("ALTER TABLE t_contract_process ADD file_name VARCHAR2(100)");  // 流程附件文件名
+                stmt.execute("ALTER TABLE t_contract_process ADD file_type VARCHAR2(20)");   // 流程附件文件类型
+                System.out.println("[迁移] 已为t_contract_process表添加file_data/file_name/file_type列（流程附件支持）");
+            }
         } catch (Exception e) {
             // 迁移失败不影响启动，只是打印警告
             System.err.println("[迁移警告] 数据库兼容性检查异常: " + e.getMessage());

@@ -5,6 +5,7 @@ import com.contract.entity.ContractProcess;
 import com.contract.entity.ContractState;
 import com.contract.service.ContractService;
 import com.contract.service.UserService;
+import com.contract.util.CalendarPickerUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -14,6 +15,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+
 
 /**
  * 合同信息查询面板（按权限控制是否显示详细内容）
@@ -46,10 +48,12 @@ import java.util.List;
 public class ContractQueryPanel extends JPanel {
     // 合同名称搜索输入框
     private JTextField txtSearchName;
-    // 开始时间筛选（下拉日期选择器）
-    private JSpinner spinDateFrom;
-    // 结束时间筛选（下拉日期选择器）
-    private JSpinner spinDateTo;
+    // 状态筛选下拉框
+    private JComboBox<String> cmbStatus;
+    // 开始时间筛选（文本框+日历按钮）
+    private JTextField txtDateFrom;
+    // 结束时间筛选（文本框+日历按钮）
+    private JTextField txtDateTo;
     // 是否启用开始时间筛选
     private JCheckBox chkUseFrom;
     // 是否启用结束时间筛选
@@ -66,6 +70,12 @@ public class ContractQueryPanel extends JPanel {
     private JTextArea txtProcessDetail;
     // 流程区域标题标签
     private JLabel lblProcessTitle;
+    // 附件信息标签（显示文件名）
+    private JLabel lblAttachmentInfo;
+    // 下载附件按钮
+    private JButton btnDownloadAttachment;
+    // 当前选中合同的附件文件名（用于下载功能）
+    private String currentAttachmentFileName;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
     // 用户业务服务类（用于权限判断）
@@ -124,6 +134,11 @@ public class ContractQueryPanel extends JPanel {
         txtSearchName.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         row1.add(txtSearchName);
 
+        // 状态筛选下拉框
+        cmbStatus = new JComboBox<>(new String[]{"全部状态", "起草", "会签完成", "定稿完成", "审批完成", "签订完成"});
+        cmbStatus.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        row1.add(cmbStatus);
+
         // 查询按钮（执行模糊搜索）
         JButton btnSearch = new JButton("查询");
         btnSearch.setFont(new Font("微软雅黑", Font.PLAIN, 13));
@@ -138,10 +153,10 @@ public class ContractQueryPanel extends JPanel {
         // 显示全部按钮（重置搜索条件）
         JButton btnShowAll = new JButton("显示全部");
         btnShowAll.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        btnShowAll.addActionListener(e -> { chkUseFrom.setSelected(false); chkUseTo.setSelected(false); loadAllData(); });
+        btnShowAll.addActionListener(e -> { cmbStatus.setSelectedIndex(0); chkUseFrom.setSelected(false); chkUseTo.setSelected(false); loadAllData(); });
         row1.add(btnShowAll);
 
-        // 第二行：时间范围筛选（下拉日期选择器 + 启用开关）
+        // 第二行：时间范围筛选（文本框 + 日历按钮 + 启用开关）
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 3));
 
         // 开始时间区域
@@ -150,15 +165,34 @@ public class ContractQueryPanel extends JPanel {
         chkUseFrom.setFocusPainted(false);
         row2.add(chkUseFrom);
 
-        spinDateFrom = new JSpinner(new SpinnerDateModel());
-        spinDateFrom.setEditor(new JSpinner.DateEditor(spinDateFrom, "yyyy-MM-dd"));
-        spinDateFrom.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        spinDateFrom.setEnabled(false);  // 默认不启用
-        ((JSpinner.DefaultEditor)spinDateFrom.getEditor()).getTextField().setColumns(12);
-        row2.add(spinDateFrom);
+        txtDateFrom = new JTextField(12);
+        txtDateFrom.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtDateFrom.setEnabled(false);
+        row2.add(txtDateFrom);
 
-        // 勾选复选框时启用/禁用日期选择器
-        chkUseFrom.addActionListener(e -> spinDateFrom.setEnabled(chkUseFrom.isSelected()));
+        JButton btnCalFrom = new JButton("\uD83D\uDCC5");
+        btnCalFrom.setFont(new Font("微软雅黑", Font.PLAIN, 11));
+        btnCalFrom.setToolTipText("从日历选择日期");
+        btnCalFrom.setEnabled(false);
+        btnCalFrom.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                Date selected = CalendarPickerUtil.showDatePicker(ContractQueryPanel.this, "选择开始时间", null);
+                if (selected != null) {
+                    txtDateFrom.setText(new SimpleDateFormat("yyyy-MM-dd").format(selected));
+                }
+            }
+        });
+        row2.add(btnCalFrom);
+
+        chkUseFrom.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                boolean enabled = chkUseFrom.isSelected();
+                txtDateFrom.setEnabled(enabled);
+                btnCalFrom.setEnabled(enabled);
+            }
+        });
 
         row2.add(new JLabel("~"));
 
@@ -168,14 +202,34 @@ public class ContractQueryPanel extends JPanel {
         chkUseTo.setFocusPainted(false);
         row2.add(chkUseTo);
 
-        spinDateTo = new JSpinner(new SpinnerDateModel());
-        spinDateTo.setEditor(new JSpinner.DateEditor(spinDateTo, "yyyy-MM-dd"));
-        spinDateTo.setFont(new Font("微软雅黑", Font.PLAIN, 13));
-        spinDateTo.setEnabled(false);  // 默认不启用
-        ((JSpinner.DefaultEditor)spinDateTo.getEditor()).getTextField().setColumns(12);
-        row2.add(spinDateTo);
+        txtDateTo = new JTextField(12);
+        txtDateTo.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtDateTo.setEnabled(false);
+        row2.add(txtDateTo);
 
-        chkUseTo.addActionListener(e -> spinDateTo.setEnabled(chkUseTo.isSelected()));
+        JButton btnCalTo = new JButton("\uD83D\uDCC5");
+        btnCalTo.setFont(new Font("微软雅黑", Font.PLAIN, 11));
+        btnCalTo.setToolTipText("从日历选择日期");
+        btnCalTo.setEnabled(false);
+        btnCalTo.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                Date selected = CalendarPickerUtil.showDatePicker(ContractQueryPanel.this, "选择结束时间", null);
+                if (selected != null) {
+                    txtDateTo.setText(new SimpleDateFormat("yyyy-MM-dd").format(selected));
+                }
+            }
+        });
+        row2.add(btnCalTo);
+
+        chkUseTo.addActionListener(new java.awt.event.ActionListener() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                boolean enabled = chkUseTo.isSelected();
+                txtDateTo.setEnabled(enabled);
+                btnCalTo.setEnabled(enabled);
+            }
+        });
 
         JLabel lblHint = new JLabel("(勾选后 ▼ 选择日期)");
         lblHint.setFont(new Font("微软雅黑", Font.PLAIN, 11));
@@ -236,6 +290,26 @@ public class ContractQueryPanel extends JPanel {
         txtDetailContent.setLineWrap(true);
         txtDetailContent.setEditable(false);
         leftPanel.add(new JScrollPane(txtDetailContent), BorderLayout.CENTER);
+
+        // 左侧底部：附件操作按钮区
+        JPanel attachmentPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 2));
+        lblAttachmentInfo = new JLabel("");  // 显示附件文件名
+        lblAttachmentInfo.setFont(new Font("微软雅黑", Font.PLAIN, 11));
+        lblAttachmentInfo.setForeground(new Color(0, 120, 215));  // 蓝色链接色
+        attachmentPanel.add(lblAttachmentInfo);
+
+        // 下载附件按钮（默认隐藏，有附件时显示）
+        btnDownloadAttachment = new JButton("下载附件");
+        btnDownloadAttachment.setFont(new Font("微软雅黑", Font.PLAIN, 11));
+        btnDownloadAttachment.setBackground(new Color(66, 133, 244));
+        btnDownloadAttachment.setOpaque(true);
+        btnDownloadAttachment.setContentAreaFilled(true);
+        btnDownloadAttachment.setForeground(Color.BLACK);
+        btnDownloadAttachment.setFocusPainted(false);
+        btnDownloadAttachment.setVisible(false);  // 默认隐藏
+        btnDownloadAttachment.addActionListener(e -> downloadAttachment());
+        attachmentPanel.add(btnDownloadAttachment);
+        leftPanel.add(attachmentPanel, BorderLayout.SOUTH);
 
         // ===== 右侧：流程历史面板 =====
         JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
@@ -301,6 +375,10 @@ public class ContractQueryPanel extends JPanel {
             txtDetailContent.setText("");
             lblProcessTitle.setText("点击上方表格查看流程记录");
             txtProcessDetail.setText("");
+            // 重置附件信息
+            lblAttachmentInfo.setText("");
+            btnDownloadAttachment.setVisible(false);
+            currentAttachmentFileName = null;
             return;
         }
 
@@ -326,6 +404,17 @@ public class ContractQueryPanel extends JPanel {
         sb.append("起草人: ").append(drafter).append("\n");
         sb.append("当前状态: ").append(state).append("\n\n");
 
+        // 处理附件信息显示
+        currentAttachmentFileName = null;
+        if (contract != null && contract.getFileName() != null && !contract.getFileName().isEmpty()) {
+            currentAttachmentFileName = contract.getFileName();
+            lblAttachmentInfo.setText("📎 附件: " + contract.getFileName());
+            btnDownloadAttachment.setVisible(true);
+        } else {
+            lblAttachmentInfo.setText("");
+            btnDownloadAttachment.setVisible(false);
+        }
+
         if (canViewFullContent(drafter)) {
             lblDetailTitle.setText(conName + " - 完整内容");
             if (contract != null && contract.getContent() != null) {
@@ -333,12 +422,22 @@ public class ContractQueryPanel extends JPanel {
             } else {
                 sb.append("(无合同内容)");
             }
+            // 显示附件信息（如果有）
+            if (contract != null && contract.getFileName() != null && !contract.getFileName().isEmpty()) {
+                sb.append("\n\n--- 附件信息 ---\n");
+                sb.append("附件: ").append(contract.getFileName()).append("\n");
+            }
             txtDetailContent.setText(sb.toString());
             txtDetailContent.setForeground(Color.BLACK);
         } else {
             lblDetailTitle.setText(conName + " - 仅基本信息");
             sb.append("--- 合同正文 ---\n");
             sb.append("[您没有权限查看该合同的详细内容]\n(只有管理员或合同起草人可查看完整内容)");
+            // 即使无权限也显示附件名称
+            if (contract != null && contract.getFileName() != null && !contract.getFileName().isEmpty()) {
+                sb.append("\n\n--- 附件信息 ---\n");
+                sb.append("附件: ").append(contract.getFileName()).append("\n");
+            }
             txtDetailContent.setText(sb.toString());
             txtDetailContent.setForeground(Color.GRAY);
         }
@@ -455,12 +554,32 @@ public class ContractQueryPanel extends JPanel {
      */
     private void fillTable(List<Contract> contracts) {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        // 只有勾选了复选框才启用对应的日期筛选
-        Date dateFrom = chkUseFrom.isSelected() ? (Date) spinDateFrom.getValue() : null;
-        Date dateTo = chkUseTo.isSelected() ? (Date) spinDateTo.getValue() : null;
+        // 只有勾选了复选框才启用对应的日期筛选（从文本框解析日期）
+        Date dateFrom = null;
+        if (chkUseFrom.isSelected()) {
+            try {
+                dateFrom = new SimpleDateFormat("yyyy-MM-dd").parse(txtDateFrom.getText().trim());
+            } catch (Exception ignored) {}
+        }
+        Date dateTo = null;
+        if (chkUseTo.isSelected()) {
+            try {
+                dateTo = new SimpleDateFormat("yyyy-MM-dd").parse(txtDateTo.getText().trim());
+            } catch (Exception ignored) {}
+        }
+
+        // 获取状态筛选条件
+        String selectedStatus = (String) cmbStatus.getSelectedItem();
+        boolean filterByStatus = selectedStatus != null && !"全部状态".equals(selectedStatus);
 
         int matched = 0;
         for (Contract c : contracts) {
+            // 状态筛选：如果选择了非"全部状态"的选项，则按状态名过滤
+            if (filterByStatus) {
+                String stateName = contractService.getContractStateName(c.getNum());
+                if (!selectedStatus.equals(stateName)) continue;
+            }
+
             Date conBeginTime = c.getBeginTime();
             // 时间范围筛选：合同的开始时间必须在 [dateFrom, dateTo] 范围内
             if (dateFrom != null && conBeginTime != null && conBeginTime.before(dateFrom)) continue;
@@ -485,5 +604,24 @@ public class ContractQueryPanel extends JPanel {
             lblProcessTitle.setText("无匹配结果");
             txtProcessDetail.setText("");
         }
+    }
+
+    /**
+     * 下载当前选中合同的附件
+     * <p>
+     * 该方法为文件下载功能的入口，后续可配合实际的文件存储服务实现真正的下载逻辑。
+     * 当前版本提供功能框架和用户提示。
+     * </p>
+     */
+    private void downloadAttachment() {
+        if (currentAttachmentFileName == null || currentAttachmentFileName.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "当前合同没有附件！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        // TODO: 后续配合文件存储服务实现实际下载功能
+        // 此处预留下载接口，可通过 contractService 获取文件流并保存到本地
+        JOptionPane.showMessageDialog(this,
+            "附件下载功能正在开发中...\n\n附件文件名: " + currentAttachmentFileName,
+            "提示", JOptionPane.INFORMATION_MESSAGE);
     }
 }

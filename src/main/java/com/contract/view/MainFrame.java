@@ -2,6 +2,7 @@ package com.contract.view;
 
 import com.contract.entity.User;
 import com.contract.service.UserService;
+import com.contract.util.NotificationService;
 import com.contract.view.panel.*;
 
 import javax.swing.*;
@@ -54,6 +55,12 @@ public class MainFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         initUI();
+
+        // 延迟500ms后检查待办任务并弹窗提示（等待主窗口完全显示后再弹窗）
+        SwingUtilities.invokeLater(() -> {
+            try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+            checkAndShowPendingTasks();
+        });
     }
 
     /**
@@ -304,5 +311,34 @@ public class MainFrame extends JFrame {
         contentPanel.add(welcomePanel, BorderLayout.CENTER);
         contentPanel.revalidate();
         contentPanel.repaint();
+    }
+
+    /**
+     * 检查并显示待办任务通知
+     * <p>
+     * 在用户登录成功后、主窗口完全加载后调用此方法。
+     * 通过NotificationService查询当前用户的待办任务数量，
+     * 如果有待办任务则弹出提示对话框告知用户。
+     * </p>
+     *
+     * <p>异常处理：通知检查失败不影响系统的正常使用，
+     * 仅在控制台输出错误日志。</p>
+     */
+    private void checkAndShowPendingTasks() {
+        try {
+            // 查询当前登录用户的待办任务数量
+            int pendingCount = NotificationService.getPendingTaskCount(currentUser.getName());
+            if (pendingCount > 0) {
+                // 有待办任务时弹窗提示用户
+                JOptionPane.showMessageDialog(this,
+                    "您有 " + pendingCount + " 个待处理的合同任务！\n\n" +
+                    "请在左侧菜单中选择对应的功能模块查看和处理。",
+                    "待办任务提醒",
+                    JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception e) {
+            // 通知检查失败不影响正常使用，仅记录错误日志
+            System.err.println("[通知] 待办任务检查异常: " + e.getMessage());
+        }
     }
 }

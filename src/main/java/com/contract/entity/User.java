@@ -41,6 +41,8 @@ public class User {
      * </ul>
      */
     private int status;
+    /** 用户邮箱地址，用于接收任务通知邮件 */
+    private String email;
 
     /**
      * 无参构造方法
@@ -61,6 +63,7 @@ public class User {
         this.name = name;
         this.password = password;
         this.status = 1; // 兼容旧构造，默认设为已通过状态
+        this.email = ""; // 默认空邮箱
     }
 
     /**
@@ -77,6 +80,7 @@ public class User {
         this.name = name;
         this.password = password;
         this.status = status;
+        this.email = ""; // 默认空邮箱
     }
 
     /**
@@ -126,6 +130,18 @@ public class User {
      * @param status 状态码（0-待审核, 1-已通过, 2-已拒绝）
      */
     public void setStatus(int status) { this.status = status; }
+
+    /**
+     * 获取用户邮箱
+     * @return 邮箱地址
+     */
+    public String getEmail() { return email; }
+
+    /**
+     * 设置用户邮箱
+     * @param email 邮箱地址
+     */
+    public void setEmail(String email) { this.email = email; }
 
     /**
      * 返回用户名的字符串表示
