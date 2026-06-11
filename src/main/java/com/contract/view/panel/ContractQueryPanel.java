@@ -3,9 +3,12 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.entity.ContractState;
+import com.contract.entity.ContractVersion;
 import com.contract.service.ContractService;
+import com.contract.service.ContractVersionService;
 import com.contract.service.UserService;
 import com.contract.util.CalendarPickerUtil;
+import com.contract.util.DataExportUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -78,6 +81,8 @@ public class ContractQueryPanel extends JPanel {
     private String currentAttachmentFileName;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
+    // 合同版本控制服务类
+    private ContractVersionService versionService = new ContractVersionService();
     // 用户业务服务类（用于权限判断）
     private UserService userService = new UserService();
     // 当前登录用户信息（用于权限控制）
@@ -155,6 +160,39 @@ public class ContractQueryPanel extends JPanel {
         btnShowAll.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnShowAll.addActionListener(e -> { cmbStatus.setSelectedIndex(0); chkUseFrom.setSelected(false); chkUseTo.setSelected(false); loadAllData(); });
         row1.add(btnShowAll);
+
+        // 导出CSV按钮
+        JButton btnExportCSV = new JButton("📥 导出CSV");
+        btnExportCSV.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnExportCSV.setBackground(new Color(66, 133, 244));
+        btnExportCSV.setOpaque(true);
+        btnExportCSV.setContentAreaFilled(true);
+        btnExportCSV.setForeground(Color.WHITE);
+        btnExportCSV.setFocusPainted(false);
+        btnExportCSV.addActionListener(e -> exportToCSV());
+        row1.add(btnExportCSV);
+
+        // 导出HTML报表按钮
+        JButton btnExportHTML = new JButton("📄 导出报表");
+        btnExportHTML.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnExportHTML.setBackground(new Color(46, 204, 113));
+        btnExportHTML.setOpaque(true);
+        btnExportHTML.setContentAreaFilled(true);
+        btnExportHTML.setForeground(Color.BLACK);
+        btnExportHTML.setFocusPainted(false);
+        btnExportHTML.addActionListener(e -> exportToHTML());
+        row1.add(btnExportHTML);
+
+        // 版本历史按钮（查看选中合同的版本变更记录）
+        JButton btnVersionHistory = new JButton("版本历史");
+        btnVersionHistory.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnVersionHistory.setBackground(new Color(155, 89, 182));  // 紫色背景
+        btnVersionHistory.setOpaque(true);
+        btnVersionHistory.setContentAreaFilled(true);
+        btnVersionHistory.setForeground(Color.WHITE);
+        btnVersionHistory.setFocusPainted(false);
+        btnVersionHistory.addActionListener(e -> showVersionHistoryDialog());
+        row1.add(btnVersionHistory);
 
         // 第二行：时间范围筛选（文本框 + 日历按钮 + 启用开关）
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 3));
@@ -623,5 +661,196 @@ public class ContractQueryPanel extends JPanel {
         JOptionPane.showMessageDialog(this,
             "附件下载功能正在开发中...\n\n附件文件名: " + currentAttachmentFileName,
             "提示", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * 导出当前查询结果为CSV文件
+     */
+    private void exportToCSV() {
+        try {
+            List<Contract> contracts = contractService.findAll();
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("导出CSV文件");
+            fileChooser.setSelectedFile(new java.io.File("合同数据.csv"));
+            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                DataExportUtil.exportToCSV(contracts, fileChooser.getSelectedFile().getAbsolutePath());
+                JOptionPane.showMessageDialog(this, "CSV导出成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "导出失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * 导出当前查询结果为HTML报表
+     */
+    private void exportToHTML() {
+        try {
+            List<Contract> contracts = contractService.findAll();
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("导出HTML报表");
+            fileChooser.setSelectedFile(new java.io.File("合同报表.html"));
+            if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                DataExportUtil.exportToHTML(contracts, fileChooser.getSelectedFile().getAbsolutePath());
+                JOptionPane.showMessageDialog(this, "HTML报表导出成功！\n可用浏览器打开后Ctrl+P打印为PDF。", "成功", JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "导出失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * 显示版本历史对话框
+     * <p>
+     * 选中一行后点击"版本历史"按钮弹出版本历史对话框：
+     * - 左侧是版本列表（版本号+修改人+时间+摘要）
+     * - 右侧是该版本的内容预览
+     * - 底部有"对比"按钮可选择两个版本进行diff
+     * </p>
+     */
+    private void showVersionHistoryDialog() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择一行数据！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String conNum = (String) tableModel.getValueAt(row, 0);       // 合同编号
+        String conName = (String) tableModel.getValueAt(row, 1);      // 合同名称
+
+        // 查询该合同的所有版本
+        List<ContractVersion> versions = versionService.getVersions(conNum);
+        if (versions.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "该合同暂无版本记录！", "提示", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
+        // 创建版本历史对话框
+        JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "📋 版本历史 - " + conName + " (" + conNum + ")", false);
+        dialog.setLayout(new BorderLayout(8, 8));
+        dialog.setSize(950, 600);
+        dialog.setLocationRelativeTo(this);
+
+        // ===== 左侧：版本列表 =====
+        JPanel leftPanel = new JPanel(new BorderLayout(5, 5));
+        leftPanel.setBorder(BorderFactory.createTitledBorder("版本列表"));
+        String[] verColumns = {"版本号", "修改人", "修改时间", "变更摘要"};
+        DefaultTableModel verModel = new DefaultTableModel(verColumns, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable verTable = new JTable(verModel);
+        verTable.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        verTable.setRowHeight(24);
+        verTable.getTableHeader().setFont(new Font("微软雅黑", Font.BOLD, 11));
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        for (ContractVersion v : versions) {
+            verModel.addRow(new Object[]{
+                "v" + v.getVersionNo(),
+                v.getModifier(),
+                v.getModifyTime() != null ? sdf.format(v.getModifyTime()) : "",
+                v.getChangeSummary()
+            });
+        }
+        leftPanel.add(new JScrollPane(verTable), BorderLayout.CENTER);
+
+        // 默认选中第一行
+        if (verModel.getRowCount() > 0) {
+            verTable.setRowSelectionInterval(0, 0);
+        }
+
+        // ===== 右侧：内容预览区 =====
+        JPanel rightPanel = new JPanel(new BorderLayout(5, 5));
+        rightPanel.setBorder(BorderFactory.createTitledBorder("版本内容预览"));
+        JTextArea txtPreview = new JTextArea();
+        txtPreview.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        txtPreview.setLineWrap(true);
+        txtPreview.setEditable(false);
+        rightPanel.add(new JScrollPane(txtPreview), BorderLayout.CENTER);
+
+        // 点击左侧表格行时显示对应版本内容
+        verTable.getSelectionModel().addListSelectionListener(e -> {
+            int selRow = verTable.getSelectedRow();
+            if (selRow >= 0 && selRow < versions.size()) {
+                ContractVersion selectedVer = versions.get(selRow);
+                txtPreview.setText(selectedVer.getContent() != null ? selectedVer.getContent() : "(无内容)");
+                txtPreview.setCaretPosition(0);  // 滚动到顶部
+            }
+        });
+
+        // 初始化时加载第一个版本的内容
+        if (!versions.isEmpty()) {
+            txtPreview.setText(versions.get(0).getContent() != null ? versions.get(0).getContent() : "(无内容)");
+        }
+
+        // 用JSplitPane组合左右面板
+        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, leftPanel, rightPanel);
+        splitPane.setDividerLocation(350);
+        dialog.add(splitPane, BorderLayout.CENTER);
+
+        // ===== 底部：操作按钮区 =====
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
+
+        // 版本对比按钮
+        JButton btnCompare = new JButton("🔍 版本对比");
+        btnCompare.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnCompare.setBackground(new Color(52, 152, 219));
+        btnCompare.setOpaque(true);
+        btnCompare.setForeground(Color.WHITE);
+        btnCompare.setFocusPainted(false);
+        btnCompare.addActionListener(e -> {
+            // 弹出版本选择对话框让用户选择两个要对比的版本
+            JComboBox<String> cmbV1 = new JComboBox<>();
+            JComboBox<String> cmbV2 = new JComboBox<>();
+            for (ContractVersion v : versions) {
+                cmbV1.addItem("v" + v.getVersionNo());
+                cmbV2.addItem("v" + v.getVersionNo());
+            }
+            if (cmbV2.getItemCount() > 1) cmbV2.setSelectedIndex(1);  // 默认选第二个
+
+            JPanel selectPanel = new JPanel(new GridLayout(2, 2, 10, 10));
+            selectPanel.add(new JLabel("选择版本1:"));
+            selectPanel.add(cmbV1);
+            selectPanel.add(new JLabel("选择版本2:"));
+            selectPanel.add(cmbV2);
+
+            int option = JOptionPane.showConfirmDialog(dialog, selectPanel,
+                "选择要对比的两个版本", JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
+            if (option == JOptionPane.OK_OPTION) {
+                int v1Num = Integer.parseInt(((String) cmbV1.getSelectedItem()).substring(1));
+                int v2Num = Integer.parseInt(((String) cmbV2.getSelectedItem()).substring(1));
+                String diffResult = versionService.compareVersions(conNum, v1Num, v2Num);
+
+                // 显示对比结果对话框
+                JDialog diffDialog = new JDialog(dialog, "版本对比结果: v" + v1Num + " vs v" + v2Num, false);
+                diffDialog.setLayout(new BorderLayout(5, 5));
+                diffDialog.setSize(700, 500);
+                diffDialog.setLocationRelativeTo(dialog);
+
+                JTextArea txtDiff = new JTextArea();
+                txtDiff.setFont(new Font("Consolas", Font.PLAIN, 12));
+                txtDiff.setEditable(false);
+                txtDiff.setText(diffResult);
+                diffDialog.add(new JScrollPane(txtDiff), BorderLayout.CENTER);
+
+                JPanel closePanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+                JButton btnCloseDiff = new JButton("关闭");
+                btnCloseDiff.addActionListener(ev -> diffDialog.dispose());
+                closePanel.add(btnCloseDiff);
+                diffDialog.add(closePanel, BorderLayout.SOUTH);
+
+                diffDialog.setVisible(true);
+            }
+        });
+        bottomPanel.add(btnCompare);
+
+        // 关闭按钮
+        JButton btnClose = new JButton("关闭");
+        btnClose.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnClose.setFocusPainted(false);
+        btnClose.addActionListener(e -> dialog.dispose());
+        bottomPanel.add(btnClose);
+
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
     }
 }

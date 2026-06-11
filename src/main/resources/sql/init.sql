@@ -3,6 +3,7 @@
 
 -- 删除已有表（按依赖顺序）
 DROP TABLE t_contract_attachment CASCADE CONSTRAINTS;
+DROP TABLE t_contract_version CASCADE CONSTRAINTS;
 DROP TABLE t_contract_process CASCADE CONSTRAINTS;
 DROP TABLE t_contract_state CASCADE CONSTRAINTS;
 DROP TABLE t_contract CASCADE CONSTRAINTS;
@@ -24,6 +25,7 @@ DROP SEQUENCE seq_contract_state;
 DROP SEQUENCE seq_log;
 DROP SEQUENCE seq_customer;
 DROP SEQUENCE seq_contract_attachment;
+DROP SEQUENCE seq_contract_version;
 
 -- 创建序列
 CREATE SEQUENCE seq_user START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
@@ -83,7 +85,8 @@ CREATE TABLE t_contract (
     userName VARCHAR2(40),
     file_data BLOB,           -- 合同附件二进制数据（PDF/DOCX等）
     file_name VARCHAR2(100),  -- 附件原始文件名
-    file_type VARCHAR2(20)    -- 文件类型（pdf/docx/doc等）
+    file_type VARCHAR2(20),   -- 文件类型（pdf/docx/doc等）
+    amount NUMBER(14,2) DEFAULT 0  -- 合同金额
 );
 
 -- 6. 合同操作流程表
@@ -136,6 +139,22 @@ CREATE TABLE t_contract_attachment (
     uploadTime DATE,
     file_data BLOB            -- 附件实际二进制数据
 );
+
+-- 11. 合同版本历史表（用于版本控制和变更追踪）
+CREATE TABLE t_contract_version (
+    id NUMBER PRIMARY KEY,
+    contract_num VARCHAR2(50) NOT NULL,  -- 关联的合同编号
+    version_no NUMBER NOT NULL,           -- 版本号（1,2,3...）
+    content CLOB,                         -- 该版本的合同正文
+    file_data BLOB,                       -- 该版本的附件数据
+    file_name VARCHAR2(100),              -- 该版本的附件名
+    modifier VARCHAR2(40),               -- 修改人
+    modify_time TIMESTAMP DEFAULT SYSTIMESTAMP, -- 修改时间
+    change_summary VARCHAR2(500),         -- 变更摘要
+    CONSTRAINT uk_contract_version UNIQUE(contract_num, version_no)
+);
+
+CREATE SEQUENCE seq_contract_version START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE;
 
 -- 插入初始功能数据
 INSERT INTO t_function VALUES (seq_function.NEXTVAL, 'F01', '起草合同', '/contract/draft', '起草新合同');

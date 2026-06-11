@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.entity.ContractState;
 import com.contract.service.ContractService;
+import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
 
 import javax.swing.*;
@@ -50,6 +51,8 @@ public class ContractFinalizePanel extends JPanel {
     private JTextArea txtOpinionArea;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
+    // 合同版本控制服务类
+    private ContractVersionService versionService = new ContractVersionService();
     // 当前登录用户信息（必须是合同起草人才能看到待定稿的合同）
     private com.contract.entity.User currentUser;
 
@@ -278,6 +281,12 @@ public class ContractFinalizePanel extends JPanel {
         if (contractService.finalizeContract(conNum, content, currentUser.getName())) {
             // 定稿成功提示
             JOptionPane.showMessageDialog(this, "定稿成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            // 自动保存新版本（定稿版本）
+            Contract contract = contractService.findByNum(conNum);
+            versionService.saveVersion(conNum, content,
+                contract != null ? contract.getFileData() : null,
+                contract != null ? contract.getFileName() : null,
+                currentUser.getName(), "定稿合同（会签意见汇总后形成终稿）");
             // 清空编辑区和意见区
             txtContent.setText("");
             txtOpinionArea.setText("");

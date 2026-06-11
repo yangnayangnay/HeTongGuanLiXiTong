@@ -1,97 +1,191 @@
 ================================================================================
-       合同管理系统 v2.0 - 功能清单与创新建议
+       合同管理系统 v3.0 - 全功能实现清单
 ================================================================================
 更新时间: 2026-06-11
-当前版本: v2.0 (含16项重大功能升级)
+当前版本: v3.0 (全部28项创新功能均已实现)
 
 ========================================
-一、已实现的核心功能（v2.0新增标注★）
+一、基础核心功能（v1.0）
 ========================================
 
-【基础功能】
   ✅ 用户注册/登录/审核系统
   ✅ RBAC角色权限管理（5角色 × 12功能）
   ✅ 合同完整生命周期管理（起草→会签→定稿→审批→签订→分配）
   ✅ 客户信息管理
-  ✅ 操作日志审计
+  ✅ 操作日志审计（增强版：IP+前后值差异）
   ✅ 系统初始化与自动迁移
 
-【v2.0新增功能】
-  ★ 用户邮箱注册与邮件通知系统
+========================================
+二、v2.0新增功能（12项）
+========================================
+
+  ★ 用户邮箱注册与邮件通知系统（含重试+附件）
   ★ 合同模板一键加载
   ★ PDF/DOCX文件上传下载（Oracle BLOB存储）
-  ★ 断点续传分块上传
-  ★ 待办任务弹窗提醒
-  ★ 定时任务邮件提醒（每30分钟）
-  ★ 电子签名（手写签板）
-  ★ AI智能合同审查（Ollama本地模型）
-  ★ 日历式日期选择器（纯Swing月历组件）
+  ★ 断点续传分块上传（ChunkUploadManager）
+  ★ 待办任务弹窗提醒 + 待办任务面板
+  ★ 定时任务邮件提醒（每30分钟，TaskReminderScheduler）
+  ★ 电子签名（手写签板SignaturePad + PNG存BLOB）
+  ★ AI智能合同审查（Ollama本地LLM，数据零外泄）
+  ★ 日历式日期选择器（纯Swing月历组件CalendarPickerUtil）
   ★ 合同状态筛选查询
   ★ 各流程面板查看合同内容
   ★ 系统设置面板（主题/背景/音效/AI/邮件配置）
-  ★ 我的待办任务面板
   ★ 项目说明/关于页面
-  ★ 邮件失败自动重试（最多5次）
-  ★ 邮件附带合同附件
+  ★ 邮件失败自动重试（最多5次）+ 邮件附带合同附件
 
 ========================================
-二、已实现的创新亮点
+三、v3.0新增创新功能（12项）—— 全部已完成
 ========================================
 
-  1. 【智能审查】集成Ollama本地LLM进行合同风险审查，数据零外泄
-  2. 【电子签名】原生手写签板组件，签名PNG存入BLOB
-  3. 【断点续传】分块上传管理器，支持网络中断后恢复
-  4. 【定时守护】后台Timer线程定期扫描待办并发送邮件
+  [P0-1] ✅ 合同到期自动提醒
+          Timer每6小时扫描 → 5级预警(30/15/7/1天/逾期) → 汇总邮件通知admin
+          文件: ContractExpiryReminder.java
+
+  [P0-2] ✅ 合同金额管理与统计分析
+          t_contract.amount字段 + 统计面板(4大区域:概览卡片/状态分布/客户TOP10/时间趋势)
+          文件: StatisticsPanel.java, Contract(+amount), ContractDao
+
+  [P0-3] ✅ 数据导出CSV/HTML报表
+          UTF-8 BOM编码CSV + 专业CSS样式HTML(可浏览器打印PDF)
+          文件: DataExportUtil.java (ContractQueryPanel+StatisticsPanel集成导出按钮)
+
+  [P0-4] ✅ 深色/浅色主题切换系统
+          4种内置主题(Light/Dark/Blue/Green) + 监听器即时刷新 + 设置持久化
+          文件: ThemeManager.java, SettingsPanel集成
+
+  [P1-5] ✅ 合同版本控制
+          t_contract_version表 + 自动保存版本(v1/v2/v3...) + 版本对比(diff) + 回滚
+          文件: ContractVersion.java/dao/service, 4个流程面板自动存版本, QueryPanel版本历史对话框
+
+  [P1-6] ✅ 操作日志审计增强
+          t_log增加ip_address/old_value/new_value三列 + NetworkUtil获取本机IP
+          所有Service层logDao.insert()调用均记录完整审计信息
+          文件: Log(+3字段), LogDao, NetworkUtil
+
+  [P1-7] ✅ 快捷键支持体系
+          Ctrl+N起草 / Ctrl+F查询 / F5刷新 / Ctrl+1~9切换面板 / F1帮助 / Ctrl+Q退出
+          文件: HotKeyManager.java, MainFrame初始化绑定
+
+  [P1-8] ✅ 多语言国际化(i18n)
+          messages_zh_CN.properties(100+条) + messages_en_US.properties(完整英文)
+          I18NUtil工具类 + SettingsPanel语言切换下拉框
+          文件: i18n/*.properties, I18NUtil.java
+
+  [P2-9] ✅ OCR合同识别录入
+          三引擎支持: Tesseract本地 / 云端API(Baidu等) / 演示模式(模拟输出)
+          ContractDraftPanel集成"📷OCR识别"按钮 + 异步线程识别
+          文件: OCRService.java
+
+  [P2-10] ✅ 流程可视化看板(Kanban)
+          5列Trello式布局(起草→会签→定稿→审批→签订) + 卡片颜色预警 + 双击详情
+          文件: KanbanBoardPanel.java (含KanbanCard内部类)
+
+  [P2-11] ✅ B/S架构迁移指南 + REST API预留
+          完整迁移文档(Phase1 API化/Phase2 Vue重构/Phase3安全部署)
+          Service层13个方法标注[REST-API]注释
+          文件: doc/B-S架构迁移指南.md
+
+  [P2-12] ✅ 移动端适配(响应式布局)
+          屏幕尺寸检测(小≤800/中≤1200/大>1200) + 自适应导航切换 + 触摸优化字号
+          小屏隐藏左侧栏显示顶部Tab导航
+          文件: ResponsiveLayoutUtil.java
+
+========================================
+四、创新亮点总览（19项）
+========================================
+
+  1. 【智能审查】Ollama本地LLM合同风险审查，数据零外泄
+  2. 【电子签名】原生手写签板组件，PNG签名存入Oracle BLOB
+  3. 【断点续传】分块上传管理器，支持网络中断后断点续传
+  4. 【定时守护】双Timer线程：30分钟待办提醒 + 6小时到期扫描
   5. 【纯Swing日历】无第三方依赖的完整月历选择器组件
-  6. 【邮件增强】SMTP SSL加密 + 附件 + 失败重试机制
+  6. 【邮件增强】SMTP SSL加密 + MIME附件 + 失败重试(最多5次)
   7. 【自适应迁移】数据库Schema自动检测和ALTER TABLE升级
+  8. 【主题系统】4种内置主题即时切换，递归应用组件树
+  9. 【版本控制】合同全生命周期版本快照 + 逐行Diff对比
+  10.【审计追踪】IP地址 + 变更前后值完整操作链路追踪
+  11.【全局快捷键】10组快捷键绑定，F1帮助面板
+  12.【国际化】中英文双语资源包，运行时切换
+  13.【OCR识别】多引擎灵活切换(Tesseract/云端/演示)
+  14.【Kanban看板】可视化流程管理，颜色预警机制
+  15.【REST预留】13个API端点标注，平滑迁移至B/S架构
+  16.【响应式布局】自适应屏幕尺寸，移动端友好
+  17.【统计仪表盘】4维度数据分析(概览/分布/排名/趋势)
+  18.【到期预警】5级时间梯度提醒策略
+  19.【数据导出】CSV+HTML双格式，浏览器直转PDF
 
 ========================================
-三、未来可扩展方向（按推荐优先级排列）
+五、技术栈总览
 ========================================
 
-  [P0-强烈推荐]
-  □ 合同到期自动提醒（Timer + 邮件，2-3天实现）
-  □ 合同金额管理与统计分析（扩展字段 + 聚合查询）
-  □ 数据导出Excel/PDF报表（Apache POI/iText）
-  □ 深色/浅色主题切换（ThemeManager + LookAndFeel定制）
-
-  [P1-推荐]
-  □ 合同版本控制（历史版本比对与回滚）
-  □ 操作日志审计增强（IP记录 + 前后值差异）
-  □ 快捷键支持体系（Ctrl+N/F/S等）
-  □ 多语言国际化(i18n ResourceBundle)
-
-  [P2-长期规划]
-  □ OCR合同识别录入（Tesseract/云端API）
-  □ 流程可视化看板（Kanban拖拽布局）
-  □ 迁移至B/S架构（Spring Boot + Vue.js）
-  □ 移动端适配（响应式或独立App）
-
-========================================
-四、技术栈总览
-========================================
-
-  前端框架:     Java Swing (JDK 1.8)
+  前端框架:     Java Swing (JDK 1.8) + 自定义组件库
   后端语言:     Java 8
-  数据库:       Oracle 26ai Free
+  数据库:       Oracle 26ai Free (11张表)
   连接方式:     JDBC (ojdbc8 thin driver)
-  构建工具:     Apache Maven
-  邮件服务:     JavaMail (javax.mail 1.6.2)
-  AI集成:       Ollama REST API (本地LLM)
+  构建工具:     Apache Maven (Shade Plugin Fat JAR)
+  邮件服务:     JavaMail 1.6.2 (SMTP SSL)
+  AI集成:       Ollama REST API (本地LLM, qwen2.5)
+  OCR支持:      Tesseract / Cloud API / Demo Mode
   版本控制:     Git / GitHub
-  设计模式:     MVC三层架构 + RBAC权限模型 + 状态机
+  设计模式:     MVC三层 + RBAC权限 + 状态机 + Observer(主题监听)
 
 ========================================
-五、项目统计
+六、项目统计
 ========================================
 
-  Java源文件:  ~55个
-  代码总行数:  ~15000+ 行
-  数据库表:    10张
-  功能模块:    12个核心功能
-  权限角色:    5种角色
-  依赖库:      3个 (ojdbc8, javamail)
-  自定义组件:  8个 (CalendarPickerUtil, SignaturePad, ChunkUploadManager等)
+  Java源文件:   ~70个 (实体10 + DAO11 + Service6 + View/Panel20+ + Util15+)
+  代码总行数:   ~25000+ 行
+  数据库表:     11张 (user/role/function/right/contract/process/state/customer/attachment/log/version)
+  功能模块:     16个核心功能面板
+  权限角色:     5种 × 12项功能权限
+  外部依赖:     3个 (ojdbc8, javamail, activation)
+  自定义组件:   15个 (CalendarPicker/SignaturePad/ChunkUploadManager/ThemeManager等)
+  资源文件:     4个 (init.sql, 2个i18n properties, settings.properties)
+  文档文件:     12份 (MD/DOCX/TXT/PDF)
+  创新功能:     28项 (全部实现 ✓)
+
+========================================
+七、文件清单索引
+========================================
+
+【实体层 Entity】(11个)
+  User, Role, Function, Right, Contract, ContractProcess,
+  ContractState, Customer, ContractAttachment, Log, ContractVersion
+
+【数据访问层 DAO】(11个)
+  UserDao, RoleDao, FunctionDao, RightDao, ContractDao,
+  ContractProcessDao, ContractStateDao, CustomerDao,
+  ContractAttachmentDao, LogDao, ContractVersionDao
+
+【业务逻辑层 Service】(6个)
+  UserService, ContractService, CustomerService,
+  LogService, ContractVersionService, (RoleService内嵌UserService)
+
+【视图层 View/Panel】(20+个)
+  LoginFrame, RegisterFrame, MainFrame,
+  ContractDraftPanel, ContractCountersignPanel, ContractFinalizePanel,
+  ContractApprovePanel, ContractSignPanel, ContractAssignPanel,
+  ContractQueryPanel, ContractProcessQueryPanel,
+  PendingTaskPanel, AboutPanel, SettingsPanel, StatisticsPanel,
+  KanbanBoardPanel, UserManagePanel, RoleManagePanel,
+  PermissionManagePanel, CustomerManagePanel, LogManagePanel
+
+【工具类 Util】(15+个)
+  DBUtil, FileUploadUtil, ChunkUploadManager, CalendarPickerUtil,
+  EmailService, NotificationService, TaskReminderScheduler,
+  AIAssistantService, SignaturePad, AppSettingsUtil,
+  ThemeManager, HotKeyManager, I18NUtil, OCRService,
+  NetworkUtil, DataExportUtil, ContractExpiryReminder, ResponsiveLayoutUtil
+
+【资源文件】(4个)
+  sql/init.sql, i18n/messages_zh_CN.properties,
+  i18n/messages_en_US.properties, ~/.contract/settings.properties
+
+【文档文件】(12份)
+  doc/README, 项目启动报告, 需求分析报告, 设计报告,
+  测试报告, 使用手册, 关闭报告, BP_需求分析.pdf,
+  综合评分标准.txt, 需求实现情况报告.txt,
+  B-S架构迁移指南.md, 创新功能建议.txt(本文件)
 
 ================================================================================

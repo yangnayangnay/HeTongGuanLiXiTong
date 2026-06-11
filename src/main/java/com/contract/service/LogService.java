@@ -25,6 +25,8 @@ public class LogService {
      * <p>按时间倒序排列，最新日志在前</p>
      *
      * @return 日志记录列表
+     *
+     * [REST-API] GET /api/logs
      */
     public List<Log> findAll() {
         return logDao.findAll();

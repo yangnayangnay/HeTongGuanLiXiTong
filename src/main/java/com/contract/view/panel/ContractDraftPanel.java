@@ -3,6 +3,7 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.Customer;
 import com.contract.service.ContractService;
+import com.contract.service.ContractVersionService;
 import com.contract.service.CustomerService;
 import com.contract.util.AIAssistantService;
 import com.contract.util.CalendarPickerUtil;
@@ -48,6 +49,8 @@ public class ContractDraftPanel extends JPanel {
     private JTextArea txtContent;
     // 合同业务服务类，用于提交起草的合同
     private ContractService contractService = new ContractService();
+    // 合同版本控制服务类
+    private ContractVersionService versionService = new ContractVersionService();
     // 客户业务服务类，用于加载客户列表
     private CustomerService customerService = new CustomerService();
     // 当前登录用户信息
@@ -62,6 +65,8 @@ public class ContractDraftPanel extends JPanel {
     private byte[] currentFileData;
     // 当前选择的附件文件名
     private String currentFileName;
+    // 合同金额输入框
+    private JTextField txtAmount;
 
     /**
      * 构造方法：初始化起草合同面板
@@ -196,6 +201,18 @@ public class ContractDraftPanel extends JPanel {
 
         formPanel.add(endTimePanel, gbc);
 
+        // ---- 第3.5行：合同金额 ----
+        row++;
+        gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0; gbc.gridwidth = 1;
+        formPanel.add(createLabel("合同金额:"), gbc);
+        gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1; gbc.gridwidth = 3;
+        JPanel amountPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        txtAmount = new JTextField(15);
+        txtAmount.setText("0");  // 默认金额为0
+        amountPanel.add(txtAmount);
+        amountPanel.add(new JLabel("元"));
+        formPanel.add(amountPanel, gbc);
+
         // ---- 第4行：合同内容（含加载模板按钮）----
         row++;
         gbc.gridx = 0; gbc.gridy = row; gbc.weightx = 0; gbc.gridwidth = 1;
@@ -241,6 +258,17 @@ public class ContractDraftPanel extends JPanel {
         btnUploadFile.setForeground(Color.WHITE);
         btnUploadFile.addActionListener(e -> uploadAttachment());
         attachPanel.add(btnUploadFile);
+
+        // OCR识别按钮：点击后选择图片文件进行OCR文字识别
+        JButton btnOCR = new JButton("📷 OCR识别");
+        btnOCR.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        btnOCR.setFocusPainted(false);
+        btnOCR.setBackground(new Color(230, 126, 34));  // 橙色背景
+        btnOCR.setOpaque(true);
+        btnOCR.setForeground(Color.WHITE);
+        btnOCR.setToolTipText("通过OCR识别图片中的合同文字内容");
+        btnOCR.addActionListener(e -> performOCRRecognition());
+        attachPanel.add(btnOCR);
 
         // 文件名显示标签：显示当前已选择的附件文件名
         lblFileName = new JLabel("未选择文件");
@@ -502,11 +530,21 @@ public class ContractDraftPanel extends JPanel {
                 // 根据文件名自动提取文件类型（扩展名）
                 contract.setFileType(FileUploadUtil.getFileExtension(currentFileName));
             }
+            // 设置合同金额
+            try {
+                double amount = Double.parseDouble(txtAmount.getText().trim());
+                contract.setAmount(amount);
+            } catch (NumberFormatException e) {
+                contract.setAmount(0);  // 格式错误时默认为0
+            }
 
             // 调用服务层保存合同
             if (contractService.draftContract(contract)) {
                 // 保存成功：显示生成的合同编号并重置表单
                 JOptionPane.showMessageDialog(this, "起草成功！合同编号: " + contract.getNum(), "成功", JOptionPane.INFORMATION_MESSAGE);
+                // 自动保存版本v1（首次提交）
+                versionService.saveVersion(contract.getNum(), content, currentFileData,
+                    currentFileName, currentUser.getName(), "首次起草合同");
                 resetForm();  // 重置表单以便继续起草下一个合同
             } else {
                 // 保存失败：显示错误提示
@@ -766,6 +804,8 @@ public class ContractDraftPanel extends JPanel {
         txtEndTime.setText(sdf.format(cal.getTime()));
         // 清空合同内容
         txtContent.setText("");
+        // 重置合同金额
+        txtAmount.setText("0");
         // 重置附件相关状态
         currentFileData = null;           // 清空内存中的文件数据
         currentFileName = null;          // 清空文件名
@@ -819,6 +859,91 @@ public class ContractDraftPanel extends JPanel {
         new Thread(() -> {
             String result = AIAssistantService.reviewContract(content);
             SwingUtilities.invokeLater(() -> txtResult.setText(result));
+        }).start();
+    }
+
+    /**
+     * 执行OCR文字识别
+     * <p>
+     * 点击"OCR识别"按钮后触发此方法：
+     * <ol>
+     *   <li>弹出文件选择器让用户选择图片文件</li>
+     *   <li>使用异步线程调用OCR服务识别图片中的文字</li>
+     *   <li>将识别结果填入合同内容文本区域</li>
+     * </ol>
+     * 使用异步线程是因为OCR识别可能耗时较长，避免阻塞UI界面。
+     * </p>
+     */
+    private void performOCRRecognition() {
+        // 创建文件选择器对话框
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("选择要识别的合同图片");
+        // 设置文件过滤器：只显示常见图片格式
+        javax.swing.filechooser.FileFilter imageFilter = new javax.swing.filechooser.FileNameExtensionFilter(
+            "图片文件 (PNG, JPG, BMP, TIFF)", "png", "jpg", "jpeg", "bmp", "tiff");
+        fileChooser.setFileFilter(imageFilter);
+        fileChooser.setAcceptAllFileFilterUsed(false);
+
+        // 显示文件选择对话框
+        int result = fileChooser.showOpenDialog(this);
+        if (result != JFileChooser.APPROVE_OPTION) {
+            return;  // 用户取消了选择
+        }
+
+        // 获取用户选择的图片文件
+        File selectedImage = fileChooser.getSelectedFile();
+
+        // 创建进度提示对话框
+        JDialog progressDlg = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "📷 OCR文字识别", true);  // 模态对话框
+        progressDlg.setLayout(new BorderLayout(10, 10));
+        progressDlg.setSize(450, 200);
+        progressDlg.setLocationRelativeTo(this);
+
+        // 进度提示信息
+        JPanel msgPanel = new JPanel(new GridLayout(2, 1, 10, 10));
+        msgPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JLabel lblStatus = new JLabel("⏳ 正在识别图片文字，请稍候...", SwingConstants.CENTER);
+        lblStatus.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        msgPanel.add(lblStatus);
+
+        JLabel lblEngine = new JLabel("使用引擎: " + com.contract.util.OCRService.getCurrentEngine().desc, SwingConstants.CENTER);
+        lblEngine.setFont(new Font("微软雅黑", Font.PLAIN, 12));
+        lblEngine.setForeground(Color.GRAY);
+        msgPanel.add(lblEngine);
+
+        progressDlg.add(msgPanel, BorderLayout.CENTER);
+        progressDlg.setVisible(true);
+
+        // 异步执行OCR识别（避免阻塞UI线程）
+        new Thread(() -> {
+            try {
+                // 调用OCR服务进行文字识别
+                String ocrResult = com.contract.util.OCRService.recognizeImage(selectedImage);
+
+                // 在UI线程中更新结果
+                SwingUtilities.invokeLater(() -> {
+                    progressDlg.dispose();  // 关闭进度对话框
+
+                    // 将识别结果填入合同内容文本区
+                    txtContent.setText(ocrResult);
+
+                    // 提示用户识别完成
+                    JOptionPane.showMessageDialog(ContractDraftPanel.this,
+                        "OCR识别完成！\n\n已将识别结果填入"合同内容"文本区域。\n" +
+                        "请检查并修改识别不准确的内容。",
+                        "识别完成", JOptionPane.INFORMATION_MESSAGE);
+                });
+            } catch (Exception e) {
+                // OCR识别异常处理
+                SwingUtilities.invokeLater(() -> {
+                    progressDlg.dispose();  // 关闭进度对话框
+                    JOptionPane.showMessageDialog(ContractDraftPanel.this,
+                        "OCR识别失败: " + e.getMessage(),
+                        "识别错误", JOptionPane.ERROR_MESSAGE);
+                });
+            }
         }).start();
     }
 }

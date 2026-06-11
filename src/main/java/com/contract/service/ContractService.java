@@ -10,6 +10,7 @@ import com.contract.entity.ContractProcess;
 import com.contract.entity.ContractState;
 import com.contract.entity.ContractAttachment;
 import com.contract.entity.Log;
+import com.contract.util.NetworkUtil;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -63,6 +64,8 @@ public class ContractService {
      *
      * @param contract 合同对象（包含名称、客户、时间等信息）
      * @return true-起草成功；false-起草失败
+     *
+     * [REST-API] POST /api/contracts
      */
     public boolean draftContract(Contract contract) {
         // 生成合同编号：HT + 当前日期 + 4位流水号
@@ -79,8 +82,12 @@ public class ContractService {
             cs.setTime(new Date());
             stateDao.insert(cs);
 
-            // 记录操作日志
-            logDao.insert(new Log(0, contract.getUserName(), "起草合同: " + contract.getName() + "(" + num + ")", null));
+            // 记录操作日志（含IP和变更信息）
+            Log draftLog = new Log(0, contract.getUserName(), "起草合同: " + contract.getName() + "(" + num + ")", null);
+            draftLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            draftLog.setOldValue("合同不存在");
+            draftLog.setNewValue("状态=起草");
+            logDao.insert(draftLog);
         }
         return result;
     }
@@ -95,6 +102,8 @@ public class ContractService {
      * @param approveUsers      审批人员列表
      * @param signUsers         签订人员列表
      * @return true-分配成功；false-合同状态不正确
+     *
+     * [REST-API] POST /api/contracts/{conNum}/assign
      */
     public boolean assignContract(String conNum, List<String> countersignUsers, List<String> approveUsers, List<String> signUsers) {
         // 验证合同当前状态必须是"起草"才能分配
@@ -139,7 +148,11 @@ public class ContractService {
             processDao.insert(cp);
         }
 
-        logDao.insert(new Log(0, "admin", "分配合同: " + conNum, null));
+        Log assignLog = new Log(0, "admin", "分配合同: " + conNum, null);
+        assignLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+        assignLog.setOldValue("状态=起草（未分配）");
+        assignLog.setNewValue("已分配会签/审批/签订人员");
+        logDao.insert(assignLog);
         return true;
     }
 
@@ -151,6 +164,8 @@ public class ContractService {
      * @param processId 流程记录ID
      * @param opinion   会签意见
      * @return true-会签成功；false-会签失败
+     *
+     * [REST-API] POST /api/contracts/{conNum}/countersign
      */
     public boolean countersignContract(int processId, String opinion) {
         // 更新流程状态为已完成（state=1）
@@ -169,7 +184,11 @@ public class ContractService {
                     cs.setTime(new Date());
                     stateDao.insert(cs);
                 }
-                logDao.insert(new Log(0, cp.getUserName(), "会签合同: " + cp.getConNum(), null));
+                Log csLog = new Log(0, cp.getUserName(), "会签合同: " + cp.getConNum(), null);
+                csLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+                csLog.setOldValue("状态=会签中");
+                csLog.setNewValue("状态=会签完成");
+                logDao.insert(csLog);
             }
         }
         return result;
@@ -184,6 +203,8 @@ public class ContractService {
      * @param content  定稿后的合同正文内容
      * @param userName 操作人用户名
      * @return true-定稿成功；false-状态不符或操作失败
+     *
+     * [REST-API] POST /api/contracts/{conNum}/finalize
      */
     public boolean finalizeContract(String conNum, String content, String userName) {
         // 验证合同状态必须为"会签完成"
@@ -206,7 +227,11 @@ public class ContractService {
             cs.setTime(new Date());
             stateDao.insert(cs);
 
-            logDao.insert(new Log(0, userName, "定稿合同: " + conNum, null));
+            Log finalizeLog = new Log(0, userName, "定稿合同: " + conNum, null);
+            finalizeLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            finalizeLog.setOldValue("状态=会签完成");
+            finalizeLog.setNewValue("状态=定稿完成");
+            logDao.insert(finalizeLog);
         }
         return result;
     }
@@ -224,6 +249,8 @@ public class ContractService {
      * @param opinion   审批意见
      * @param userName  审批人用户名
      * @return true-操作成功；false-操作失败
+     *
+     * [REST-API] POST /api/contracts/{conNum}/approve
      */
     public boolean approveContract(int processId, boolean approved, String opinion, String userName) {
         int newState = approved ? 1 : 2; // 1-已完成（通过）, 2-已否决
@@ -251,7 +278,16 @@ public class ContractService {
                     cs.setTime(new Date());
                     stateDao.insert(cs);
                 }
-                logDao.insert(new Log(0, userName, (approved ? "审批通过" : "审批否决") + "合同: " + cp.getConNum(), null));
+                Log approveLog = new Log(0, userName, (approved ? "审批通过" : "审批否决") + "合同: " + cp.getConNum(), null);
+                approveLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+                if (approved) {
+                    approveLog.setOldValue("状态=定稿完成");
+                    approveLog.setNewValue("状态=审批完成");
+                } else {
+                    approveLog.setOldValue("状态=定稿完成");
+                    approveLog.setNewValue("状态=起草（回退）");
+                }
+                logDao.insert(approveLog);
             }
         }
         return result;
@@ -265,6 +301,8 @@ public class ContractService {
      * @param info      签署信息/备注
      * @param userName  签署人用户名
      * @return true-签订成功；false-签订失败
+     *
+     * [REST-API] POST /api/contracts/{conNum}/sign
      */
     public boolean signContract(int processId, String info, String userName) {
         boolean result = processDao.updateState(processId, 1, info);
@@ -282,7 +320,11 @@ public class ContractService {
                     cs.setTime(new Date());
                     stateDao.insert(cs);
                 }
-                logDao.insert(new Log(0, userName, "签订合同: " + cp.getConNum(), null));
+                Log signLog = new Log(0, userName, "签订合同: " + cp.getConNum(), null);
+            signLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            signLog.setOldValue("状态=审批完成");
+            signLog.setNewValue("状态=签订完成");
+            logDao.insert(signLog);
             }
         }
         return result;
@@ -335,6 +377,8 @@ public class ContractService {
 
     /**
      * 获取所有合同列表
+     *
+     * [REST-API] GET /api/contracts
      */
     public List<Contract> findAll() {
         return contractDao.findAll();
@@ -342,6 +386,8 @@ public class ContractService {
 
     /**
      * 根据合同名称模糊搜索
+     *
+     * [REST-API] GET /api/contracts?name=xxx
      */
     public List<Contract> findByName(String name) {
         return contractDao.findByName(name);

@@ -310,6 +310,69 @@ public class App {
                 stmt.execute("ALTER TABLE t_contract_process ADD file_type VARCHAR2(20)");   // 流程附件文件类型
                 System.out.println("[迁移] 已为t_contract_process表添加file_data/file_name/file_type列（流程附件支持）");
             }
+
+            // 检查t_contract表是否有amount列（用于合同金额功能）
+            boolean contractHasAmount = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tab_columns WHERE table_name='T_CONTRACT' AND column_name='AMOUNT'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    contractHasAmount = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!contractHasAmount) {
+                // 为t_contract表添加金额列
+                stmt.execute("ALTER TABLE t_contract ADD amount NUMBER(14,2) DEFAULT 0");
+                stmt.executeUpdate("UPDATE t_contract SET amount = 0 WHERE amount IS NULL");
+                System.out.println("[迁移] 已为t_contract表添加amount列（合同金额支持）");
+            }
+
+            // 检查t_contract_version表是否存在（用于合同版本控制功能）
+            boolean hasContractVersionTable = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tables WHERE table_name='T_CONTRACT_VERSION'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    hasContractVersionTable = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!hasContractVersionTable) {
+                // 创建合同版本历史表
+                stmt.execute("CREATE TABLE t_contract_version (" +
+                    "id NUMBER PRIMARY KEY, " +
+                    "contract_num VARCHAR2(50) NOT NULL, " +
+                    "version_no NUMBER NOT NULL, " +
+                    "content CLOB, " +
+                    "file_data BLOB, " +
+                    "file_name VARCHAR2(100), " +
+                    "modifier VARCHAR2(40), " +
+                    "modify_time TIMESTAMP DEFAULT SYSTIMESTAMP, " +
+                    "change_summary VARCHAR2(500), " +
+                    "CONSTRAINT uk_contract_version UNIQUE(contract_num, version_no))");
+                // 创建序列
+                try { stmt.execute("CREATE SEQUENCE seq_contract_version START WITH 1 INCREMENT BY 1 NOCACHE NOCYCLE"); } catch (Exception ignored) {}
+                System.out.println("[迁移] 已创建t_contract_version表和seq_contract_version序列（合同版本控制）");
+            }
+
+            // 检查t_log表是否有ip_address/old_value/new_value列（操作日志审计增强）
+            boolean logHasIpColumn = false;
+            try {
+                rs = stmt.executeQuery(
+                    "SELECT COUNT(*) FROM user_tab_columns WHERE table_name='T_LOG' AND column_name='IP_ADDRESS'");
+                if (rs.next() && rs.getInt(1) > 0) {
+                    logHasIpColumn = true;
+                }
+            } catch (Exception ignored) {}
+
+            if (!logHasIpColumn) {
+                // 为t_log表增加审计增强字段
+                stmt.execute("ALTER TABLE t_log ADD ip_address VARCHAR2(45)");
+                stmt.execute("ALTER TABLE t_log ADD old_value VARCHAR2(500)");
+                stmt.execute("ALTER TABLE t_log ADD new_value VARCHAR2(500)");
+                System.out.println("[迁移] 已为t_log表添加ip_address/old_value/new_value列（日志审计增强）");
+            }
         } catch (Exception e) {
             // 迁移失败不影响启动，只是打印警告
             System.err.println("[迁移警告] 数据库兼容性检查异常: " + e.getMessage());

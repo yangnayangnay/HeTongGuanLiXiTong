@@ -6,6 +6,7 @@ import com.contract.dao.LogDao;
 import com.contract.entity.User;
 import com.contract.entity.Right;
 import com.contract.entity.Log;
+import com.contract.util.NetworkUtil;
 
 import java.util.List;
 
@@ -53,6 +54,8 @@ public class UserService {
      * @param name     用户登录名
      * @param password 用户密码（明文）
      * @return 登录成功返回User对象；未审核/密码错误/用户不存在返回null
+     *
+     * [REST-API] POST /api/auth/login
      */
     public User login(String name, String password) {
         User user = userDao.findByName(name);  // 先根据用户名查找用户
@@ -84,6 +87,8 @@ public class UserService {
      * @param password 密码
      * @param email    邮箱地址（必填，用于接收任务通知）
      * @return true-注册成功；false-用户名已存在或数据库操作失败
+     *
+     * [REST-API] POST /api/auth/register
      */
     public boolean register(String name, String password, String email) {
         // 检查用户名是否已存在，防止重复注册
@@ -97,8 +102,12 @@ public class UserService {
         user.setStatus(STATUS_PENDING);  // 新注册用户默认待审核状态
         boolean result = userDao.insert(user);
         if (result) {
-            // 注册成功后记录日志
-            logDao.insert(new Log(0, name, "注册新用户: " + name + "，邮箱: " + email + "，等待管理员审核", null));
+            // 注册成功后记录日志（含IP地址和变更信息）
+            Log regLog = new Log(0, name, "注册新用户: " + name + "，邮箱: " + email + "，等待管理员审核", null);
+            regLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            regLog.setOldValue("用户不存在");
+            regLog.setNewValue("状态=待审核");
+            logDao.insert(regLog);
         }
         return result;
     }
@@ -116,7 +125,11 @@ public class UserService {
             // 查询用户名用于日志记录
             List<User> all = userDao.findAll();
             String userName = all.stream().filter(u -> u.getId() == id).map(User::getName).findFirst().orElse("未知");
-            logDao.insert(new Log(0, "admin", "审核通过用户: " + userName, null));
+            Log approveLog = new Log(0, "admin", "审核通过用户: " + userName, null);
+            approveLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            approveLog.setOldValue("状态=待审核");
+            approveLog.setNewValue("状态=已通过");
+            logDao.insert(approveLog);
         }
         return result;
     }
@@ -133,7 +146,11 @@ public class UserService {
         if (result) {
             List<User> all = userDao.findAll();
             String userName = all.stream().filter(u -> u.getId() == id).map(User::getName).findFirst().orElse("未知");
-            logDao.insert(new Log(0, "admin", "拒绝用户: " + userName, null));
+            Log rejectLog = new Log(0, "admin", "拒绝用户: " + userName, null);
+            rejectLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            rejectLog.setOldValue("状态=待审核");
+            rejectLog.setNewValue("状态=已拒绝");
+            logDao.insert(rejectLog);
         }
         return result;
     }
@@ -203,6 +220,8 @@ public class UserService {
     /**
      * 获取所有用户列表
      * @return 所有用户
+     *
+     * [REST-API] GET /api/users
      */
     public List<User> findAll() {
         return userDao.findAll();
@@ -222,7 +241,11 @@ public class UserService {
         user.setStatus(STATUS_APPROVED);  // 管理员直接添加默认通过
         boolean result = userDao.insert(user);
         if (result) {
-            logDao.insert(new Log(0, "admin", "添加用户: " + user.getName(), null));
+            Log addLog = new Log(0, "admin", "添加用户: " + user.getName(), null);
+            addLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            addLog.setOldValue("用户不存在");
+            addLog.setNewValue("状态=已通过");
+            logDao.insert(addLog);
         }
         return result;
     }
@@ -236,7 +259,9 @@ public class UserService {
     public boolean updateUser(User user) {
         boolean result = userDao.update(user);
         if (result) {
-            logDao.insert(new Log(0, "admin", "修改用户: " + user.getName(), null));
+            Log updateLog = new Log(0, "admin", "修改用户: " + user.getName(), null);
+            updateLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            logDao.insert(updateLog);
         }
         return result;
     }
@@ -255,7 +280,11 @@ public class UserService {
         if (result && user != null) {
             // 级联删除该用户的权限记录
             rightDao.deleteByUserName(user.getName());
-            logDao.insert(new Log(0, "admin", "删除用户: " + user.getName(), null));
+            Log deleteLog = new Log(0, "admin", "删除用户: " + user.getName(), null);
+            deleteLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            deleteLog.setOldValue("用户存在");
+            deleteLog.setNewValue("用户已删除");
+            logDao.insert(deleteLog);
         }
         return result;
     }

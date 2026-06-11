@@ -3,6 +3,8 @@ package com.contract.view.panel;
 import com.contract.util.AIAssistantService;
 import com.contract.util.AppSettingsUtil;
 import com.contract.util.EmailService;
+import com.contract.util.I18NUtil;
+import com.contract.util.ThemeManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -27,7 +29,7 @@ import java.io.File;
 public class SettingsPanel extends JPanel {
 
     // ===== 外观设置组件 =====
-    private JComboBox<String> cmbThemeColor;      // 主题颜色选择
+    private JComboBox<ThemeManager.ThemeType> cmbThemeColor;  // 主题颜色选择（使用ThemeManager枚举）
     private JTextField txtBackgroundImage;         // 背景图片路径
     private JButton btnBrowseImg;                 // 浏览背景图按钮
     private JButton btnClearImg;                  // 清除背景图按钮
@@ -49,6 +51,7 @@ public class SettingsPanel extends JPanel {
 
     // ===== 提醒设置组件 =====
     private JTextField txtReminderInterval;        // 提醒间隔（分钟）
+    private JTextField txtExpiryInterval;           // 到期检查间隔（小时）
 
     /**
      * 构造方法：初始化系统设置面板
@@ -82,9 +85,17 @@ public class SettingsPanel extends JPanel {
         // === 外观设置分组 ===
         formPanel.add(createSectionLabel("--- 外观设置 ---"), getGbc(row++, 0, 2));
 
-        // 主题颜色
+        // 主题颜色（使用ThemeManager的主题枚举）
         formPanel.add(new JLabel("主题颜色:"), getGbc(row, 0, 1));
-        cmbThemeColor = new JComboBox<>(new String[]{"深蓝灰(默认)", "浅蓝色", "深绿色", "暗红色", "紫色", "自定义"});
+        cmbThemeColor = new JComboBox<>(new ThemeManager.ThemeType[]{
+            ThemeManager.ThemeType.LIGHT, ThemeManager.ThemeType.DARK,
+            ThemeManager.ThemeType.BLUE, ThemeManager.ThemeType.GREEN
+        });
+        // 切换主题时立即应用
+        cmbThemeColor.addActionListener(e -> {
+            ThemeManager.ThemeType selected = (ThemeManager.ThemeType) cmbThemeColor.getSelectedItem();
+            if (selected != null) ThemeManager.setTheme(selected);
+        });
         formPanel.add(cmbThemeColor, getGbc(row++, 1, 1));
 
         // 背景图片
@@ -104,6 +115,28 @@ public class SettingsPanel extends JPanel {
         formPanel.add(new JLabel("提示音效:"), getGbc(row, 0, 1));
         cmbSoundEffect = new JComboBox<>(new String[]{"系统默认", "提示音1", "提示音2", "静音"});
         formPanel.add(cmbSoundEffect, getGbc(row++, 1, 1));
+
+        // 界面语言（国际化设置）
+        formPanel.add(new JLabel("界面语言:"), getGbc(row, 0, 1));
+        JComboBox<String> cmbLanguage = new JComboBox<>(new String[]{"简体中文", "English"});
+        // 根据当前locale设置选中项
+        if (I18NUtil.getCurrentLocale() == Locale.US) {
+            cmbLanguage.setSelectedIndex(1);
+        } else {
+            cmbLanguage.setSelectedIndex(0);
+        }
+        formPanel.add(cmbLanguage, getGbc(row++, 1, 1));
+        cmbLanguage.addActionListener(e -> {
+            int selectedIndex = cmbLanguage.getSelectedIndex();
+            if (selectedIndex == 1) {
+                I18NUtil.setLocale(java.util.Locale.US);
+            } else {
+                I18NUtil.setLocale(java.util.Locale.CHINESE);
+            }
+            JOptionPane.showMessageDialog(SettingsPanel.this,
+                "语言设置已保存！\n\n部分界面文本将在下次启动后完全生效。",
+                "提示", JOptionPane.INFORMATION_MESSAGE);
+        });
 
         // === 通知设置分组 ===
         formPanel.add(createSectionLabel("--- 通知设置 ---"), getGbc(row++, 0, 2));
@@ -183,6 +216,12 @@ public class SettingsPanel extends JPanel {
         txtReminderInterval = new JTextField(20);
         txtReminderInterval.setText("30");
         formPanel.add(txtReminderInterval, getGbc(row++, 1, 1));
+
+        // 到期合同检查间隔
+        formPanel.add(new JLabel("到期检查间隔(小时):"), getGbc(row, 0, 1));
+        txtExpiryInterval = new JTextField(20);
+        txtExpiryInterval.setText("6");  // 默认6小时
+        formPanel.add(txtExpiryInterval, getGbc(row++, 1, 1));
 
         // 保存全部设置按钮
         JPanel saveAllPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
@@ -347,7 +386,8 @@ public class SettingsPanel extends JPanel {
      */
     private void saveAllSettings() {
         // 外观设置
-        AppSettingsUtil.saveSetting("theme.color", (String) cmbThemeColor.getSelectedItem());
+        ThemeManager.ThemeType selectedTheme = (ThemeManager.ThemeType) cmbThemeColor.getSelectedItem();
+        if (selectedTheme != null) AppSettingsUtil.saveSetting("theme", selectedTheme.name());
         AppSettingsUtil.saveSetting("theme.backgroundImage", txtBackgroundImage.getText().trim());
         AppSettingsUtil.saveSetting("sound.effect", (String) cmbSoundEffect.getSelectedItem());
 
@@ -363,6 +403,7 @@ public class SettingsPanel extends JPanel {
 
         // 提醒设置
         AppSettingsUtil.saveSetting("reminder.interval", txtReminderInterval.getText().trim());
+        AppSettingsUtil.saveSetting("expiry.interval", txtExpiryInterval.getText().trim());
 
         // 同时应用到各服务
         try {
@@ -383,8 +424,14 @@ public class SettingsPanel extends JPanel {
      * 从持久化存储加载设置到界面
      */
     private void loadSettings() {
-        // 加载外观设置
-        cmbThemeColor.setSelectedItem(AppSettingsUtil.loadSetting("theme.color", "深蓝灰(默认)"));
+        // 加载外观设置（使用ThemeManager枚举）
+        String savedTheme = AppSettingsUtil.loadSetting("theme", "LIGHT");
+        try {
+            ThemeManager.ThemeType theme = ThemeManager.ThemeType.valueOf(savedTheme);
+            cmbThemeColor.setSelectedItem(theme);
+        } catch (Exception ignored) {
+            cmbThemeColor.setSelectedItem(ThemeManager.ThemeType.LIGHT);
+        }
         txtBackgroundImage.setText(AppSettingsUtil.loadSetting("theme.backgroundImage", ""));
         cmbSoundEffect.setSelectedItem(AppSettingsUtil.loadSetting("sound.effect", "系统默认"));
 
@@ -400,5 +447,6 @@ public class SettingsPanel extends JPanel {
 
         // 加载提醒设置
         txtReminderInterval.setText(AppSettingsUtil.loadSetting("reminder.interval", "30"));
+        txtExpiryInterval.setText(AppSettingsUtil.loadSetting("expiry.interval", "6"));
     }
 }

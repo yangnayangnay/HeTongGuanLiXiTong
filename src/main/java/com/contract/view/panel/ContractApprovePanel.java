@@ -3,6 +3,7 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
+import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
 
 import javax.swing.*;
@@ -47,6 +48,8 @@ public class ContractApprovePanel extends JPanel {
     private JTextArea txtOpinion;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
+    // 合同版本控制服务类
+    private ContractVersionService versionService = new ContractVersionService();
     // 当前登录用户信息（用于过滤显示该用户待审批的合同）
     private com.contract.entity.User currentUser;
 
@@ -242,6 +245,16 @@ public class ContractApprovePanel extends JPanel {
         if (contractService.approveContract(processId, approved, opinion, currentUser.getName())) {
             // 显示对应的操作结果提示
             JOptionPane.showMessageDialog(this, approved ? "审批通过！" : "审批拒绝！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            // 审批通过时自动保存新版本
+            if (approved) {
+                String conNum = (String) tableModel.getValueAt(row, 1);
+                Contract contract = contractService.findByNum(conNum);
+                if (contract != null) {
+                    versionService.saveVersion(conNum, contract.getContent(),
+                        contract.getFileData(), contract.getFileName(),
+                        currentUser.getName(), "审批通过合同（领导最终审核确认）");
+                }
+            }
             // 清空意见输入框
             txtOpinion.setText("");
             // 刷新列表，移除已处理的合同

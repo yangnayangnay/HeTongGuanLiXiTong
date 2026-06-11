@@ -4,6 +4,9 @@ import com.contract.entity.User;
 import com.contract.service.UserService;
 import com.contract.util.NotificationService;
 import com.contract.util.TaskReminderScheduler;
+import com.contract.util.HotKeyManager;
+import com.contract.util.ContractExpiryReminder;
+import com.contract.util.ThemeManager;
 import com.contract.view.panel.*;
 
 import javax.swing.*;
@@ -43,6 +46,10 @@ public class MainFrame extends JFrame {
     private JPanel contentPanel;
     /** 用户服务对象 */
     private UserService userService = new UserService();
+    /** 左侧导航面板（用于响应式布局控制） */
+    private JPanel navPanel;
+    /** 顶部导航栏（小屏幕时显示，替代左侧导航） */
+    private JPanel topNavBar;
 
     /**
      * 构造方法：初始化主窗口
@@ -57,12 +64,26 @@ public class MainFrame extends JFrame {
         setLocationRelativeTo(null);
         initUI();
 
+        // 加载保存的主题并注册主题变更监听器
+        ThemeManager.loadSavedTheme();
+        ThemeManager.addChangeListener(() -> {
+            SwingUtilities.invokeLater(() -> {
+                ThemeManager.applyTo(MainFrame.this);
+                // 刷新左侧导航面板和内容区域的背景色
+                leftPanel.setBackground(ThemeManager.getCurrentTheme().bgSecondary);
+                contentPanel.setBackground(ThemeManager.getCurrentTheme().bgPrimary);
+                repaint();
+            });
+        });
+
         // 延迟500ms后检查待办任务并弹窗提示（等待主窗口完全显示后再弹窗）
         SwingUtilities.invokeLater(() -> {
             try { Thread.sleep(500); } catch (InterruptedException ignored) {}
             checkAndShowPendingTasks();
             // 启动定时任务提醒服务（每30分钟检查一次待办任务并发送邮件提醒）
             TaskReminderScheduler.start(currentUser.getName());
+            // 启动合同到期自动提醒（每6小时扫描一次）
+            ContractExpiryReminder.start();
         });
 
         // 窗口关闭时停止定时任务调度器
@@ -70,6 +91,7 @@ public class MainFrame extends JFrame {
             @Override
             public void windowClosing(java.awt.event.WindowEvent e) {
                 TaskReminderScheduler.stop();  // 停止定时提醒服务
+                ContractExpiryReminder.stop(); // 停止到期提醒服务
             }
         });
     }
@@ -81,7 +103,7 @@ public class MainFrame extends JFrame {
         JPanel mainPanel = new JPanel(new BorderLayout());
 
         // 左侧导航面板
-        JPanel navPanel = createNavPanel();
+        navPanel = createNavPanel();
         mainPanel.add(navPanel, BorderLayout.WEST);
 
         // 右侧内容面板（动态切换各功能面板）
@@ -90,10 +112,23 @@ public class MainFrame extends JFrame {
         contentPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         mainPanel.add(contentPanel, BorderLayout.CENTER);
 
+        // 顶部导航栏（小屏幕时显示，替代左侧导航）
+        topNavBar = com.contract.util.ResponsiveLayoutUtil.createTopNavBar(e -> switchPanel(e.getActionCommand()));
+        topNavBar.setVisible(false);  // 默认隐藏，小屏幕时自动显示
+        mainPanel.add(topNavBar, BorderLayout.NORTH);
+
         // 默认显示欢迎页面
         showWelcomePanel();
 
         add(mainPanel);
+
+        // 初始化全局快捷键管理器
+        HotKeyManager.init(getRootPane());
+        // 设置面板切换回调，将快捷键命令转发给switchPanel方法
+        HotKeyManager.setPanelSwitcher((cmd) -> switchPanel(cmd));
+
+        // 启用响应式布局（自动适应不同屏幕尺寸）
+        com.contract.util.ResponsiveLayoutUtil.applyResponsive(this, navPanel, contentPanel, topNavBar);
     }
 
     /**
@@ -175,6 +210,8 @@ public class MainFrame extends JFrame {
         // 查询统计分组
         btnPanel.add(createSectionLabel("📊 查询统计"));
         if (functions.contains("F07")) btnPanel.add(createNavButton("🔍 合同查询", "query"));         // F07:查询权限(含流程历史)
+        if (functions.contains("F07")) btnPanel.add(createNavButton("📋 流程看板", "kanban"));         // F07:流程看板权限
+        if (functions.contains("F07")) btnPanel.add(createNavButton("📊 数据统计", "statistics"));      // F07:数据统计权限
         btnPanel.add(createNavButton("🔔 我的待办", "pendingTasks"));                             // 待办任务（所有人可见）
 
         // 基础数据管理分组
@@ -346,6 +383,12 @@ public class MainFrame extends JFrame {
                 break;
             case "query":
                 contentPanel.add(new ContractQueryPanel(currentUser), BorderLayout.CENTER);
+                break;
+            case "statistics":
+                contentPanel.add(new StatisticsPanel(currentUser), BorderLayout.CENTER);
+                break;
+            case "kanban":
+                contentPanel.add(new KanbanBoardPanel(), BorderLayout.CENTER);
                 break;
             case "customer":
                 contentPanel.add(new CustomerManagePanel(), BorderLayout.CENTER);

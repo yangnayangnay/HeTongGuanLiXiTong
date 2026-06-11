@@ -35,12 +35,16 @@ public class LogDao {
         try {
             conn = DBUtil.getConnection();
             int id = DBUtil.getNextId("seq_log");
-            pstmt = conn.prepareStatement("INSERT INTO t_log(id, userName, content, time) VALUES(?, ?, ?, ?)");
+            pstmt = conn.prepareStatement("INSERT INTO t_log(id, userName, content, time, ip_address, old_value, new_value) VALUES(?, ?, ?, ?, ?, ?, ?)");
             pstmt.setInt(1, id);
             pstmt.setString(2, log.getUserName());  // 操作人
             pstmt.setString(3, log.getContent());   // 操作描述
             // 日志时间使用当前系统时间，确保准确性
             pstmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
+            // 审计增强字段：IP地址、变更前值、变更后值
+            pstmt.setString(5, log.getIpAddress());
+            pstmt.setString(6, log.getOldValue());
+            pstmt.setString(7, log.getNewValue());
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -73,6 +77,10 @@ public class LogDao {
                 log.setUserName(rs.getString("userName"));
                 log.setContent(rs.getString("content"));
                 log.setTime(rs.getTimestamp("time"));  // 使用Timestamp保留完整时间精度
+                // 读取审计增强字段
+                log.setIpAddress(rs.getString("ip_address"));
+                log.setOldValue(rs.getString("old_value"));
+                log.setNewValue(rs.getString("new_value"));
                 list.add(log);
             }
         } catch (Exception e) {

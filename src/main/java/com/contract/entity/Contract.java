@@ -93,6 +93,11 @@ public class Contract {
      * <p>取值范围：pdf、docx、doc</p>
      */
     private String fileType;
+    /**
+     * 合同金额
+     * <p>记录合同的总金额，用于统计分析</p>
+     */
+    private double amount;
 
     /**
      * 无参构造方法
@@ -255,6 +260,18 @@ public class Contract {
      * @param fileType 文件类型扩展名
      */
     public void setFileType(String fileType) { this.fileType = fileType; }
+
+    /**
+     * 获取合同金额
+     * @return 合同金额
+     */
+    public double getAmount() { return amount; }
+
+    /**
+     * 设置合同金额
+     * @param amount 合同金额
+     */
+    public void setAmount(double amount) { this.amount = amount; }
 
     /**
      * 返回合同编号和名称的组合字符串

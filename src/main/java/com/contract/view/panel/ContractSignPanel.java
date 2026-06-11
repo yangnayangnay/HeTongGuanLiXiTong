@@ -3,6 +3,7 @@ package com.contract.view.panel;
 import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
+import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
 import com.contract.util.SignaturePad;
 
@@ -50,6 +51,8 @@ public class ContractSignPanel extends JPanel {
     private SignaturePad signaturePad;
     // 合同业务服务类
     private ContractService contractService = new ContractService();
+    // 合同版本控制服务类
+    private ContractVersionService versionService = new ContractVersionService();
     // 当前登录用户信息（用于过滤显示该用户待签订的合同）
     private com.contract.entity.User currentUser;
 
@@ -257,6 +260,14 @@ public class ContractSignPanel extends JPanel {
         if (contractService.signContract(processId, signInfo, currentUser.getName())) {
             // 签订成功提示
             JOptionPane.showMessageDialog(this, "签订成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+            // 自动保存最终版本（签订版本）
+            String conNum = (String) tableModel.getValueAt(row, 1);
+            Contract contract = contractService.findByNum(conNum);
+            if (contract != null) {
+                versionService.saveVersion(conNum, contract.getContent(),
+                    contract.getFileData(), contract.getFileName(),
+                    currentUser.getName(), "正式签订合同（合同生命周期完成）");
+            }
             // 清空签订信息输入框
             txtSignInfo.setText("");
             // 重置电子签名板

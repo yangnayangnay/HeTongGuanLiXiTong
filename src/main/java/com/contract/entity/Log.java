@@ -54,6 +54,21 @@ public class Log {
      * <p>精确到秒的时间戳，用于事件排序和时间线分析</p>
      */
     private Date time;
+    /**
+     * 操作者IP地址
+     * <p>记录执行操作时的客户端IP地址，用于安全审计和追踪</p>
+     */
+    private String ipAddress;
+    /**
+     * 操作前的值（变更审计）
+     * <p>用于记录操作前数据的状态，便于追踪数据变化</p>
+     */
+    private String oldValue;
+    /**
+     * 操作后的值（变更审计）
+     * <p>用于记录操作后数据的状态，与oldValue配合可还原变更</p>
+     */
+    private String newValue;
 
     /**
      * 无参构造方法
@@ -124,4 +139,40 @@ public class Log {
      * @param time 时间戳
      */
     public void setTime(Date time) { this.time = time; }
+
+    /**
+     * 获取操作者IP地址
+     * @return IP地址字符串
+     */
+    public String getIpAddress() { return ipAddress; }
+
+    /**
+     * 设置操作者IP地址
+     * @param ipAddress IP地址字符串
+     */
+    public void setIpAddress(String ipAddress) { this.ipAddress = ipAddress; }
+
+    /**
+     * 获取变更前的值
+     * @return 变更前的值
+     */
+    public String getOldValue() { return oldValue; }
+
+    /**
+     * 设置变更前的值
+     * @param oldValue 变更前的值
+     */
+    public void setOldValue(String oldValue) { this.oldValue = oldValue; }
+
+    /**
+     * 获取变更后的值
+     * @return 变更后的值
+     */
+    public String getNewValue() { return newValue; }
+
+    /**
+     * 设置变更后的值
+     * @param newValue 变更后的值
+     */
+    public void setNewValue(String newValue) { this.newValue = newValue; }
 }

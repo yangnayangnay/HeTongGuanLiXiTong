@@ -52,8 +52,8 @@ public class ContractDao {
             conn = DBUtil.getConnection();
             // 获取下一个自增ID
             int id = DBUtil.getNextId("seq_contract");
-            // 插入合同记录，包含所有业务字段（含附件字段）
-            pstmt = conn.prepareStatement("INSERT INTO t_contract(id, num, name, customer, beginTime, endTime, content, userName, file_data, file_name, file_type) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            // 插入合同记录，包含所有业务字段（含附件字段和金额）
+            pstmt = conn.prepareStatement("INSERT INTO t_contract(id, num, name, customer, beginTime, endTime, content, userName, file_data, file_name, file_type, amount) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             pstmt.setInt(1, id);  // 参数1：合同ID
             pstmt.setString(2, contract.getNum());      // 参数2：合同编号（业务主键）
             pstmt.setString(3, contract.getName());     // 参数3：合同名称
@@ -67,6 +67,7 @@ public class ContractDao {
             pstmt.setBytes(9, contract.getFileData());   // 参数9：附件二进制数据
             pstmt.setString(10, contract.getFileName()); // 参数10：附件文件名
             pstmt.setString(11, contract.getFileType()); // 参数11：文件类型
+            pstmt.setDouble(12, contract.getAmount());   // 参数12：合同金额
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -89,8 +90,8 @@ public class ContractDao {
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
-            // 根据合同编号（num）更新合同信息（含附件字段）
-            pstmt = conn.prepareStatement("UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=? WHERE num=?");
+            // 根据合同编号（num）更新合同信息（含附件字段和金额）
+            pstmt = conn.prepareStatement("UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=?, amount=? WHERE num=?");
             pstmt.setString(1, contract.getName());     // 参数1：新合同名称
             pstmt.setString(2, contract.getCustomer()); // 参数2：新客户名称
             // 日期类型转换
@@ -101,7 +102,8 @@ public class ContractDao {
             pstmt.setBytes(6, contract.getFileData());   // 参数6：附件二进制数据
             pstmt.setString(7, contract.getFileName()); // 参数7：附件文件名
             pstmt.setString(8, contract.getFileType()); // 参数8：文件类型
-            pstmt.setString(9, contract.getNum());       // 参数9：条件-合同编号
+            pstmt.setDouble(9, contract.getAmount());    // 参数9：合同金额
+            pstmt.setString(10, contract.getNum());       // 参数10：条件-合同编号
             return pstmt.executeUpdate() > 0;
         } catch (Exception e) {
             e.printStackTrace();
@@ -273,6 +275,7 @@ public class ContractDao {
         c.setFileData(rs.getBytes("file_data"));    // 附件二进制数据
         c.setFileName(rs.getString("file_name"));   // 附件文件名
         c.setFileType(rs.getString("file_type"));   // 文件类型
+        c.setAmount(rs.getDouble("amount"));        // 合同金额
         return c;
     }
 }

@@ -27,6 +27,8 @@ public class CustomerService {
     /**
      * 获取所有客户列表
      * @return 所有客户
+     *
+     * [REST-API] GET /api/customers
      */
     public List<Customer> findAll() {
         return customerDao.findAll();
