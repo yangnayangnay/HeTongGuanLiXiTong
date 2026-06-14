@@ -931,7 +931,7 @@ public class ContractDraftPanel extends JPanel {
 
                     // 提示用户识别完成
                     JOptionPane.showMessageDialog(ContractDraftPanel.this,
-                        "OCR识别完成！\n\n已将识别结果填入"合同内容"文本区域。\n" +
+                        "OCR识别完成！\n\n已将识别结果填入【合同内容】文本区域。\n" +
                         "请检查并修改识别不准确的内容。",
                         "识别完成", JOptionPane.INFORMATION_MESSAGE);
                 });

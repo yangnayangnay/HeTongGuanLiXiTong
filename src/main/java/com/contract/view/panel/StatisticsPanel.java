@@ -77,7 +77,7 @@ public class StatisticsPanel extends JPanel {
         mainPanel.add(createCustomerRankingPanel());
 
         // 区域4：时间趋势
-        mainPanel.add createTimeTrendPanel();
+        mainPanel.add(createTimeTrendPanel());
 
         // 导出按钮区域
         mainPanel.add(createExportButtonPanel());

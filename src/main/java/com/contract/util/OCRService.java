@@ -24,7 +24,7 @@ public class OCRService {
         CLOUD_API("云端OCR接口"),
         DEMO("演示模式（模拟识别）");
         OCREngine(String desc) { this.desc = desc; }
-        final String desc;
+        public final String desc;
     }
 
     private static OCREngine currentEngine = OCREngine.DEMO;
