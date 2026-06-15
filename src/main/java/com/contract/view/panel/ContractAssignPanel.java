@@ -262,28 +262,52 @@ public class ContractAssignPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "分配成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
 
             // 发送任务通知邮件给被分配的人员
+            // 先获取合同附件数据
+            Contract contract = contractService.findByNum(conNum);
+            byte[] fileData = contract != null ? contract.getFileData() : null;
+            String fileName = contract != null ? contract.getFileName() : null;
+            String contractName = tableModel.getValueAt(row, 1).toString();
+
             // 遍历会签人员列表，为每个会签人员发送"会签"任务通知邮件
             for (String countersignUser : countersignUsers) {
                 User u = userService.findByName(countersignUser);
                 if (u != null && u.getEmail() != null) {
-                    EmailService.sendTaskNotification(u.getEmail(), countersignUser, conNum,
-                        tableModel.getValueAt(row, 1).toString(), "会签");
+                    // 有附件时使用带附件邮件发送，否则使用普通邮件
+                    if (fileData != null && fileData.length > 0) {
+                        EmailService.sendTaskNotificationWithAttachment(u.getEmail(), countersignUser, conNum,
+                            contractName, "会签", fileData, fileName);
+                    } else {
+                        EmailService.sendTaskNotification(u.getEmail(), countersignUser, conNum,
+                            contractName, "会签");
+                    }
                 }
             }
             // 遍历审批人员列表，为每个审批人员发送"审批"任务通知邮件
             for (String approveUser : approveUsers) {
                 User u = userService.findByName(approveUser);
                 if (u != null && u.getEmail() != null) {
-                    EmailService.sendTaskNotification(u.getEmail(), approveUser, conNum,
-                        tableModel.getValueAt(row, 1).toString(), "审批");
+                    // 有附件时使用带附件邮件发送，否则使用普通邮件
+                    if (fileData != null && fileData.length > 0) {
+                        EmailService.sendTaskNotificationWithAttachment(u.getEmail(), approveUser, conNum,
+                            contractName, "审批", fileData, fileName);
+                    } else {
+                        EmailService.sendTaskNotification(u.getEmail(), approveUser, conNum,
+                            contractName, "审批");
+                    }
                 }
             }
             // 遍历签订人员列表，为每个签订人员发送"签订"任务通知邮件
             for (String signUser : signUsers) {
                 User u = userService.findByName(signUser);
                 if (u != null && u.getEmail() != null) {
-                    EmailService.sendTaskNotification(u.getEmail(), signUser, conNum,
-                        tableModel.getValueAt(row, 1).toString(), "签订");
+                    // 有附件时使用带附件邮件发送，否则使用普通邮件
+                    if (fileData != null && fileData.length > 0) {
+                        EmailService.sendTaskNotificationWithAttachment(u.getEmail(), signUser, conNum,
+                            contractName, "签订", fileData, fileName);
+                    } else {
+                        EmailService.sendTaskNotification(u.getEmail(), signUser, conNum,
+                            contractName, "签订");
+                    }
                 }
             }
 

@@ -172,6 +172,20 @@ public class ContractSignPanel extends JPanel {
         btnAIReview.addActionListener(e -> showAIReviewDialog());
         btnPanel.add(btnAIReview);
 
+        // 上传附件按钮
+        JButton btnUpload = new JButton("上传附件");
+        btnUpload.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnUpload.setFocusPainted(false);
+        btnUpload.addActionListener(e -> uploadAttachment());
+        btnPanel.add(btnUpload);
+
+        // 下载附件按钮
+        JButton btnDownload = new JButton("下载附件");
+        btnDownload.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        btnDownload.setFocusPainted(false);
+        btnDownload.addActionListener(e -> downloadAttachment());
+        btnPanel.add(btnDownload);
+
         opPanel.add(btnPanel, BorderLayout.SOUTH);
         add(opPanel, BorderLayout.SOUTH);
     }
@@ -390,5 +404,75 @@ public class ContractSignPanel extends JPanel {
             // 在EDT线程中更新UI
             SwingUtilities.invokeLater(() -> txtResult.setText(result));
         }).start();
+    }
+
+    /**
+     * 上传合同附件
+     * <p>
+     * 选择本地文件（PDF/DOCX/DOC），读取为字节数组后更新到合同记录中。
+     * </p>
+     */
+    private void uploadAttachment() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择一行数据！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String conNum = (String) tableModel.getValueAt(row, 1);
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("合同文档 (PDF, Word)", "pdf", "docx", "doc"));
+        if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            try {
+                java.io.File file = chooser.getSelectedFile();
+                byte[] fileData = com.contract.util.FileUploadUtil.readFileToBytes(file);
+                String fileName = file.getName();
+                // 更新合同附件
+                com.contract.dao.ContractDao contractDao = new com.contract.dao.ContractDao();
+                com.contract.entity.Contract contract = contractDao.findByNum(conNum);
+                if (contract != null) {
+                    contract.setFileData(fileData);
+                    contract.setFileName(fileName);
+                    contractDao.update(contract);
+                    JOptionPane.showMessageDialog(this, "附件上传成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                    FileLogger.info("ContractSignPanel", "uploadAttachment", "上传附件: " + fileName + ", 合同=" + conNum);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "上传失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                FileLogger.error("ContractSignPanel", "uploadAttachment", "上传失败", ex);
+            }
+        }
+    }
+
+    /**
+     * 下载合同附件
+     * <p>
+     * 从数据库读取合同附件数据，选择保存位置后写入本地文件。
+     * </p>
+     */
+    private void downloadAttachment() {
+        int row = table.getSelectedRow();
+        if (row < 0) {
+            JOptionPane.showMessageDialog(this, "请先选择一行数据！", "提示", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        String conNum = (String) tableModel.getValueAt(row, 1);
+        try {
+            com.contract.dao.ContractDao contractDao = new com.contract.dao.ContractDao();
+            com.contract.entity.Contract contract = contractDao.findByNum(conNum);
+            if (contract == null || contract.getFileData() == null || contract.getFileData().length == 0) {
+                JOptionPane.showMessageDialog(this, "该合同暂无附件！", "提示", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            JFileChooser chooser = new JFileChooser();
+            chooser.setSelectedFile(new java.io.File(contract.getFileName() != null ? contract.getFileName() : "contract_attachment"));
+            if (chooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                com.contract.util.FileUploadUtil.saveBytesToFile(contract.getFileData(), chooser.getSelectedFile().getAbsolutePath());
+                JOptionPane.showMessageDialog(this, "附件下载成功！\n保存至: " + chooser.getSelectedFile().getAbsolutePath(), "成功", JOptionPane.INFORMATION_MESSAGE);
+                FileLogger.info("ContractSignPanel", "downloadAttachment", "下载附件: " + contract.getFileName() + ", 合同=" + conNum);
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "下载失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            FileLogger.error("ContractSignPanel", "downloadAttachment", "下载失败", ex);
+        }
     }
 }

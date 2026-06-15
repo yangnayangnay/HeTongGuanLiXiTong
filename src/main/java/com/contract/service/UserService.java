@@ -300,6 +300,8 @@ public class UserService {
             FileLogger.info("UserService", "updateUser", "更新用户成功, 用户名: " + user.getName());
             Log updateLog = new Log(0, "admin", "修改用户: " + user.getName(), null);
             updateLog.setIpAddress(NetworkUtil.getLocalIPAddress());
+            updateLog.setOldValue("用户状态: 修改前");
+            updateLog.setNewValue("用户状态: 修改后");
             logDao.insert(updateLog);
         } else {
             FileLogger.error("UserService", "updateUser", "更新用户失败, 用户名: " + user.getName(), null);

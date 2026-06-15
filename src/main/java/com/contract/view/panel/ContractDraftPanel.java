@@ -527,8 +527,22 @@ public class ContractDraftPanel extends JPanel {
             contract.setContent(content);              // 设置合同内容
             contract.setUserName(currentUser.getName()); // 记录当前用户为起草人
             // 设置附件信息（如果有选择文件）
-            contract.setFileData(currentFileData);     // 附件二进制数据
-            contract.setFileName(currentFileName);     // 附件文件名
+            // 检查附件是否与已有附件相同，未修改则跳过上传
+            if (currentFileData != null && contract.getFileData() != null) {
+                // 比较新旧文件内容是否相同
+                if (java.util.Arrays.equals(currentFileData, contract.getFileData())
+                    && currentFileName != null && currentFileName.equals(contract.getFileName())) {
+                    // 文件未修改，跳过上传
+                    FileLogger.info("ContractDraftPanel", "submitDraft", "附件未修改，跳过上传");
+                } else {
+                    contract.setFileData(currentFileData);
+                    contract.setFileName(currentFileName);
+                }
+            } else if (currentFileData != null) {
+                // 新上传的文件
+                contract.setFileData(currentFileData);
+                contract.setFileName(currentFileName);
+            }
             if (currentFileName != null && !currentFileName.isEmpty()) {
                 // 根据文件名自动提取文件类型（扩展名）
                 contract.setFileType(FileUploadUtil.getFileExtension(currentFileName));
@@ -579,54 +593,100 @@ public class ContractDraftPanel extends JPanel {
      */
     private void uploadAttachment() {
         // 创建文件选择器对话框
-        JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("选择合同附件");  // 设置对话框标题
-        // 设置文件过滤器：只显示PDF和Word文档
-        javax.swing.filechooser.FileFilter filter = new javax.swing.filechooser.FileNameExtensionFilter(
-            "合同文档 (PDF, Word)", "pdf", "docx", "doc");
-        fileChooser.setFileFilter(filter);  // 应用过滤器
-        fileChooser.setAcceptAllFileFilterUsed(false);  // 禁用"所有文件"选项
+        JFileChooser chooser = new JFileChooser();
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
+            "合同文档 (PDF, Word)", "pdf", "docx", "doc"));
+        if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-        // 显示文件选择对话框
-        int result = fileChooser.showOpenDialog(this);
-        if (result != JFileChooser.APPROVE_OPTION) {
-            return;  // 用户取消了选择，直接返回
-        }
-
-        // 获取用户选择的文件
-        File selectedFile = fileChooser.getSelectedFile();
+        File selectedFile = chooser.getSelectedFile();
         String selectedName = selectedFile.getName();
 
-        // 校验文件类型是否在允许列表中（双重校验确保安全）
+        // 校验文件类型
         if (!FileUploadUtil.isAllowedFileType(selectedName)) {
-            JOptionPane.showMessageDialog(this,
-                "不支持的文件类型！仅允许上传 PDF、DOCX、DOC 格式的文件。",
-                "文件类型错误", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "仅支持PDF、DOCX、DOC格式！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 使用工具类将文件读取为字节数组
-        byte[] fileBytes = FileUploadUtil.readFileToBytes(selectedFile);
-        if (fileBytes == null) {
-            JOptionPane.showMessageDialog(this,
-                "文件读取失败，请检查文件是否存在且可访问。",
-                "读取失败", JOptionPane.ERROR_MESSAGE);
-            return;
+        try {
+            byte[] fileData = FileUploadUtil.readFileToBytes(selectedFile);
+            if (fileData == null) {
+                JOptionPane.showMessageDialog(this, "文件读取失败！", "错误", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            long fileSize = fileData.length;
+
+            // 文件小于5MB直接上传，大于5MB使用分块上传
+            if (fileSize < 5 * 1024 * 1024) {
+                // 小文件直接上传
+                this.currentFileData = fileData;
+                this.currentFileName = selectedName;
+                lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileSize) + ")");
+                lblFileName.setForeground(new Color(39, 174, 96));
+                btnDownloadFile.setEnabled(true);
+                FileLogger.info("ContractDraftPanel", "uploadAttachment", "小文件直接上传: " + selectedName);
+            } else {
+                // 大文件使用分块上传
+                int chunkSize = 1024 * 1024;  // 每块1MB
+                byte[][] chunkArray = FileUploadUtil.chunkFile(fileData, chunkSize);
+                // 将byte[][]转为List<byte[]>以供mergeChunks使用
+                final java.util.List<byte[]> chunks = new java.util.ArrayList<>();
+                for (byte[] chunk : chunkArray) {
+                    chunks.add(chunk);
+                }
+                com.contract.util.ChunkUploadManager manager = new com.contract.util.ChunkUploadManager();
+                manager.createUploadSession(selectedName, chunks.size(), fileSize);
+
+                // 显示进度对话框
+                final JDialog progressDialog = new JDialog((JFrame) SwingUtilities.getWindowAncestor(this), "上传中...", true);
+                JProgressBar progressBar = new JProgressBar(0, chunks.size());
+                progressBar.setStringPainted(true);
+                progressDialog.add(progressBar);
+                progressDialog.setSize(300, 80);
+                progressDialog.setLocationRelativeTo(this);
+
+                // 在后台线程执行分块上传
+                new Thread(() -> {
+                    try {
+                        for (int i = 0; i < chunks.size(); i++) {
+                            // 模拟上传每个分块（实际存入内存）
+                            manager.markChunkUploaded(i);
+                            final int progress = i + 1;
+                            SwingUtilities.invokeLater(() -> {
+                                progressBar.setValue(progress);
+                                progressBar.setString("上传中... " + progress + "/" + chunks.size());
+                            });
+                            Thread.sleep(100);  // 模拟网络延迟
+                        }
+
+                        if (manager.isComplete()) {
+                            // 合并分块
+                            byte[] mergedData = FileUploadUtil.mergeChunks(chunks);
+                            SwingUtilities.invokeLater(() -> {
+                                this.currentFileData = mergedData;
+                                this.currentFileName = selectedName;
+                                lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileSize) + ") [分块上传]");
+                                lblFileName.setForeground(new Color(39, 174, 96));
+                                btnDownloadFile.setEnabled(true);
+                                progressDialog.dispose();
+                                JOptionPane.showMessageDialog(this, "文件上传成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                                FileLogger.info("ContractDraftPanel", "uploadAttachment", "分块上传完成: " + selectedName + ", " + chunks.size() + "块");
+                            });
+                        }
+                    } catch (Exception ex) {
+                        SwingUtilities.invokeLater(() -> {
+                            progressDialog.dispose();
+                            JOptionPane.showMessageDialog(this, "上传失败: " + ex.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                            FileLogger.error("ContractDraftPanel", "uploadAttachment", "分块上传失败", ex);
+                        });
+                    }
+                }).start();
+
+                progressDialog.setVisible(true);
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "读取文件失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+            FileLogger.error("ContractDraftPanel", "uploadAttachment", "读取文件失败", e);
         }
-
-        // 保存文件数据到内存字段（提交合同时一起存入数据库）
-        currentFileData = fileBytes;
-        currentFileName = selectedName;
-
-        FileLogger.info("ContractDraftPanel", "uploadAttachment", "上传文件: " + selectedName + ", 大小=" + fileBytes.length + "字节");
-
-        // 更新界面：显示已选择的文件名
-        lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileBytes.length) + ")");
-        lblFileName.setForeground(new Color(39, 174, 96));  // 绿色表示成功
-        // 启用下载按钮（已有文件可供下载）
-        btnDownloadFile.setEnabled(true);
-
-        System.out.println("[起草面板] 附件加载成功: " + selectedName + ", 大小: " + fileBytes.length + " 字节");
     }
 
     /**

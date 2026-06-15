@@ -8,6 +8,9 @@ import com.contract.util.HotKeyManager;
 import com.contract.util.ContractExpiryReminder;
 import com.contract.util.ThemeManager;
 import com.contract.util.FileLogger;
+import com.contract.util.AppSettingsUtil;
+import com.contract.util.SoundUtil;
+import com.contract.util.I18NUtil;
 import com.contract.view.panel.*;
 
 import javax.swing.*;
@@ -109,7 +112,31 @@ public class MainFrame extends JFrame {
         mainPanel.add(navPanel, BorderLayout.WEST);
 
         // 右侧内容面板（动态切换各功能面板）
-        contentPanel = new JPanel(new BorderLayout());
+        // 加载并应用背景图片
+        String bgImagePath = AppSettingsUtil.loadSetting("backgroundImage", "");
+        if (!bgImagePath.isEmpty()) {
+            try {
+                java.io.File bgFile = new java.io.File(bgImagePath);
+                if (bgFile.exists()) {
+                    final javax.swing.ImageIcon bgIcon = new javax.swing.ImageIcon(bgImagePath);
+                    // 设置内容面板的背景图片
+                    contentPanel = new JPanel(new BorderLayout()) {
+                        @Override
+                        protected void paintComponent(Graphics g) {
+                            super.paintComponent(g);
+                            g.drawImage(bgIcon.getImage(), 0, 0, getWidth(), getHeight(), this);
+                        }
+                    };
+                } else {
+                    contentPanel = new JPanel(new BorderLayout());
+                }
+            } catch (Exception e) {
+                FileLogger.warn("MainFrame", "initUI", "背景图片加载失败: " + e.getMessage());
+                contentPanel = new JPanel(new BorderLayout());
+            }
+        } else {
+            contentPanel = new JPanel(new BorderLayout());
+        }
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
         mainPanel.add(contentPanel, BorderLayout.CENTER);
@@ -202,31 +229,31 @@ public class MainFrame extends JFrame {
         Set<String> functions = userService.getUserFunctions(currentUser.getName());
 
         // 合同管理分组
-        btnPanel.add(createSectionLabel("📄 合同管理"));
-        if (functions.contains("F01")) btnPanel.add(createNavButton("📝 起草合同", "draft"));       // F01:起草权限
-        if (functions.contains("F02")) btnPanel.add(createNavButton("✍️ 会签合同", "countersign")); // F02:会签权限
-        if (functions.contains("F03")) btnPanel.add(createNavButton("📋 定稿合同", "finalize"));    // F03:定稿权限
-        if (functions.contains("F04")) btnPanel.add(createNavButton("✅ 审批合同", "approve"));     // F04:审批权限
-        if (functions.contains("F05")) btnPanel.add(createNavButton("📝 签订合同", "sign"));        // F05:签订权限
+        btnPanel.add(createSectionLabel("📄 " + I18NUtil.getString("contract.name")));
+        if (functions.contains("F01")) btnPanel.add(createNavButton("📝 " + I18NUtil.getString("nav.draft"), "draft"));       // F01:起草权限
+        if (functions.contains("F02")) btnPanel.add(createNavButton("✍️ " + I18NUtil.getString("nav.countersign"), "countersign")); // F02:会签权限
+        if (functions.contains("F03")) btnPanel.add(createNavButton("📋 " + I18NUtil.getString("nav.finalize"), "finalize"));    // F03:定稿权限
+        if (functions.contains("F04")) btnPanel.add(createNavButton("✅ " + I18NUtil.getString("nav.approve"), "approve"));     // F04:审批权限
+        if (functions.contains("F05")) btnPanel.add(createNavButton("📝 " + I18NUtil.getString("nav.sign"), "sign"));        // F05:签订权限
 
         // 查询统计分组
         btnPanel.add(createSectionLabel("📊 查询统计"));
-        if (functions.contains("F07")) btnPanel.add(createNavButton("🔍 合同查询", "query"));         // F07:查询权限(含流程历史)
-        if (functions.contains("F07")) btnPanel.add(createNavButton("📋 流程看板", "kanban"));         // F07:流程看板权限
-        if (functions.contains("F07")) btnPanel.add(createNavButton("📊 数据统计", "statistics"));      // F07:数据统计权限
-        btnPanel.add(createNavButton("🔔 我的待办", "pendingTasks"));                             // 待办任务（所有人可见）
+        if (functions.contains("F07")) btnPanel.add(createNavButton("🔍 " + I18NUtil.getString("nav.query"), "query"));         // F07:查询权限(含流程历史)
+        if (functions.contains("F07")) btnPanel.add(createNavButton("📋 " + I18NUtil.getString("nav.kanban"), "kanban"));         // F07:流程看板权限
+        if (functions.contains("F07")) btnPanel.add(createNavButton("📊 " + I18NUtil.getString("nav.statistics"), "statistics"));      // F07:数据统计权限
+        btnPanel.add(createNavButton("🔔 " + I18NUtil.getString("nav.pendingTasks"), "pendingTasks"));                             // 待办任务（所有人可见）
 
         // 基础数据管理分组
         btnPanel.add(createSectionLabel("📁 基础数据管理"));
-        if (functions.contains("F09")) btnPanel.add(createNavButton("👥 客户管理", "customer"));      // F09:客户管理权限
+        if (functions.contains("F09")) btnPanel.add(createNavButton("👥 " + I18NUtil.getString("nav.customer"), "customer"));      // F09:客户管理权限
 
         // 系统管理分组（仅管理员可见）
         if (isAdmin) {
             btnPanel.add(createSectionLabel("⚙️ 系统管理"));
-            if (functions.contains("F06")) btnPanel.add(createNavButton("👥 分配合同", "assign"));      // F06:分配权限
-            if (functions.contains("F10")) btnPanel.add(createNavButton("👤 用户管理", "userManage"));  // F10:用户管理权限
-            if (functions.contains("F11")) btnPanel.add(createNavButton("🔐 角色管理", "roleManage"));  // F11:角色管理权限
-            if (functions.contains("F12")) btnPanel.add(createNavButton("📋 日志管理", "logManage"));   // F12:日志管理权限
+            if (functions.contains("F06")) btnPanel.add(createNavButton("👥 " + I18NUtil.getString("nav.assign"), "assign"));      // F06:分配权限
+            if (functions.contains("F10")) btnPanel.add(createNavButton("👤 " + I18NUtil.getString("nav.userManage"), "userManage"));  // F10:用户管理权限
+            if (functions.contains("F11")) btnPanel.add(createNavButton("🔐 " + I18NUtil.getString("nav.roleManage"), "roleManage"));  // F11:角色管理权限
+            if (functions.contains("F12")) btnPanel.add(createNavButton("📋 " + I18NUtil.getString("nav.logManage"), "logManage"));   // F12:日志管理权限
         }
 
         // 将菜单放入滚动条，防止菜单过长时溢出
@@ -239,13 +266,13 @@ public class MainFrame extends JFrame {
         JPanel settingsPanel = new JPanel(new BorderLayout());
         settingsPanel.setBackground(new Color(44, 62, 80));
         settingsPanel.setBorder(new EmptyBorder(5, 0, 5, 0));
-        JButton btnSettings = createNavButton("⚙️ 系统设置", "settings");
+        JButton btnSettings = createNavButton("⚙️ " + I18NUtil.getString("nav.settings"), "settings");
         settingsPanel.add(btnSettings, BorderLayout.CENTER);
         navPanel.add(settingsPanel, BorderLayout.SOUTH);
 
         // ===== 退出按钮（底部）=====
         // 关于系统按钮（所有人可见，不需要权限）
-        JButton btnAbout = new JButton("ℹ️ 关于系统");
+        JButton btnAbout = new JButton("ℹ️ " + I18NUtil.getString("nav.about"));
         btnAbout.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnAbout.setBackground(new Color(52, 73, 94));   // 灰色背景
         btnAbout.setOpaque(true);
@@ -255,7 +282,7 @@ public class MainFrame extends JFrame {
         btnAbout.setBorderPainted(false);
         btnAbout.addActionListener(e -> switchPanel("about"));
 
-        JButton btnLogout = new JButton("🚪 退出登录");
+        JButton btnLogout = new JButton("🚪 " + I18NUtil.getString("nav.logout"));
         btnLogout.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnLogout.setBackground(new Color(192, 57, 43));  // 红色退出按钮
         btnLogout.setOpaque(true);
@@ -536,6 +563,8 @@ public class MainFrame extends JFrame {
             // 查询当前登录用户的待办任务数量
             int pendingCount = NotificationService.getPendingTaskCount(currentUser.getName());
             if (pendingCount > 0) {
+                // 播放提示音
+                SoundUtil.playNotificationSound();
                 // 有待办任务时弹窗提示用户
                 JOptionPane.showMessageDialog(this,
                     "您有 " + pendingCount + " 个待处理的合同任务！\n\n" +

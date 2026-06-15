@@ -1,6 +1,8 @@
 package com.contract.util;
 
+import com.contract.dao.ContractDao;
 import com.contract.dao.UserDao;
+import com.contract.entity.Contract;
 import com.contract.entity.User;
 
 import java.util.List;
@@ -99,9 +101,29 @@ public class TaskReminderScheduler {
                 UserDao userDao = new UserDao();
                 User user = userDao.findByName(currentUser);
                 if (user != null && user.getEmail() != null && !user.getEmail().isEmpty()) {
-                    // 调用带重试机制的发送方法，最多重试5次，每次间隔5秒
-                    EmailService.sendWithRetry(user.getEmail(), currentUser,
-                        "", "您有" + count + "个待办任务", "定时提醒", 5, 5000);
+                    // 获取用户的待办合同列表，尝试带附件发送邮件
+                    List<NotificationService.PendingTaskInfo> pendingTasks = NotificationService.getPendingTaskDetails(currentUser);
+                    boolean allSentWithAttachment = true;
+                    for (NotificationService.PendingTaskInfo taskInfo : pendingTasks) {
+                        // 查询合同附件数据
+                        ContractDao contractDao = new ContractDao();
+                        Contract contract = contractDao.findByNum(taskInfo.getConNum());
+                        if (contract != null && contract.getFileData() != null && contract.getFileData().length > 0) {
+                            // 有附件，使用带附件的邮件发送
+                            EmailService.sendTaskNotificationWithAttachment(user.getEmail(), currentUser,
+                                taskInfo.getConNum(), taskInfo.getContractName(), taskInfo.getTypeName(),
+                                contract.getFileData(), contract.getFileName());
+                        } else {
+                            // 无附件，使用普通邮件发送
+                            EmailService.sendWithRetry(user.getEmail(), currentUser,
+                                taskInfo.getConNum(), taskInfo.getContractName(), taskInfo.getTypeName(), 5, 5000);
+                        }
+                    }
+                    // 如果没有待办详情记录，回退到原来的发送方式
+                    if (pendingTasks.isEmpty()) {
+                        EmailService.sendWithRetry(user.getEmail(), currentUser,
+                            "", "您有" + count + "个待办任务", "定时提醒", 5, 5000);
+                    }
                 }
                 FileLogger.info("TaskReminderScheduler", "checkAndRemind", "发现" + count + "个待办任务，已发送提醒邮件");
                 System.out.println("[定时器] 发现" + count + "个待办任务，已发送提醒邮件");

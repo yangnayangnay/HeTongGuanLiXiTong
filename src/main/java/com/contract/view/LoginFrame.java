@@ -3,6 +3,7 @@ package com.contract.view;
 import com.contract.entity.User;
 import com.contract.service.UserService;
 import com.contract.util.FileLogger;
+import com.contract.util.I18NUtil;
 
 import javax.swing.*;
 import java.awt.*;
@@ -40,7 +41,7 @@ public class LoginFrame extends JFrame {
      * 构造方法：初始化登录窗口
      */
     public LoginFrame() {
-        setTitle("🔐 合同管理系统 - 登录");
+        setTitle("🔐 " + I18NUtil.getString("login.title"));
         setSize(420, 380);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // 关闭窗口时退出程序
         setLocationRelativeTo(null);  // 窗口居中显示
@@ -61,7 +62,7 @@ public class LoginFrame extends JFrame {
         titlePanel.setOpaque(false);
 
         // 主标题标签
-        JLabel lblTitle = new JLabel("📋 合同管理系统", SwingConstants.CENTER);
+        JLabel lblTitle = new JLabel("📋 " + I18NUtil.getString("app.title"), SwingConstants.CENTER);
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 24));
         lblTitle.setForeground(new Color(44, 62, 80));  // #2C3E50 深蓝灰
         titlePanel.add(lblTitle, BorderLayout.CENTER);
@@ -83,7 +84,7 @@ public class LoginFrame extends JFrame {
 
         // 用户名输入行
         gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(createLabel("用户名:"), gbc);
+        formPanel.add(createLabel(I18NUtil.getString("login.username")), gbc);
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1;
         txtUsername = new JTextField(15);
         txtUsername.setFont(new Font("微软雅黑", Font.PLAIN, 14));
@@ -91,7 +92,7 @@ public class LoginFrame extends JFrame {
 
         // 密码输入行
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
-        formPanel.add(createLabel("密  码:"), gbc);
+        formPanel.add(createLabel(I18NUtil.getString("login.password")), gbc);
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1;
         txtPassword = new JPasswordField(15);  // 密码框自动隐藏字符
         txtPassword.setFont(new Font("微软雅黑", Font.PLAIN, 14));
@@ -103,7 +104,7 @@ public class LoginFrame extends JFrame {
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         btnPanel.setOpaque(false);
 
-        JButton btnLogin = new JButton("🔐 登 录");
+        JButton btnLogin = new JButton("🔐 " + I18NUtil.getString("login.btnLogin"));
         btnLogin.setFont(new Font("微软雅黑", Font.BOLD, 14));
         btnLogin.setPreferredSize(new Dimension(120, 38));
         btnLogin.setBackground(new Color(52, 152, 219));  // #3498DB 亮蓝
@@ -112,7 +113,7 @@ public class LoginFrame extends JFrame {
         btnLogin.setFocusPainted(false);  // 去除焦点边框
 
         // 注册链接（蓝色超链接样式）
-        JLabel lblRegister = new JLabel("<html><a href='#' style='color:#3498DB;text-decoration:none;'>📝 还没有账号？点击注册</a></html>");
+        JLabel lblRegister = new JLabel("<html><a href='#' style='color:#3498DB;text-decoration:none;'>📝 " + I18NUtil.getString("login.registerTip") + "</a></html>");
         lblRegister.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         lblRegister.setForeground(new Color(52, 152, 219));  // 蓝色超链接
         lblRegister.setCursor(new Cursor(Cursor.HAND_CURSOR));
