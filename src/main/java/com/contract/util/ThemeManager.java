@@ -34,11 +34,11 @@ public class ThemeManager {
         GREEN("绿色主题", new Color(240, 253, 244), new Color(220, 252, 231),
              new Color(21, 128, 61), new Color(34, 197, 94));
 
-        final String displayName;   // 显示名称
-        final Color bgPrimary;      // 主背景色
-        final Color bgSecondary;    // 次背景色（面板背景）
-        final Color textPrimary;    // 主文字颜色
-        final Color accentColor;    // 强调色（按钮等）
+        public final String displayName;   // 显示名称
+        public final Color bgPrimary;      // 主背景色
+        public final Color bgSecondary;    // 次背景色（面板背景）
+        public final Color textPrimary;    // 主文字颜色
+        public final Color accentColor;    // 强调色（按钮等）
 
         ThemeType(String display, Color bg1, Color bg2, Color text, Color accent) {
             this.displayName = display;

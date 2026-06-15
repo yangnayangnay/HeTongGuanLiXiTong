@@ -70,7 +70,7 @@ public class MainFrame extends JFrame {
             SwingUtilities.invokeLater(() -> {
                 ThemeManager.applyTo(MainFrame.this);
                 // 刷新左侧导航面板和内容区域的背景色
-                leftPanel.setBackground(ThemeManager.getCurrentTheme().bgSecondary);
+                navPanel.setBackground(ThemeManager.getCurrentTheme().bgSecondary);
                 contentPanel.setBackground(ThemeManager.getCurrentTheme().bgPrimary);
                 repaint();
             });
