@@ -87,6 +87,7 @@ public class SignaturePad extends JPanel {
         g2d.setColor(penColor);
         g2d.setStroke(new BasicStroke(penWidth, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         repaint();
+        FileLogger.info("SignaturePad", "resetCanvas", "签名画布已重置");
     }
 
     @Override
@@ -106,9 +107,11 @@ public class SignaturePad extends JPanel {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ImageIO.write(signatureImage, "PNG", baos);
-            return baos.toByteArray();
+            byte[] result = baos.toByteArray();
+            FileLogger.info("SignaturePad", "getSignatureBytes", "获取签名图片成功, 大小: " + result.length + " 字节");
+            return result;
         } catch (IOException e) {
-            e.printStackTrace();
+            FileLogger.error("SignaturePad", "getSignatureBytes", "获取签名图片失败: " + e.getMessage(), e);
             return null;
         }
     }

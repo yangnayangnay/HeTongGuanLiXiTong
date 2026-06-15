@@ -51,6 +51,7 @@ public class TaskReminderScheduler {
      * @param userName 当前登录用户名，用于查询待办任务和获取邮箱
      */
     public static void start(String userName) {
+        FileLogger.info("TaskReminderScheduler", "start", "启动定时提醒服务, 用户: " + userName + ", 间隔: " + (intervalMs / 60000) + "分钟");
         stop();  // 先停止已有的定时器，防止重复启动
         currentUser = userName;
         timer = new Timer("TaskReminder", true);  // 守护线程，不阻止JVM退出
@@ -61,6 +62,7 @@ public class TaskReminderScheduler {
             }
         }, intervalMs, intervalMs);  // 首次延迟intervalMs后开始，之后每intervalMs执行一次
         System.out.println("[定时器] 任务提醒已启动，每" + (intervalMs / 60000) + "分钟检查一次");
+        FileLogger.info("TaskReminderScheduler", "start", "定时提醒服务启动成功");
     }
 
     /**
@@ -72,6 +74,7 @@ public class TaskReminderScheduler {
             timer.cancel();  // 取消定时器及其所有已安排的任务
             timer = null;
             System.out.println("[定时器] 任务提醒已停止");
+            FileLogger.info("TaskReminderScheduler", "stop", "定时提醒服务已停止");
         }
     }
 
@@ -88,6 +91,7 @@ public class TaskReminderScheduler {
     private static void checkAndRemind() {
         if (currentUser == null || currentUser.isEmpty()) return;
         try {
+            FileLogger.info("TaskReminderScheduler", "checkAndRemind", "定时检查触发, 用户: " + currentUser);
             // 查询当前用户的待办任务数量
             int count = NotificationService.getPendingTaskCount(currentUser);
             if (count > 0) {
@@ -99,10 +103,13 @@ public class TaskReminderScheduler {
                     EmailService.sendWithRetry(user.getEmail(), currentUser,
                         "", "您有" + count + "个待办任务", "定时提醒", 5, 5000);
                 }
+                FileLogger.info("TaskReminderScheduler", "checkAndRemind", "发现" + count + "个待办任务，已发送提醒邮件");
                 System.out.println("[定时器] 发现" + count + "个待办任务，已发送提醒邮件");
+            } else {
+                FileLogger.info("TaskReminderScheduler", "checkAndRemind", "无待办任务");
             }
         } catch (Exception e) {
-            System.err.println("[定时器] 检查异常: " + e.getMessage());
+            FileLogger.error("TaskReminderScheduler", "checkAndRemind", "定时检查异常: " + e.getMessage(), e);
         }
     }
 }

@@ -63,6 +63,7 @@ public class EmailService {
         senderEmail = email;
         senderPassword = password;
         emailEnabled = true;  // 配置完成后自动启用邮件功能
+        FileLogger.info("EmailService", "configure", "邮件服务已配置: host=" + host + ", port=" + port + ", sender=" + email);
     }
 
     /**
@@ -76,6 +77,7 @@ public class EmailService {
      */
     public static void setEnabled(boolean enabled) {
         emailEnabled = enabled;
+        FileLogger.info("EmailService", "setEnabled", "邮件功能" + (enabled ? "已启用" : "已禁用"));
     }
 
     /**

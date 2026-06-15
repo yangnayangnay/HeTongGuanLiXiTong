@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.ContractVersion;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -28,6 +29,8 @@ public class ContractVersionDao {
      * @return true-成功；false-失败
      */
     public boolean insert(ContractVersion ver) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractVersionDao", "insert", "开始插入版本记录, 合同编号: " + ver.getContractNum() + ", 版本号: " + ver.getVersionNo() + ", 修改人: " + ver.getModifier());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -36,6 +39,7 @@ public class ContractVersionDao {
             pstmt = conn.prepareStatement(
                 "INSERT INTO t_contract_version(id, contract_num, version_no, content, file_data, file_name, modifier, modify_time, change_summary) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, SYSTIMESTAMP, ?)");
+            FileLogger.debug("ContractVersionDao", "insert", "SQL=INSERT INTO t_contract_version(id, contract_num, version_no, content, file_data, file_name, modifier, modify_time, change_summary) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, ver.getContractNum());
             pstmt.setInt(3, ver.getVersionNo());
@@ -54,8 +58,12 @@ public class ContractVersionDao {
             pstmt.setString(6, ver.getFileName());
             pstmt.setString(7, ver.getModifier());
             pstmt.setString(8, ver.getChangeSummary());
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractVersionDao", "insert", "插入版本记录" + (result ? "成功" : "失败") + ", 合同编号: " + ver.getContractNum() + ", 版本号: " + ver.getVersionNo() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractVersionDao", "insert", "插入版本记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -70,6 +78,8 @@ public class ContractVersionDao {
      * @return 版本列表
      */
     public List<ContractVersion> findByContractNum(String contractNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractVersionDao", "findByContractNum", "开始根据合同编号查询版本, 合同编号: " + contractNum);
         List<ContractVersion> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -79,6 +89,7 @@ public class ContractVersionDao {
             pstmt = conn.prepareStatement(
                 "SELECT id, contract_num, version_no, content, file_data, file_name, modifier, modify_time, change_summary " +
                 "FROM t_contract_version WHERE contract_num = ? ORDER BY version_no ASC");
+            FileLogger.debug("ContractVersionDao", "findByContractNum", "SQL=SELECT ... FROM t_contract_version WHERE contract_num = ? ORDER BY version_no ASC");
             pstmt.setString(1, contractNum);
             rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -96,7 +107,10 @@ public class ContractVersionDao {
                 ver.setChangeSummary(rs.getString("change_summary"));
                 list.add(ver);
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractVersionDao", "findByContractNum", "查询完成，共" + list.size() + "条版本记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractVersionDao", "findByContractNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -112,6 +126,8 @@ public class ContractVersionDao {
      * @return 版本对象；不存在返回null
      */
     public ContractVersion findByVersionNo(String contractNum, int versionNo) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractVersionDao", "findByVersionNo", "开始根据版本号查询, 合同编号: " + contractNum + ", 版本号: " + versionNo);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -120,6 +136,7 @@ public class ContractVersionDao {
             pstmt = conn.prepareStatement(
                 "SELECT id, contract_num, version_no, content, file_data, file_name, modifier, modify_time, change_summary " +
                 "FROM t_contract_version WHERE contract_num = ? AND version_no = ?");
+            FileLogger.debug("ContractVersionDao", "findByVersionNo", "SQL=SELECT ... FROM t_contract_version WHERE contract_num = ? AND version_no = ?");
             pstmt.setString(1, contractNum);
             pstmt.setInt(2, versionNo);
             rs = pstmt.executeQuery();
@@ -134,9 +151,14 @@ public class ContractVersionDao {
                 ver.setModifier(rs.getString("modifier"));
                 ver.setModifyTime(rs.getTimestamp("modify_time"));
                 ver.setChangeSummary(rs.getString("change_summary"));
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("ContractVersionDao", "findByVersionNo", "查询成功, 合同编号: " + contractNum + ", 版本号: " + versionNo + ", 耗时" + cost + "ms");
                 return ver;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractVersionDao", "findByVersionNo", "查询完成, 未找到版本, 合同编号: " + contractNum + ", 版本号: " + versionNo + ", 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractVersionDao", "findByVersionNo", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -152,6 +174,8 @@ public class ContractVersionDao {
      * @return 下一个版本号
      */
     public int getNextVersionNumber(String contractNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractVersionDao", "getNextVersionNumber", "开始获取下一版本号, 合同编号: " + contractNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -159,12 +183,17 @@ public class ContractVersionDao {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement(
                 "SELECT NVL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
+            FileLogger.debug("ContractVersionDao", "getNextVersionNumber", "SQL=SELECT NVL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
             pstmt.setString(1, contractNum);
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1) + 1;
+                int nextVer = rs.getInt(1) + 1;
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("ContractVersionDao", "getNextVersionNumber", "获取下一版本号: " + nextVer + ", 合同编号: " + contractNum + ", 耗时" + cost + "ms");
+                return nextVer;
             }
         } catch (Exception e) {
+            FileLogger.error("ContractVersionDao", "getNextVersionNumber", "获取下一版本号异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -179,14 +208,21 @@ public class ContractVersionDao {
      * @return true-成功；false-失败
      */
     public boolean deleteByContractNum(String contractNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractVersionDao", "deleteByContractNum", "开始删除合同版本记录, 合同编号: " + contractNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("DELETE FROM t_contract_version WHERE contract_num = ?");
+            FileLogger.debug("ContractVersionDao", "deleteByContractNum", "SQL=DELETE FROM t_contract_version WHERE contract_num = ?");
             pstmt.setString(1, contractNum);
-            return pstmt.executeUpdate() >= 0;
+            boolean result = pstmt.executeUpdate() >= 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractVersionDao", "deleteByContractNum", "删除版本记录" + (result ? "成功" : "失败") + ", 合同编号: " + contractNum + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractVersionDao", "deleteByContractNum", "删除版本记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

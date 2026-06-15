@@ -2,6 +2,7 @@ package com.contract.view.panel;
 
 import com.contract.entity.Customer;
 import com.contract.service.CustomerService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -168,6 +169,7 @@ public class CustomerManagePanel extends JPanel {
     private void doSearch() {
         // 获取搜索关键词
         String name = txtSearchName.getText().trim();
+        FileLogger.info("CustomerManagePanel", "doSearch", "查询客户: name=" + name);
         // 清空表格现有数据
         tableModel.setRowCount(0);
         // 根据是否输入关键词选择不同的查询方式
@@ -240,6 +242,7 @@ public class CustomerManagePanel extends JPanel {
             customer.setAccount(txtAccount.getText().trim());
             // 调用服务层保存客户
             if (customerService.addCustomer(customer)) {
+                FileLogger.info("CustomerManagePanel", "showAddDialog", "添加客户成功: name=" + customer.getName());
                 JOptionPane.showMessageDialog(dialog, "添加成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();  // 关闭对话框
                 loadAllData();      // 刷新列表
@@ -366,6 +369,7 @@ public class CustomerManagePanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             // 用户确认后执行删除
             if (customerService.deleteCustomer(id)) {
+                FileLogger.info("CustomerManagePanel", "doDelete", "删除客户: id=" + id);
                 JOptionPane.showMessageDialog(this, "删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 loadAllData();  // 刷新列表
             } else {

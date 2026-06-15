@@ -1,5 +1,7 @@
 package com.contract.view.panel;
 
+import com.contract.util.FileLogger;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -24,6 +26,7 @@ public class AboutPanel extends JPanel {
     public AboutPanel() {
         setLayout(new BorderLayout());
         setBorder(new EmptyBorder(20, 20, 20, 20));
+        FileLogger.info("AboutPanel", "AboutPanel", "关于面板初始化");
         initUI();
     }
 

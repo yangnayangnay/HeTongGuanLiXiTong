@@ -2,6 +2,7 @@ package com.contract.view;
 
 import com.contract.entity.User;
 import com.contract.service.UserService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import java.awt.*;
@@ -175,18 +176,22 @@ public class LoginFrame extends JFrame {
 
         // 输入校验
         if (username.isEmpty() || password.isEmpty()) {
+            FileLogger.warn("LoginFrame", "login", "登录校验失败: 用户名或密码为空");
             JOptionPane.showMessageDialog(this, "用户名和密码不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // 调用Service进行登录验证
+        FileLogger.info("LoginFrame", "login", "用户登录尝试: username=" + username);
         User user = userService.login(username, password);
         if (user != null) {
             // 登录成功：关闭登录窗，打开主窗口
+            FileLogger.info("LoginFrame", "login", "用户登录成功: username=" + username);
             this.dispose();
             new MainFrame(user).setVisible(true);
         } else {
             // 登录失败：区分不同的失败原因给出具体提示
+            FileLogger.warn("LoginFrame", "login", "用户登录失败: username=" + username);
             User checkUser = userService.getUserForStatusCheck(username);
             if (checkUser == null) {
                 JOptionPane.showMessageDialog(this, "用户名或密码错误！", "错误", JOptionPane.ERROR_MESSAGE);

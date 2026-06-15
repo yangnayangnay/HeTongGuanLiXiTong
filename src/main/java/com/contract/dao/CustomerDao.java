@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.Customer;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -29,6 +30,8 @@ public class CustomerDao {
      * @return 所有客户列表
      */
     public List<Customer> findAll() {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "findAll", "开始查询所有客户");
         List<Customer> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -36,11 +39,15 @@ public class CustomerDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_customer ORDER BY id");
+            FileLogger.debug("CustomerDao", "findAll", "SQL=SELECT * FROM t_customer ORDER BY id");
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapCustomer(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "findAll", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "findAll", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -55,18 +62,27 @@ public class CustomerDao {
      * @return 客户对象；未找到返回null
      */
     public Customer findByNum(String num) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "findByNum", "开始根据编号查询客户, 客户编号: " + num);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_customer WHERE num = ?");
+            FileLogger.debug("CustomerDao", "findByNum", "SQL=SELECT * FROM t_customer WHERE num = ?");
             pstmt.setString(1, num);
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return mapCustomer(rs);
+                Customer c = mapCustomer(rs);
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("CustomerDao", "findByNum", "查询成功, 找到客户: " + num + ", 耗时" + cost + "ms");
+                return c;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "findByNum", "查询完成, 未找到客户: " + num + ", 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "findByNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -82,6 +98,8 @@ public class CustomerDao {
      * @return 匹配的客户列表
      */
     public List<Customer> findByName(String name) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "findByName", "开始根据名称模糊查询客户, 关键词: " + name);
         List<Customer> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -89,12 +107,16 @@ public class CustomerDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_customer WHERE name LIKE ? ORDER BY id");
+            FileLogger.debug("CustomerDao", "findByName", "SQL=SELECT * FROM t_customer WHERE name LIKE ? ORDER BY id");
             pstmt.setString(1, "%" + name + "%");  // LIKE模糊匹配
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapCustomer(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "findByName", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "findByName", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -109,12 +131,15 @@ public class CustomerDao {
      * @return true-成功；false-失败
      */
     public boolean insert(Customer customer) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "insert", "开始新增客户, 客户编号: " + customer.getNum() + ", 客户名称: " + customer.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             int id = DBUtil.getNextId("seq_customer");
             pstmt = conn.prepareStatement("INSERT INTO t_customer(id, num, name, address, tel, fax, code, bank, account) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            FileLogger.debug("CustomerDao", "insert", "SQL=INSERT INTO t_customer(id, num, name, address, tel, fax, code, bank, account) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, customer.getNum());      // 客户编号
             pstmt.setString(3, customer.getName());     // 客户名称
@@ -124,8 +149,12 @@ public class CustomerDao {
             pstmt.setString(7, customer.getCode());     // 邮编
             pstmt.setString(8, customer.getBank());     // 开户银行
             pstmt.setString(9, customer.getAccount());  // 银行账号
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "insert", "新增客户" + (result ? "成功" : "失败") + ", 客户编号: " + customer.getNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "insert", "新增客户失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -141,11 +170,14 @@ public class CustomerDao {
      * @return true-成功；false-失败
      */
     public boolean update(Customer customer) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "update", "开始更新客户, 客户编号: " + customer.getNum() + ", 客户名称: " + customer.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("UPDATE t_customer SET name=?, address=?, tel=?, fax=?, code=?, bank=?, account=? WHERE num=?");
+            FileLogger.debug("CustomerDao", "update", "SQL=UPDATE t_customer SET name=?, address=?, tel=?, fax=?, code=?, bank=?, account=? WHERE num=?");
             pstmt.setString(1, customer.getName());
             pstmt.setString(2, customer.getAddress());
             pstmt.setString(3, customer.getTel());
@@ -154,8 +186,12 @@ public class CustomerDao {
             pstmt.setString(6, customer.getBank());
             pstmt.setString(7, customer.getAccount());
             pstmt.setString(8, customer.getNum());  // 条件-客户编号
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "update", "更新客户" + (result ? "成功" : "失败") + ", 客户编号: " + customer.getNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "update", "更新客户失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -170,14 +206,21 @@ public class CustomerDao {
      * @return true-成功；false-失败
      */
     public boolean delete(int id) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("CustomerDao", "delete", "开始删除客户, 客户ID: " + id);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("DELETE FROM t_customer WHERE id=?");
+            FileLogger.debug("CustomerDao", "delete", "SQL=DELETE FROM t_customer WHERE id=?");
             pstmt.setInt(1, id);
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("CustomerDao", "delete", "删除客户" + (result ? "成功" : "失败") + ", 客户ID: " + id + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("CustomerDao", "delete", "删除客户失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

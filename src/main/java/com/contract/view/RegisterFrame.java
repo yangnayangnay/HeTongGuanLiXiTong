@@ -1,6 +1,7 @@
 package com.contract.view;
 
 import com.contract.service.UserService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import java.awt.*;
@@ -170,28 +171,34 @@ public class RegisterFrame extends JFrame {
 
         // 校验所有字段非空
         if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || email.isEmpty()) {
+            FileLogger.warn("RegisterFrame", "register", "注册校验失败: 存在空字段");
             JOptionPane.showMessageDialog(this, "所有字段不能为空！（邮箱为必填项）", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         // 校验两次密码一致
         if (!password.equals(confirmPassword)) {
+            FileLogger.warn("RegisterFrame", "register", "注册校验失败: 两次密码不一致, username=" + username);
             JOptionPane.showMessageDialog(this, "两次输入的密码不一致！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         // 校验邮箱格式（简单正则校验）
         if (!email.matches("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$")) {
+            FileLogger.warn("RegisterFrame", "register", "注册校验失败: 邮箱格式不正确, email=" + email);
             JOptionPane.showMessageDialog(this, "请输入有效的邮箱地址格式！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         // 调用Service进行注册（传入邮箱参数）
+        FileLogger.info("RegisterFrame", "register", "用户注册: username=" + username + ", email=" + email);
         boolean success = userService.register(username, password, email);
         if (success) {
+            FileLogger.info("RegisterFrame", "register", "用户注册成功: username=" + username);
             JOptionPane.showMessageDialog(this,
                 "注册成功！请等待管理员审核通过后即可登录。",
                 "成功", JOptionPane.INFORMATION_MESSAGE);
             dispose();  // 注册成功后关闭窗口
         } else {
+            FileLogger.warn("RegisterFrame", "register", "用户注册失败: username=" + username + " (用户名可能已存在)");
             JOptionPane.showMessageDialog(this, "注册失败，用户名可能已存在！", "错误", JOptionPane.ERROR_MESSAGE);
         }
     }

@@ -40,9 +40,11 @@ public class OCRService {
      * @param apiKey      云端API密钥（Tesseract时可为空）
      */
     public static void configure(OCREngine engine, String pathOrUrl, String apiKey) {
+        FileLogger.info("OCRService", "configure", "配置OCR引擎: " + engine.desc);
         currentEngine = engine;
         if (engine == OCREngine.TESSERACT) tesseractPath = pathOrUrl;
         else if (engine == OCREngine.CLOUD_API) { cloudApiUrl = pathOrUrl; cloudApiKey = apiKey; }
+        FileLogger.info("OCRService", "configure", "OCR引擎配置完成: " + engine.desc);
     }
 
     /**
@@ -61,11 +63,15 @@ public class OCRService {
      * @return 识别出的文字内容；失败返回错误提示
      */
     public static String recognizeImage(File imageFile) {
+        FileLogger.info("OCRService", "recognizeImage", "开始OCR识别, 文件: " + (imageFile != null ? imageFile.getName() : "null") + ", 引擎: " + currentEngine.desc);
+        String result;
         switch (currentEngine) {
-            case TESSERACT: return recognizeWithTesseract(imageFile);
-            case CLOUD_API: return recognizeWithCloudAPI(imageFile);
-            case DEMO: default: return recognizeDemo(imageFile);
+            case TESSERACT: result = recognizeWithTesseract(imageFile); break;
+            case CLOUD_API: result = recognizeWithCloudAPI(imageFile); break;
+            case DEMO: default: result = recognizeDemo(imageFile); break;
         }
+        FileLogger.info("OCRService", "recognizeImage", "OCR识别完成, 结果长度: " + (result != null ? result.length() : 0));
+        return result;
     }
 
     /**
@@ -74,6 +80,7 @@ public class OCRService {
      */
     private static String recognizeWithTesseract(File imageFile) {
         try {
+            FileLogger.info("OCRService", "recognizeWithTesseract", "调用Tesseract识别, 文件: " + imageFile.getAbsolutePath());
             // 调用: tesseract image.jpg stdout -l chi_sim+eng
             ProcessBuilder pb = new ProcessBuilder(
                 tesseractPath, imageFile.getAbsolutePath(), "stdout", "-l", "chi_sim+eng"
@@ -92,11 +99,14 @@ public class OCRService {
 
             int exitCode = proc.waitFor();
             if (exitCode == 0) {
+                FileLogger.info("OCRService", "recognizeWithTesseract", "Tesseract识别成功, 结果长度: " + output.length());
                 return output.toString().trim();
             } else {
+                FileLogger.error("OCRService", "recognizeWithTesseract", "Tesseract识别失败, 退出码: " + exitCode, null);
                 return "[Tesseract识别失败，退出码: " + exitCode + "]\n请确认:\n1. Tesseract是否已安装?\n2. 是否已下载中文语言包?\n3. 路径是否正确?";
             }
         } catch (Exception e) {
+            FileLogger.error("OCRService", "recognizeWithTesseract", "Tesseract调用异常: " + e.getMessage(), e);
             return "[Tesseract调用异常: " + e.getMessage() + "]";
         }
     }
@@ -107,9 +117,11 @@ public class OCRService {
      */
     private static String recognizeWithCloudAPI(File imageFile) {
         if (cloudApiUrl.isEmpty()) {
+            FileLogger.warn("OCRService", "recognizeWithCloudAPI", "云端OCR未配置");
             return "[云端OCR未配置]\n请在系统设置中配置API地址和密钥";
         }
         try {
+            FileLogger.info("OCRService", "recognizeWithCloudAPI", "调用云端OCR识别, 文件: " + imageFile.getName());
             // 将图片转为Base64
             String base64Image = fileToBase64(imageFile);
 
@@ -149,9 +161,14 @@ public class OCRService {
                 idx = end + 1;
             }
 
-            if (result.length() == 0) return "API返回: " + respStr.substring(0, Math.min(500, respStr.length()));
+            if (result.length() == 0) {
+                FileLogger.warn("OCRService", "recognizeWithCloudAPI", "云端OCR未提取到文字结果");
+                return "API返回: " + respStr.substring(0, Math.min(500, respStr.length()));
+            }
+            FileLogger.info("OCRService", "recognizeWithCloudAPI", "云端OCR识别成功, 结果长度: " + result.length());
             return result.toString().trim();
         } catch (Exception e) {
+            FileLogger.error("OCRService", "recognizeWithCloudAPI", "云端OCR调用失败: " + e.getMessage(), e);
             return "[云端OCR调用失败: " + e.getMessage() + "]";
         }
     }
@@ -161,6 +178,7 @@ public class OCRService {
      * 用于展示功能流程，无需真实OCR引擎
      */
     private static String recognizeDemo(File imageFile) {
+        FileLogger.info("OCRService", "recognizeDemo", "演示模式识别, 文件: " + imageFile.getName() + ", 大小: " + (imageFile.length() / 1024) + " KB");
         return "[OCR演示模式]\n\n" +
             "已成功识别图像文件: " + imageFile.getName() + "\n" +
             "文件大小: " + (imageFile.length() / 1024) + " KB\n\n" +
@@ -200,8 +218,11 @@ public class OCRService {
     public static boolean isTesseractAvailable() {
         try {
             Process proc = Runtime.getRuntime().exec(new String[]{tesseractPath, "--version"});
-            return proc.waitFor() == 0;
+            boolean available = proc.waitFor() == 0;
+            FileLogger.info("OCRService", "isTesseractAvailable", "Tesseract可用性: " + available);
+            return available;
         } catch (Exception e) {
+            FileLogger.warn("OCRService", "isTesseractAvailable", "Tesseract不可用: " + e.getMessage());
             return false;
         }
     }

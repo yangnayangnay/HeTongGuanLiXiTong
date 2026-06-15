@@ -49,8 +49,10 @@ public class DBUtil {
     static {
         try {
             Class.forName(DRIVER);  // 加载并注册Oracle JDBC驱动
+            FileLogger.info("DBUtil", "static", "Oracle JDBC驱动加载成功: " + DRIVER);
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
+            FileLogger.error("DBUtil", "static", "Oracle驱动加载失败: " + e.getMessage());
             throw new RuntimeException("Oracle驱动加载失败", e);  // 驱动加载失败则系统无法运行
         }
     }
@@ -63,7 +65,9 @@ public class DBUtil {
      * @throws SQLException 数据库连接失败时抛出异常
      */
     public static Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+        FileLogger.debug("DBUtil", "getConnection", "获取数据库连接成功");
+        return conn;
     }
 
     /**
@@ -76,9 +80,9 @@ public class DBUtil {
      * @param rs   结果集对象（可为null）
      */
     public static void close(Connection conn, Statement stmt, ResultSet rs) {
-        try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); }
-        try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); }
-        try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); }
+        try { if (rs != null) rs.close(); } catch (SQLException e) { e.printStackTrace(); FileLogger.warn("DBUtil", "close", "关闭ResultSet异常: " + e.getMessage()); }
+        try { if (stmt != null) stmt.close(); } catch (SQLException e) { e.printStackTrace(); FileLogger.warn("DBUtil", "close", "关闭Statement异常: " + e.getMessage()); }
+        try { if (conn != null) conn.close(); } catch (SQLException e) { e.printStackTrace(); FileLogger.warn("DBUtil", "close", "关闭Connection异常: " + e.getMessage()); }
     }
 
     /**
@@ -110,10 +114,13 @@ public class DBUtil {
             pstmt = conn.prepareStatement("SELECT " + sequenceName + ".NEXTVAL FROM dual");
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1);  // 返回第一列（序列值）
+                int nextId = rs.getInt(1);
+                FileLogger.debug("DBUtil", "getNextId", "获取序列值成功: " + sequenceName + " = " + nextId);
+                return nextId;  // 返回第一列（序列值）
             }
         } catch (SQLException e) {
             e.printStackTrace();
+            FileLogger.error("DBUtil", "getNextId", "获取序列值失败: " + sequenceName + ", 错误: " + e.getMessage());
         } finally {
             close(conn, pstmt, rs);  // 确保资源释放
         }

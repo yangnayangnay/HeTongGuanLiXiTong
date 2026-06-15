@@ -80,6 +80,7 @@ public class ChunkUploadManager {
      * @return 当前ChunkUploadManager实例（支持链式调用）
      */
     public ChunkUploadManager createUploadSession(String fileName, int totalChunks, long fileSize) {
+        FileLogger.info("ChunkUploadManager", "createUploadSession", "创建分块上传会话, 文件: " + fileName + ", 总块数: " + totalChunks + ", 大小: " + formatFileSize(fileSize));
         this.uploadId = "UPLOAD_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 10000);  // 生成唯一ID
         this.fileName = fileName;           // 记录文件名
         this.totalChunks = totalChunks;     // 设置总块数
@@ -93,6 +94,7 @@ public class ChunkUploadManager {
         System.out.println("[分块上传] 会话创建成功: " + this.uploadId +
             ", 文件: " + fileName + ", 总块数: " + totalChunks +
             ", 大小: " + formatFileSize(fileSize));
+        FileLogger.info("ChunkUploadManager", "createUploadSession", "会话创建成功: " + this.uploadId);
         return this;  // 返回当前实例以支持链式调用
     }
 
@@ -125,11 +127,11 @@ public class ChunkUploadManager {
      */
     public boolean markChunkUploaded(int chunkIndex) {
         if (chunkIndex < 0 || chunkIndex >= totalChunks) {
-            System.err.println("[分块上传] 无效的分块索引: " + chunkIndex + ", 有效范围: 0-" + (totalChunks - 1));
+            FileLogger.warn("ChunkUploadManager", "markChunkUploaded", "无效的分块索引: " + chunkIndex + ", 有效范围: 0-" + (totalChunks - 1));
             return false;  // 索引越界
         }
         if (chunkStatus.get(chunkIndex)) {
-            System.out.println("[分块上传] 分块 " + chunkIndex + " 已标记过，跳过重复标记");
+            FileLogger.warn("ChunkUploadManager", "markChunkUploaded", "分块 " + chunkIndex + " 已标记过，跳过重复标记");
             return false;  // 已经标记过了
         }
         // 更新该分块状态为已完成
@@ -137,6 +139,7 @@ public class ChunkUploadManager {
         uploadedChunks++;  // 递增已上传计数
         System.out.println("[分块上传] 分块 " + chunkIndex + "/" + (totalChunks - 1) +
             " 上传完成, 进度: " + getProgress() + "%");
+        FileLogger.info("ChunkUploadManager", "markChunkUploaded", "分块 " + chunkIndex + "/" + (totalChunks - 1) + " 上传完成, 进度: " + getProgress() + "%");
         return true;
     }
 
@@ -244,6 +247,7 @@ public class ChunkUploadManager {
         }
         chunkStatus.set(chunkIndex, false);
         uploadedChunks--;
+        FileLogger.info("ChunkUploadManager", "resetChunk", "重置分块 " + chunkIndex + " 状态为未上传");
         return true;
     }
 }

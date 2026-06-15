@@ -33,6 +33,7 @@ public class ContractExpiryReminder {
      */
     public static void start() {
         if (running) return;
+        FileLogger.info("ContractExpiryReminder", "start", "启动到期提醒服务, 间隔: " + (intervalMs/3600000) + "小时");
         timer = new Timer("ExpiryReminder", true);
         // 首次延迟5分钟后开始，之后每隔intervalMs执行一次
         timer.scheduleAtFixedRate(new TimerTask() {
@@ -41,12 +42,14 @@ public class ContractExpiryReminder {
         }, 5 * 60 * 1000, intervalMs);
         running = true;
         System.out.println("[到期提醒] 服务已启动，每" + (intervalMs/3600000) + "小时检查一次");
+        FileLogger.info("ContractExpiryReminder", "start", "到期提醒服务启动成功");
     }
 
     /** 停止服务 */
     public static void stop() {
         if (timer != null) { timer.cancel(); timer = null; }
         running = false;
+        FileLogger.info("ContractExpiryReminder", "stop", "到期提醒服务已停止");
     }
 
     /** 手动触发一次检查（供测试或手动调用） */
@@ -61,6 +64,7 @@ public class ContractExpiryReminder {
     private static List<String> checkAndRemind() {
         List<String> results = new ArrayList<>();
         try {
+            FileLogger.info("ContractExpiryReminder", "checkAndRemind", "开始到期检查");
             ContractDao contractDao = new ContractDao();
             List<Contract> allContracts = contractDao.findAll();
             Calendar now = Calendar.getInstance();
@@ -92,13 +96,15 @@ public class ContractExpiryReminder {
                 System.out.println("[到期提醒] " + msg);
             }
 
+            FileLogger.info("ContractExpiryReminder", "checkAndRemind", "到期检查完成, 发现到期合同: " + results.size() + "项");
+
             // 如果有到期合同且邮件已配置，发送汇总邮件
             if (!results.isEmpty()) {
                 sendSummaryEmail(results);
             }
 
         } catch (Exception e) {
-            System.err.println("[到期提醒] 检查异常: " + e.getMessage());
+            FileLogger.error("ContractExpiryReminder", "checkAndRemind", "到期检查异常: " + e.getMessage(), e);
         }
         return results;
     }
@@ -106,6 +112,7 @@ public class ContractExpiryReminder {
     /** 发送到期汇总邮件 */
     private static void sendSummaryEmail(List<String> items) {
         try {
+            FileLogger.info("ContractExpiryReminder", "sendSummaryEmail", "发送到期汇总邮件, 共" + items.size() + "项");
             // 发送给admin用户
             User admin = userDao.findByName("admin");
             if (admin != null && admin.getEmail() != null && !"default@example.com".equals(admin.getEmail())) {
@@ -116,7 +123,12 @@ public class ContractExpiryReminder {
                 sb.append("\n请登录系统查看详情。\n-- 合同管理系统自动发送");
                 EmailService.sendWithRetry(admin.getEmail(), "admin", "",
                     "合同到期提醒", "到期提醒", 3, 3000);
+                FileLogger.info("ContractExpiryReminder", "sendSummaryEmail", "到期汇总邮件发送成功");
+            } else {
+                FileLogger.warn("ContractExpiryReminder", "sendSummaryEmail", "admin用户邮箱未配置，跳过邮件发送");
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            FileLogger.error("ContractExpiryReminder", "sendSummaryEmail", "发送到期汇总邮件失败: " + e.getMessage(), e);
+        }
     }
 }

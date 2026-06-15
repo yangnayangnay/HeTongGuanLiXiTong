@@ -25,8 +25,10 @@ public class HotKeyManager {
      * @param pane 根窗格（通常是主窗口的getRootPane()）
      */
     public static void init(JRootPane pane) {
+        FileLogger.info("HotKeyManager", "init", "初始化快捷键管理器");
         HotKeyManager.rootPane = pane;
         registerDefaultKeys();
+        FileLogger.info("HotKeyManager", "init", "快捷键管理器初始化完成");
     }
 
     /**
@@ -87,6 +89,7 @@ public class HotKeyManager {
      * @param action  执行的动作
      */
     public static void bind(KeyStroke stroke, String name, Runnable action) {
+        FileLogger.info("HotKeyManager", "bind", "绑定快捷键: " + name);
         keyBindings.put(stroke, action);
         if (rootPane != null) {
             InputMap im = rootPane.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
@@ -120,6 +123,7 @@ public class HotKeyManager {
      * @param cmd 面板命令标识
      */
     private static void switchToPanel(String cmd) {
+        FileLogger.info("HotKeyManager", "switchToPanel", "快捷键触发面板切换: " + cmd);
         if (panelSwitcher != null) panelSwitcher.accept(cmd);
     }
 

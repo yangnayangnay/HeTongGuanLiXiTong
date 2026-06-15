@@ -11,6 +11,7 @@ import com.contract.entity.ContractState;
 import com.contract.entity.ContractAttachment;
 import com.contract.entity.Log;
 import com.contract.util.NetworkUtil;
+import com.contract.util.FileLogger;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -68,10 +69,12 @@ public class ContractService {
      * [REST-API] POST /api/contracts
      */
     public boolean draftContract(Contract contract) {
+        FileLogger.info("ContractService", "draftContract", "开始起草合同, 合同名称: " + contract.getName() + ", 客户: " + contract.getCustomer());
         // 生成合同编号：HT + 当前日期 + 4位流水号
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
         String num = "HT" + sdf.format(new Date()) + String.format("%04d", contractDao.findAll().size() + 1);
         contract.setNum(num);
+        FileLogger.info("ContractService", "draftContract", "生成合同编号: " + num);
 
         boolean result = contractDao.insert(contract);
         if (result) {
@@ -81,6 +84,7 @@ public class ContractService {
             cs.setType(1); // 1-起草
             cs.setTime(new Date());
             stateDao.insert(cs);
+            FileLogger.info("ContractService", "draftContract", "状态变更: 合同创建 -> 起草, 合同编号: " + num);
 
             // 记录操作日志（含IP和变更信息）
             Log draftLog = new Log(0, contract.getUserName(), "起草合同: " + contract.getName() + "(" + num + ")", null);
@@ -88,6 +92,9 @@ public class ContractService {
             draftLog.setOldValue("合同不存在");
             draftLog.setNewValue("状态=起草");
             logDao.insert(draftLog);
+            FileLogger.info("ContractService", "draftContract", "起草合同成功, 合同编号: " + num);
+        } else {
+            FileLogger.error("ContractService", "draftContract", "起草合同失败, 合同名称: " + contract.getName(), null);
         }
         return result;
     }
@@ -106,9 +113,11 @@ public class ContractService {
      * [REST-API] POST /api/contracts/{conNum}/assign
      */
     public boolean assignContract(String conNum, List<String> countersignUsers, List<String> approveUsers, List<String> signUsers) {
+        FileLogger.info("ContractService", "assignContract", "开始分配合同人员, 合同编号: " + conNum + ", 会签人数: " + countersignUsers.size() + ", 审批人数: " + approveUsers.size() + ", 签订人数: " + signUsers.size());
         // 验证合同当前状态必须是"起草"才能分配
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state == null || state.getType() != 1) {
+            FileLogger.info("ContractService", "assignContract", "分配失败, 合同状态不正确, 合同编号: " + conNum + ", 当前状态: " + (state != null ? state.getType() : "无"));
             return false;  // 状态不对，不允许分配
         }
 
@@ -148,6 +157,7 @@ public class ContractService {
             processDao.insert(cp);
         }
 
+        FileLogger.info("ContractService", "assignContract", "分配合同人员成功, 合同编号: " + conNum);
         Log assignLog = new Log(0, "admin", "分配合同: " + conNum, null);
         assignLog.setIpAddress(NetworkUtil.getLocalIPAddress());
         assignLog.setOldValue("状态=起草（未分配）");
@@ -168,6 +178,7 @@ public class ContractService {
      * [REST-API] POST /api/contracts/{conNum}/countersign
      */
     public boolean countersignContract(int processId, String opinion) {
+        FileLogger.info("ContractService", "countersignContract", "开始会签合同, 流程ID: " + processId);
         // 更新流程状态为已完成（state=1）
         boolean result = processDao.updateState(processId, 1, opinion);
         if (result) {
@@ -183,13 +194,19 @@ public class ContractService {
                     cs.setType(2); // 会签完成
                     cs.setTime(new Date());
                     stateDao.insert(cs);
+                    FileLogger.info("ContractService", "countersignContract", "状态变更: 会签中 -> 会签完成, 合同编号: " + cp.getConNum());
+                } else {
+                    FileLogger.info("ContractService", "countersignContract", "会签进行中, 合同编号: " + cp.getConNum() + ", 尚有未完成会签");
                 }
                 Log csLog = new Log(0, cp.getUserName(), "会签合同: " + cp.getConNum(), null);
                 csLog.setIpAddress(NetworkUtil.getLocalIPAddress());
                 csLog.setOldValue("状态=会签中");
                 csLog.setNewValue("状态=会签完成");
                 logDao.insert(csLog);
+                FileLogger.info("ContractService", "countersignContract", "会签成功, 合同编号: " + cp.getConNum() + ", 操作人: " + cp.getUserName());
             }
+        } else {
+            FileLogger.error("ContractService", "countersignContract", "会签失败, 流程ID: " + processId, null);
         }
         return result;
     }
@@ -207,14 +224,17 @@ public class ContractService {
      * [REST-API] POST /api/contracts/{conNum}/finalize
      */
     public boolean finalizeContract(String conNum, String content, String userName) {
+        FileLogger.info("ContractService", "finalizeContract", "开始定稿合同, 合同编号: " + conNum + ", 操作人: " + userName);
         // 验证合同状态必须为"会签完成"
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state == null || state.getType() != 2) {
+            FileLogger.info("ContractService", "finalizeContract", "定稿失败, 合同状态不正确, 合同编号: " + conNum + ", 当前状态: " + (state != null ? state.getType() : "无"));
             return false;
         }
 
         Contract contract = contractDao.findByNum(conNum);
         if (contract == null) {
+            FileLogger.info("ContractService", "finalizeContract", "定稿失败, 合同不存在, 合同编号: " + conNum);
             return false;
         }
         contract.setContent(content);  // 更新合同内容为定稿版本
@@ -226,12 +246,16 @@ public class ContractService {
             cs.setType(3); // 定稿完成
             cs.setTime(new Date());
             stateDao.insert(cs);
+            FileLogger.info("ContractService", "finalizeContract", "状态变更: 会签完成 -> 定稿完成, 合同编号: " + conNum);
 
             Log finalizeLog = new Log(0, userName, "定稿合同: " + conNum, null);
             finalizeLog.setIpAddress(NetworkUtil.getLocalIPAddress());
             finalizeLog.setOldValue("状态=会签完成");
             finalizeLog.setNewValue("状态=定稿完成");
             logDao.insert(finalizeLog);
+            FileLogger.info("ContractService", "finalizeContract", "定稿成功, 合同编号: " + conNum);
+        } else {
+            FileLogger.error("ContractService", "finalizeContract", "定稿失败, 合同编号: " + conNum, null);
         }
         return result;
     }
@@ -253,6 +277,7 @@ public class ContractService {
      * [REST-API] POST /api/contracts/{conNum}/approve
      */
     public boolean approveContract(int processId, boolean approved, String opinion, String userName) {
+        FileLogger.warn("ContractService", "approveContract", "开始审批合同, 流程ID: " + processId + ", 是否通过: " + approved + ", 审批人: " + userName);
         int newState = approved ? 1 : 2; // 1-已完成（通过）, 2-已否决
         boolean result = processDao.updateState(processId, newState, opinion);
         if (result) {
@@ -269,6 +294,9 @@ public class ContractService {
                         cs.setType(4); // 审批完成
                         cs.setTime(new Date());
                         stateDao.insert(cs);
+                        FileLogger.info("ContractService", "approveContract", "状态变更: 定稿完成 -> 审批完成, 合同编号: " + cp.getConNum());
+                    } else {
+                        FileLogger.info("ContractService", "approveContract", "审批进行中, 合同编号: " + cp.getConNum() + ", 尚有未完成审批");
                     }
                 } else {
                     // 审批否决：状态回退到"起草"（type=1），需重新走流程
@@ -277,6 +305,7 @@ public class ContractService {
                     cs.setType(1); // 回退到起草
                     cs.setTime(new Date());
                     stateDao.insert(cs);
+                    FileLogger.warn("ContractService", "approveContract", "状态变更: 定稿完成 -> 起草（审批否决回退）, 合同编号: " + cp.getConNum());
                 }
                 Log approveLog = new Log(0, userName, (approved ? "审批通过" : "审批否决") + "合同: " + cp.getConNum(), null);
                 approveLog.setIpAddress(NetworkUtil.getLocalIPAddress());
@@ -288,7 +317,10 @@ public class ContractService {
                     approveLog.setNewValue("状态=起草（回退）");
                 }
                 logDao.insert(approveLog);
+                FileLogger.info("ContractService", "approveContract", "审批操作完成, 合同编号: " + cp.getConNum() + ", 结果: " + (approved ? "通过" : "否决"));
             }
+        } else {
+            FileLogger.error("ContractService", "approveContract", "审批操作失败, 流程ID: " + processId, null);
         }
         return result;
     }
@@ -305,6 +337,7 @@ public class ContractService {
      * [REST-API] POST /api/contracts/{conNum}/sign
      */
     public boolean signContract(int processId, String info, String userName) {
+        FileLogger.warn("ContractService", "signContract", "开始签订合同, 流程ID: " + processId + ", 签署人: " + userName);
         boolean result = processDao.updateState(processId, 1, info);
         if (result) {
             ContractProcess cp = getProcessById(processId);
@@ -319,13 +352,19 @@ public class ContractService {
                     cs.setType(5); // 签订完成
                     cs.setTime(new Date());
                     stateDao.insert(cs);
+                    FileLogger.info("ContractService", "signContract", "状态变更: 审批完成 -> 签订完成, 合同编号: " + cp.getConNum());
+                } else {
+                    FileLogger.info("ContractService", "signContract", "签订进行中, 合同编号: " + cp.getConNum() + ", 尚有未完成签订");
                 }
                 Log signLog = new Log(0, userName, "签订合同: " + cp.getConNum(), null);
             signLog.setIpAddress(NetworkUtil.getLocalIPAddress());
             signLog.setOldValue("状态=审批完成");
             signLog.setNewValue("状态=签订完成");
             logDao.insert(signLog);
+            FileLogger.info("ContractService", "signContract", "签订成功, 合同编号: " + cp.getConNum() + ", 签署人: " + userName);
             }
+        } else {
+            FileLogger.error("ContractService", "signContract", "签订失败, 流程ID: " + processId, null);
         }
         return result;
     }
@@ -347,6 +386,7 @@ public class ContractService {
      * @return 状态名称（如："起草"、"会签完成"等）；无记录返回"未知"
      */
     public String getContractStateName(String conNum) {
+        FileLogger.info("ContractService", "getContractStateName", "获取合同状态名称, 合同编号: " + conNum);
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state != null) {
             return state.getTypeName();  // 返回中文状态名
@@ -361,6 +401,7 @@ public class ContractService {
      * @return 状态类型码（1-5）；无记录返回0
      */
     public int getContractStateType(String conNum) {
+        FileLogger.info("ContractService", "getContractStateType", "获取合同状态类型, 合同编号: " + conNum);
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state != null) {
             return state.getType();
@@ -372,6 +413,7 @@ public class ContractService {
      * 根据合同编号查找合同
      */
     public Contract findByNum(String num) {
+        FileLogger.info("ContractService", "findByNum", "根据编号查找合同, 合同编号: " + num);
         return contractDao.findByNum(num);
     }
 
@@ -381,6 +423,7 @@ public class ContractService {
      * [REST-API] GET /api/contracts
      */
     public List<Contract> findAll() {
+        FileLogger.info("ContractService", "findAll", "查询所有合同");
         return contractDao.findAll();
     }
 
@@ -390,6 +433,7 @@ public class ContractService {
      * [REST-API] GET /api/contracts?name=xxx
      */
     public List<Contract> findByName(String name) {
+        FileLogger.info("ContractService", "findByName", "根据名称模糊搜索合同, 关键词: " + name);
         return contractDao.findByName(name);
     }
 
@@ -397,6 +441,7 @@ public class ContractService {
      * 根据创建人查询合同
      */
     public List<Contract> findByUserName(String userName) {
+        FileLogger.info("ContractService", "findByUserName", "根据创建人查询合同, 创建人: " + userName);
         return contractDao.findByUserName(userName);
     }
 
@@ -404,6 +449,7 @@ public class ContractService {
      * 获取合同的所有流程记录
      */
     public List<ContractProcess> getContractProcesses(String conNum) {
+        FileLogger.info("ContractService", "getContractProcesses", "获取合同流程记录, 合同编号: " + conNum);
         return processDao.findByConNum(conNum);
     }
 
@@ -411,6 +457,7 @@ public class ContractService {
      * 获取合同特定类型的流程记录
      */
     public List<ContractProcess> getContractProcessesByType(String conNum, int type) {
+        FileLogger.info("ContractService", "getContractProcessesByType", "获取合同特定类型流程, 合同编号: " + conNum + ", 类型: " + type);
         return processDao.findByConNumAndType(conNum, type);
     }
 
@@ -418,6 +465,7 @@ public class ContractService {
      * 获取用户的待办任务（指定类型的未完成任务）
      */
     public List<ContractProcess> getUserPendingProcesses(String userName, int type) {
+        FileLogger.info("ContractService", "getUserPendingProcesses", "获取用户待办任务, 用户: " + userName + ", 类型: " + type);
         return processDao.findByUserNameAndTypeAndState(userName, type, 0);
     }
 
@@ -425,6 +473,7 @@ public class ContractService {
      * 获取合同的状态变更历史
      */
     public List<ContractState> getContractStates(String conNum) {
+        FileLogger.info("ContractService", "getContractStates", "获取合同状态历史, 合同编号: " + conNum);
         return stateDao.findByConNum(conNum);
     }
 
@@ -432,6 +481,7 @@ public class ContractService {
      * 根据状态类型查询合同
      */
     public List<ContractState> getContractsByState(int stateType) {
+        FileLogger.info("ContractService", "getContractsByState", "根据状态类型查询合同, 状态类型: " + stateType);
         return stateDao.findByType(stateType);
     }
 
@@ -439,6 +489,7 @@ public class ContractService {
      * 获取合同的附件列表
      */
     public List<ContractAttachment> getAttachments(String conNum) {
+        FileLogger.info("ContractService", "getAttachments", "获取合同附件, 合同编号: " + conNum);
         return attachmentDao.findByConNum(conNum);
     }
 
@@ -446,7 +497,14 @@ public class ContractService {
      * 上传合同附件
      */
     public boolean addAttachment(ContractAttachment attachment) {
-        return attachmentDao.insert(attachment);
+        FileLogger.info("ContractService", "addAttachment", "上传合同附件, 合同编号: " + attachment.getConNum() + ", 文件名: " + attachment.getFileName());
+        boolean result = attachmentDao.insert(attachment);
+        if (result) {
+            FileLogger.info("ContractService", "addAttachment", "上传附件成功, 合同编号: " + attachment.getConNum());
+        } else {
+            FileLogger.error("ContractService", "addAttachment", "上传附件失败, 合同编号: " + attachment.getConNum(), null);
+        }
+        return result;
     }
 
     /**
@@ -456,6 +514,7 @@ public class ContractService {
      * @return 待分配的合同列表
      */
     public List<Contract> getUnassignedContracts() {
+        FileLogger.info("ContractService", "getUnassignedContracts", "获取待分配合同列表");
         List<Contract> result = new java.util.ArrayList<>();
         List<Contract> all = contractDao.findAll();
         for (Contract c : all) {
@@ -469,6 +528,7 @@ public class ContractService {
                 }
             }
         }
+        FileLogger.info("ContractService", "getUnassignedContracts", "查询完成, 待分配合同数: " + result.size());
         return result;
     }
 }

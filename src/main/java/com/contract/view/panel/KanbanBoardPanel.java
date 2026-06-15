@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.service.ContractService;
 import com.contract.service.CustomerService;
 import com.contract.entity.Customer;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -138,12 +139,16 @@ public class KanbanBoardPanel extends JPanel {
      * </p>
      */
     private void loadData() {
+        FileLogger.info("KanbanBoardPanel", "loadData", "开始加载看板数据");
         // 清空现有卡片
         boardContainer.removeAll();
 
         // 获取选中的客户筛选条件
         String selectedCustomer = (String) cmbCustomerFilter.getSelectedItem();
         boolean filterByCustomer = selectedCustomer != null && !"全部客户".equals(selectedCustomer);
+        if (filterByCustomer) {
+            FileLogger.info("KanbanBoardPanel", "loadData", "按客户筛选: " + selectedCustomer);
+        }
 
         // 获取所有合同列表
         List<Contract> allContracts = contractService.findAll();
@@ -503,6 +508,7 @@ public class KanbanBoardPanel extends JPanel {
          * </p>
          */
         private void showContractDetailDialog() {
+            FileLogger.info("KanbanBoardPanel", "showContractDetailDialog", "查看合同详情: " + contract.getNum());
             JDialog detailDlg = new JDialog(
                 (javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(KanbanBoardPanel.this),
                 "📄 合同详情: " + contract.getNum(),

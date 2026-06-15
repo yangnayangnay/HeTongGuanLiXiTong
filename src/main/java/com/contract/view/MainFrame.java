@@ -7,6 +7,7 @@ import com.contract.util.TaskReminderScheduler;
 import com.contract.util.HotKeyManager;
 import com.contract.util.ContractExpiryReminder;
 import com.contract.util.ThemeManager;
+import com.contract.util.FileLogger;
 import com.contract.view.panel.*;
 
 import javax.swing.*;
@@ -58,6 +59,7 @@ public class MainFrame extends JFrame {
      */
     public MainFrame(User user) {
         this.currentUser = user;
+        FileLogger.info("MainFrame", "constructor", "主窗口初始化: user=" + user.getName());
         setTitle("📋 合同管理系统 v2.0 - 当前用户: " + user.getName());
         setSize(1200, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -266,6 +268,7 @@ public class MainFrame extends JFrame {
                 // 二次确认后退出
                 int confirm = JOptionPane.showConfirmDialog(MainFrame.this, "确定要退出登录吗？", "确认", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
+                    FileLogger.info("MainFrame", "logout", "用户退出登录: user=" + currentUser.getName());
                     MainFrame.this.dispose();  // 关闭主窗口
                     new LoginFrame().setVisible(true);  // 返回登录窗口
                 }
@@ -361,6 +364,7 @@ public class MainFrame extends JFrame {
      * @param command 命令标识
      */
     private void switchPanel(String command) {
+        FileLogger.info("MainFrame", "switchPanel", "切换到面板: " + command);
         contentPanel.removeAll();  // 清除现有内容
         switch (command) {
             case "draft":
@@ -541,6 +545,7 @@ public class MainFrame extends JFrame {
             }
         } catch (Exception e) {
             // 通知检查失败不影响正常使用，仅记录错误日志
+            FileLogger.error("MainFrame", "checkAndShowPendingTasks", "待办任务检查异常: " + e.getMessage(), e);
             System.err.println("[通知] 待办任务检查异常: " + e.getMessage());
         }
     }

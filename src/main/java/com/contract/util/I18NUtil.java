@@ -28,10 +28,12 @@ public class I18NUtil {
      * @param locale 目标语言环境（Locale.CHINESE 或 Locale.US）
      */
     public static void setLocale(Locale locale) {
+        FileLogger.info("I18NUtil", "setLocale", "切换语言: " + locale.toString());
         currentLocale = locale;
         reloadBundle();
         // 保存用户语言偏好到本地设置文件
         AppSettingsUtil.saveSetting("locale", locale.toString());
+        FileLogger.info("I18NUtil", "setLocale", "语言切换完成: " + locale.toString());
     }
 
     /**
@@ -52,7 +54,7 @@ public class I18NUtil {
             bundle = ResourceBundle.getBundle(BASE_NAME, currentLocale);
         } catch (Exception e) {
             // 加载失败时回退到中文
-            System.err.println("[国际化] 加载资源包失败: " + e.getMessage() + "，回退到中文");
+            FileLogger.error("I18NUtil", "reloadBundle", "加载资源包失败: " + e.getMessage() + "，回退到中文", e);
             bundle = ResourceBundle.getBundle(BASE_NAME, Locale.CHINESE);
         }
     }
@@ -78,6 +80,7 @@ public class I18NUtil {
      */
     public static void loadSavedLocale() {
         String saved = AppSettingsUtil.loadSetting("locale", "zh_CN");
+        FileLogger.info("I18NUtil", "loadSavedLocale", "加载保存的语言设置: " + saved);
         if ("en_US".equals(saved)) {
             setLocale(Locale.US);
         } else {

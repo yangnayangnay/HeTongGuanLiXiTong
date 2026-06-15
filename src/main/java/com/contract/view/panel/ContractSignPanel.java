@@ -6,6 +6,7 @@ import com.contract.service.ContractService;
 import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
 import com.contract.util.SignaturePad;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -259,6 +260,7 @@ public class ContractSignPanel extends JPanel {
         // 调用服务层执行签订操作（传入流程ID、签订信息、操作人姓名）
         if (contractService.signContract(processId, signInfo, currentUser.getName())) {
             // 签订成功提示
+            FileLogger.info("ContractSignPanel", "doSign", "签订成功: processId=" + processId);
             JOptionPane.showMessageDialog(this, "签订成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             // 自动保存最终版本（签订版本）
             String conNum = (String) tableModel.getValueAt(row, 1);

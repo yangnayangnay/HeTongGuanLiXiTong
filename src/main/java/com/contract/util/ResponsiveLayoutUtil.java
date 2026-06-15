@@ -74,6 +74,7 @@ public class ResponsiveLayoutUtil {
      * @param topNavBar   顶部导航栏（小屏幕时显示）
      */
     public static void applyResponsive(JFrame mainFrame, JPanel leftPanel, JPanel contentPanel, JPanel topNavBar) {
+        FileLogger.info("ResponsiveLayoutUtil", "applyResponsive", "应用响应式布局");
         // 添加窗口大小变化监听器
         mainFrame.addComponentListener(new ComponentAdapter() {
             @Override
@@ -86,18 +87,21 @@ public class ResponsiveLayoutUtil {
                         // 小屏幕模式：隐藏左侧导航，改为顶部Tab栏
                         leftPanel.setVisible(false);
                         if (topNavBar != null) topNavBar.setVisible(true);
+                        FileLogger.info("ResponsiveLayoutUtil", "applyResponsive", "切换至小屏模式");
                         break;
                     case MEDIUM:
                         // 中等屏幕模式：缩小左侧导航宽度
                         leftPanel.setVisible(true);
                         leftPanel.setPreferredSize(new Dimension(150, 0));
                         if (topNavBar != null) topNavBar.setVisible(false);
+                        FileLogger.info("ResponsiveLayoutUtil", "applyResponsive", "切换至中屏模式");
                         break;
                     case LARGE:
                         // 大屏幕模式：恢复正常布局
                         leftPanel.setVisible(true);
                         leftPanel.setPreferredSize(new Dimension(200, 0));
                         if (topNavBar != null) topNavBar.setVisible(false);
+                        FileLogger.info("ResponsiveLayoutUtil", "applyResponsive", "切换至大屏模式");
                         break;
                 }
 

@@ -70,11 +70,13 @@ public class ThemeManager {
      * @param theme 要切换的目标主题
      */
     public static void setTheme(ThemeType theme) {
+        FileLogger.info("ThemeManager", "setTheme", "切换主题: " + theme.displayName);
         currentTheme = theme;
         AppSettingsUtil.saveSetting("theme", theme.name());
         // 通知所有注册的组件刷新
         for (Runnable r : changeListeners) { try { r.run(); } catch (Exception ignored) {} }
         System.out.println("[主题] 已切换至: " + theme.displayName);
+        FileLogger.info("ThemeManager", "setTheme", "主题切换完成: " + theme.displayName);
     }
 
     /**
@@ -126,6 +128,7 @@ public class ThemeManager {
      */
     public static void loadSavedTheme() {
         String saved = AppSettingsUtil.loadSetting("theme", "LIGHT");
+        FileLogger.info("ThemeManager", "loadSavedTheme", "加载保存的主题设置: " + saved);
         try { currentTheme = ThemeType.valueOf(saved); } catch (Exception ignored) {}
     }
 }

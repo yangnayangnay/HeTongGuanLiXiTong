@@ -46,6 +46,7 @@ public class NotificationService {
      * @return 待办任务数量（大于0表示有待办任务）；查询异常时返回0
      */
     public static int getPendingTaskCount(String userName) {
+        FileLogger.info("NotificationService", "getPendingTaskCount", "查询待办任务数量, 用户: " + userName);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -59,11 +60,13 @@ public class NotificationService {
             rs = pstmt.executeQuery();
             // 返回查询到的待办任务数量
             if (rs.next()) {
-                return rs.getInt(1);
+                int count = rs.getInt(1);
+                FileLogger.info("NotificationService", "getPendingTaskCount", "查询成功, 待办数量: " + count);
+                return count;
             }
         } catch (Exception e) {
             // 查询异常时打印错误日志，返回0避免影响主流程
-            System.err.println("[通知] 待办任务查询异常: " + e.getMessage());
+            FileLogger.error("NotificationService", "getPendingTaskCount", "待办任务查询异常: " + e.getMessage(), e);
         } finally {
             // 确保数据库资源被正确释放
             DBUtil.close(conn, pstmt, rs);
@@ -114,6 +117,7 @@ public class NotificationService {
      * @return 待办任务详细列表；查询异常时返回空列表
      */
     public static List<PendingTaskInfo> getPendingTaskDetails(String userName) {
+        FileLogger.info("NotificationService", "getPendingTaskDetails", "查询待办任务详情, 用户: " + userName);
         List<PendingTaskInfo> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -145,8 +149,9 @@ public class NotificationService {
                 String time = rs.getTimestamp("time") != null ? sdf.format(rs.getTimestamp("time")) : "";
                 list.add(new PendingTaskInfo(conNum, contractName, typeName, stateName, time));
             }
+            FileLogger.info("NotificationService", "getPendingTaskDetails", "查询成功, 待办详情数: " + list.size());
         } catch (Exception e) {
-            System.err.println("[通知] 待办任务详情查询异常: " + e.getMessage());
+            FileLogger.error("NotificationService", "getPendingTaskDetails", "待办任务详情查询异常: " + e.getMessage(), e);
         } finally {
             DBUtil.close(conn, pstmt, rs);
         }

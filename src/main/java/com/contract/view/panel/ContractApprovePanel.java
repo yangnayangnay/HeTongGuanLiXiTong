@@ -5,6 +5,7 @@ import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
 import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -244,6 +245,7 @@ public class ContractApprovePanel extends JPanel {
         // 调用服务层执行审批操作（传入流程ID、是否通过、审批意见、操作人姓名）
         if (contractService.approveContract(processId, approved, opinion, currentUser.getName())) {
             // 显示对应的操作结果提示
+            FileLogger.info("ContractApprovePanel", "doApprove", "审批操作: processId=" + processId + ", approved=" + approved);
             JOptionPane.showMessageDialog(this, approved ? "审批通过！" : "审批拒绝！", "成功", JOptionPane.INFORMATION_MESSAGE);
             // 审批通过时自动保存新版本
             if (approved) {

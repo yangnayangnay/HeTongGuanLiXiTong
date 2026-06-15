@@ -1,6 +1,7 @@
 package com.contract;
 
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 import com.contract.view.LoginFrame;
 
 import javax.swing.*;
@@ -18,10 +19,11 @@ import java.sql.Statement;
 public class App {
 
     public static void main(String[] args) {
+        FileLogger.info("App", "main", "===== 合同管理系统启动 =====");
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (Exception e) {
-            e.printStackTrace();
+            FileLogger.warn("App", "main", "设置外观失败: " + e.getMessage());
         }
 
         // 显示启动画面
@@ -29,6 +31,7 @@ public class App {
 
         // 第一步：确保数据库就绪（自动检测/启动/轮询等待）
         if (!ensureDatabaseReady(splash)) {
+            FileLogger.error("App", "main", "数据库未就绪，系统退出", null);
             return; // 用户取消或超时，退出程序
         }
 
@@ -37,6 +40,7 @@ public class App {
         if (!checkTablesExist()) {
             splashMsg(splash, "正在初始化数据库...");
             if (!initDatabase(splash)) {
+                FileLogger.error("App", "main", "数据库初始化失败，系统退出", null);
                 return;
             }
         }
@@ -50,6 +54,7 @@ public class App {
         try { Thread.sleep(300); } catch (InterruptedException ignored) {}
 
         splash.dispose();
+        FileLogger.info("App", "main", "系统初始化完成，启动登录界面");
         SwingUtilities.invokeLater(() -> {
             LoginFrame loginFrame = new LoginFrame();
             loginFrame.setVisible(true);
@@ -61,13 +66,17 @@ public class App {
      */
     private static boolean ensureDatabaseReady(JWindow splash) {
         splashMsg(splash, "正在连接数据库...");
+        FileLogger.info("App", "ensureDatabaseReady", "开始检测数据库状态");
 
         // 1. 先尝试直接连接（数据库可能已经在运行）
         String result = tryConnect();
         if ("OK".equals(result)) {
             splashMsg(splash, "数据库已就绪");
+            FileLogger.info("App", "ensureDatabaseReady", "数据库状态: 已就绪");
             return true;
         }
+
+        FileLogger.warn("App", "ensureDatabaseReady", "数据库直连失败: " + result);
 
         // 2. 连接失败，显示具体错误并询问用户
         splash.dispose();
@@ -147,6 +156,7 @@ public class App {
             stmt = conn.createStatement();
             rs = stmt.executeQuery("SELECT 1 FROM dual");
             rs.next();
+            FileLogger.info("App", "tryConnect", "数据库连接测试成功");
             return "OK";
         } catch (java.sql.SQLRecoverableException e) {
             // 监听器没启动、实例不可用等可恢复异常
@@ -234,6 +244,7 @@ public class App {
      * 数据库兼容性迁移：给已有t_user表添加status列（如果不存在）
      */
     private static void migrateDatabase() {
+        FileLogger.info("App", "migrateDatabase", "开始数据库兼容性迁移");
         Connection conn = null;
         Statement stmt = null;
         ResultSet rs = null;
@@ -375,7 +386,7 @@ public class App {
             }
         } catch (Exception e) {
             // 迁移失败不影响启动，只是打印警告
-            System.err.println("[迁移警告] 数据库兼容性检查异常: " + e.getMessage());
+            FileLogger.warn("App", "migrateDatabase", "数据库兼容性检查异常: " + e.getMessage());
         } finally {
             DBUtil.close(conn, stmt, rs);
         }
@@ -407,6 +418,7 @@ public class App {
      * 自动初始化数据库（从init.sql读取并逐条执行）
      */
     private static boolean initDatabase(JWindow splash) {
+        FileLogger.info("App", "initDatabase", "开始初始化数据库");
         Connection conn = null;
         Statement stmt = null;
         try {
@@ -443,11 +455,12 @@ public class App {
             conn.commit();
 
             splashMsg(splash, "数据库初始化完成！");
+            FileLogger.info("App", "initDatabase", "数据库初始化完成");
             try { Thread.sleep(800); } catch (InterruptedException ignored) {}
             return true;
 
         } catch (Exception e) {
-            e.printStackTrace();
+            FileLogger.error("App", "initDatabase", "数据库初始化失败: " + e.getMessage(), e);
             try { if (conn != null) conn.rollback(); } catch (Exception ignored) {}
             splash.dispose();
             JOptionPane.showMessageDialog(null,

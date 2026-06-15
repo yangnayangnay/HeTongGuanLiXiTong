@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.ContractState;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -37,19 +38,26 @@ public class ContractStateDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(ContractState cs) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractStateDao", "insert", "开始新增状态记录, 合同编号: " + cs.getConNum() + ", 状态类型: " + cs.getType());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             int id = DBUtil.getNextId("seq_contract_state");
             pstmt = conn.prepareStatement("INSERT INTO t_contract_state(id, conNum, type, time) VALUES(?, ?, ?, ?)");
+            FileLogger.debug("ContractStateDao", "insert", "SQL=INSERT INTO t_contract_state(id, conNum, type, time) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, cs.getConNum());
             pstmt.setInt(3, cs.getType());  // 状态类型（1-5）
             // 时间戳转换，默认使用当前时间
             pstmt.setTimestamp(4, cs.getTime() != null ? new java.sql.Timestamp(cs.getTime().getTime()) : new java.sql.Timestamp(System.currentTimeMillis()));
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractStateDao", "insert", "新增状态记录" + (result ? "成功" : "失败") + ", 合同编号: " + cs.getConNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractStateDao", "insert", "新增状态记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -65,6 +73,8 @@ public class ContractStateDao {
      * @return 最新的状态对象；无记录则返回null
      */
     public ContractState findLatestByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractStateDao", "findLatestByConNum", "开始查询合同最新状态, 合同编号: " + conNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -72,12 +82,19 @@ public class ContractStateDao {
             conn = DBUtil.getConnection();
             // 使用FETCH FIRST 1 ROWS ONLY只取最新一条记录（DB2语法）
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC FETCH FIRST 1 ROWS ONLY");
+            FileLogger.debug("ContractStateDao", "findLatestByConNum", "SQL=SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC FETCH FIRST 1 ROWS ONLY");
             pstmt.setString(1, conNum);
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return mapState(rs);
+                ContractState cs = mapState(rs);
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("ContractStateDao", "findLatestByConNum", "查询成功, 合同编号: " + conNum + ", 当前状态类型: " + cs.getType() + ", 耗时" + cost + "ms");
+                return cs;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractStateDao", "findLatestByConNum", "查询完成, 合同编号: " + conNum + " 无状态记录, 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractStateDao", "findLatestByConNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -93,6 +110,8 @@ public class ContractStateDao {
      * @return 状态变更历史列表（按时间顺序）
      */
     public List<ContractState> findByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractStateDao", "findByConNum", "开始查询合同状态历史, 合同编号: " + conNum);
         List<ContractState> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -100,12 +119,16 @@ public class ContractStateDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id");
+            FileLogger.debug("ContractStateDao", "findByConNum", "SQL=SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id");
             pstmt.setString(1, conNum);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapState(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractStateDao", "findByConNum", "查询完成，共" + list.size() + "条状态记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractStateDao", "findByConNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -121,6 +144,8 @@ public class ContractStateDao {
      * @return 符合条件的状态记录列表
      */
     public List<ContractState> findByType(int type) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractStateDao", "findByType", "开始根据状态类型查询, 类型: " + type);
         List<ContractState> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -128,12 +153,16 @@ public class ContractStateDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_state WHERE type = ? ORDER BY id DESC");
+            FileLogger.debug("ContractStateDao", "findByType", "SQL=SELECT * FROM t_contract_state WHERE type = ? ORDER BY id DESC");
             pstmt.setInt(1, type);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapState(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractStateDao", "findByType", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractStateDao", "findByType", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -149,14 +178,21 @@ public class ContractStateDao {
      * @return true-删除成功；false-删除失败
      */
     public boolean deleteByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractStateDao", "deleteByConNum", "开始删除合同状态记录, 合同编号: " + conNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("DELETE FROM t_contract_state WHERE conNum=?");
+            FileLogger.debug("ContractStateDao", "deleteByConNum", "SQL=DELETE FROM t_contract_state WHERE conNum=?");
             pstmt.setString(1, conNum);
-            return pstmt.executeUpdate() >= 0;
+            boolean result = pstmt.executeUpdate() >= 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractStateDao", "deleteByConNum", "删除状态记录" + (result ? "成功" : "失败") + ", 合同编号: " + conNum + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractStateDao", "deleteByConNum", "删除状态记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

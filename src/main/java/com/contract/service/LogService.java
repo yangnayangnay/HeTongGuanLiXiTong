@@ -2,6 +2,7 @@ package com.contract.service;
 
 import com.contract.dao.LogDao;
 import com.contract.entity.Log;
+import com.contract.util.FileLogger;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class LogService {
      * [REST-API] GET /api/logs
      */
     public List<Log> findAll() {
+        FileLogger.info("LogService", "findAll", "开始查询所有日志记录");
         return logDao.findAll();
     }
 
@@ -41,9 +43,16 @@ public class LogService {
      * @return true-记录成功；false-记录失败
      */
     public boolean addLog(String userName, String content) {
+        FileLogger.info("LogService", "addLog", "开始添加日志, 操作人: " + userName + ", 内容: " + content);
         Log log = new Log();
         log.setUserName(userName);
         log.setContent(content);
-        return logDao.insert(log);
+        boolean result = logDao.insert(log);
+        if (result) {
+            FileLogger.info("LogService", "addLog", "添加日志成功, 操作人: " + userName);
+        } else {
+            FileLogger.error("LogService", "addLog", "添加日志失败, 操作人: " + userName, null);
+        }
+        return result;
     }
 }

@@ -18,8 +18,11 @@ public class NetworkUtil {
     public static String getLocalIPAddress() {
         try {
             java.net.InetAddress addr = java.net.InetAddress.getLocalHost();
-            return addr.getHostAddress();
+            String ip = addr.getHostAddress();
+            FileLogger.info("NetworkUtil", "getLocalIPAddress", "获取本机IP: " + ip);
+            return ip;
         } catch (Exception e) {
+            FileLogger.error("NetworkUtil", "getLocalIPAddress", "获取本机IP失败: " + e.getMessage(), e);
             return "unknown";
         }
     }
@@ -31,8 +34,11 @@ public class NetworkUtil {
      */
     public static String getHostName() {
         try {
-            return java.net.InetAddress.getLocalHost().getHostName();
+            String hostName = java.net.InetAddress.getLocalHost().getHostName();
+            FileLogger.info("NetworkUtil", "getHostName", "获取本机主机名: " + hostName);
+            return hostName;
         } catch (Exception e) {
+            FileLogger.error("NetworkUtil", "getHostName", "获取主机名失败: " + e.getMessage(), e);
             return "unknown";
         }
     }

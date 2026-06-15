@@ -57,16 +57,17 @@ public class FileUploadUtil {
      */
     public static byte[] readFileToBytes(File file) {
         if (file == null || !file.exists() || !file.isFile()) {
-            System.err.println("[文件工具] 文件无效或不存在: " + file);
+            FileLogger.warn("FileUploadUtil", "readFileToBytes", "文件无效或不存在: " + file);
             return null;
         }
         // 使用try-with-resources确保流自动关闭
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] data = new byte[(int) file.length()];  // 根据文件大小创建缓冲区
             fis.read(data);  // 将文件内容读入字节数组
+            FileLogger.info("FileUploadUtil", "readFileToBytes", "读取文件成功: " + file.getName() + ", 大小: " + data.length + " 字节");
             return data;
         } catch (IOException e) {
-            System.err.println("[文件工具] 读取文件失败: " + e.getMessage());
+            FileLogger.error("FileUploadUtil", "readFileToBytes", "读取文件失败: " + e.getMessage(), e);
             return null;
         }
     }
@@ -84,11 +85,11 @@ public class FileUploadUtil {
      */
     public static void saveBytesToFile(byte[] data, String fileName) {
         if (data == null || data.length == 0) {
-            System.err.println("[文件工具] 数据为空，无法保存文件");
+            FileLogger.warn("FileUploadUtil", "saveBytesToFile", "数据为空，无法保存文件");
             return;
         }
         if (fileName == null || fileName.trim().isEmpty()) {
-            System.err.println("[文件工具] 文件名为空");
+            FileLogger.warn("FileUploadUtil", "saveBytesToFile", "文件名为空");
             return;
         }
         try {
@@ -103,9 +104,9 @@ public class FileUploadUtil {
                 fos.write(data);  // 将字节数组写入文件
                 fos.flush();      // 强制刷新缓冲区，确保数据写入磁盘
             }
-            System.out.println("[文件工具] 文件保存成功: " + fileName + " (" + data.length + " 字节)");
+            FileLogger.info("FileUploadUtil", "saveBytesToFile", "文件保存成功: " + fileName + " (" + data.length + " 字节)");
         } catch (IOException e) {
-            System.err.println("[文件工具] 保存文件失败: " + e.getMessage());
+            FileLogger.error("FileUploadUtil", "saveBytesToFile", "保存文件失败: " + e.getMessage(), e);
         }
     }
 
@@ -201,6 +202,7 @@ public class FileUploadUtil {
             System.arraycopy(fullData, startIndex, chunks[i], 0, currentChunkSize);
         }
         System.out.println("[文件工具] 文件分块完成: 共 " + totalChunks + " 块, 每块最大 " + chunkSize + " 字节");
+        FileLogger.info("FileUploadUtil", "chunkFile", "文件分块完成: 共 " + totalChunks + " 块, 每块最大 " + chunkSize + " 字节");
         return chunks;
     }
 
@@ -242,6 +244,7 @@ public class FileUploadUtil {
             }
         }
         System.out.println("[文件工具] 分块合并完成: 共 " + chunks.size() + " 块, 总计 " + totalLength + " 字节");
+        FileLogger.info("FileUploadUtil", "mergeChunks", "分块合并完成: 共 " + chunks.size() + " 块, 总计 " + totalLength + " 字节");
         return mergedData;
     }
 }

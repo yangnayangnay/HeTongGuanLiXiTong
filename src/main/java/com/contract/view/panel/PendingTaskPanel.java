@@ -3,6 +3,7 @@ package com.contract.view.panel;
 import com.contract.entity.User;
 import com.contract.util.NotificationService;
 import com.contract.util.NotificationService.PendingTaskInfo;
+import com.contract.util.FileLogger;
 import com.contract.view.MainFrame;
 
 import javax.swing.*;
@@ -148,6 +149,7 @@ public class PendingTaskPanel extends JPanel {
 
         // 根据任务类型确定要跳转的面板命令
         String command;
+        FileLogger.info("PendingTaskPanel", "handleRowDoubleClick", "双击待办任务: conNum=" + conNum + ", taskType=" + taskType);
         switch (taskType) {
             case "会签":
                 command = "countersign";

@@ -4,6 +4,7 @@ import com.contract.entity.Right;
 import com.contract.entity.Role;
 import com.contract.service.RightService;
 import com.contract.service.RoleService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -141,6 +142,7 @@ public class PermissionManagePanel extends JPanel {
 
             // 调用服务层执行角色重新分配（先删除旧关联，再创建新关联）
             if (rightService.reassignRoles(targetUser, selectedRoles)) {
+                FileLogger.info("PermissionManagePanel", "savePermissions", "权限分配成功: user=" + targetUser + ", roles=" + selectedRoles);
                 JOptionPane.showMessageDialog(this, "权限分配成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "权限分配失败！", "错误", JOptionPane.ERROR_MESSAGE);

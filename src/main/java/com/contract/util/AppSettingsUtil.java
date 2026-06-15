@@ -60,8 +60,9 @@ public class AppSettingsUtil {
         if (file.exists()) {
             try (FileInputStream fis = new FileInputStream(file)) {
                 properties.load(fis);
+                FileLogger.info("AppSettingsUtil", "loadFromFile", "加载设置文件成功, 共" + properties.size() + "项");
             } catch (Exception e) {
-                System.err.println("[设置] 加载设置文件失败: " + e.getMessage());
+                FileLogger.error("AppSettingsUtil", "loadFromFile", "加载设置文件失败: " + e.getMessage(), e);
             }
         }
     }
@@ -74,6 +75,7 @@ public class AppSettingsUtil {
      * @param value 设置值
      */
     public static void saveSetting(String key, String value) {
+        FileLogger.info("AppSettingsUtil", "saveSetting", "保存设置: " + key);
         properties.setProperty(key, value);
         saveToFile();
     }
@@ -133,7 +135,7 @@ public class AppSettingsUtil {
         try (FileOutputStream fos = new FileOutputStream(SETTINGS_FILE)) {
             properties.store(fos, "合同管理系统设置文件");
         } catch (Exception e) {
-            System.err.println("[设置] 保存设置文件失败: " + e.getMessage());
+            FileLogger.error("AppSettingsUtil", "saveToFile", "保存设置文件失败: " + e.getMessage(), e);
         }
     }
 
@@ -143,6 +145,7 @@ public class AppSettingsUtil {
      * @param key 要删除的设置键名
      */
     public static void removeSetting(String key) {
+        FileLogger.info("AppSettingsUtil", "removeSetting", "删除设置: " + key);
         properties.remove(key);
         saveToFile();
     }
@@ -151,6 +154,7 @@ public class AppSettingsUtil {
      * 清除所有设置
      */
     public static void clearAll() {
+        FileLogger.warn("AppSettingsUtil", "clearAll", "清除所有设置");
         properties.clear();
         saveToFile();
     }

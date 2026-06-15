@@ -42,6 +42,7 @@ public class DataExportUtil {
      * @throws IOException 文件写入异常
      */
     public static void exportToCSV(List<Contract> contracts, String filePath) throws IOException {
+        FileLogger.info("DataExportUtil", "exportToCSV", "开始CSV导出, 记录数: " + contracts.size() + ", 路径: " + filePath);
         // UTF-8 BOM编码，确保Excel正确显示中文
         try (BufferedWriter writer = new BufferedWriter(
                 new OutputStreamWriter(new FileOutputStream(filePath), "UTF-8"))) {
@@ -71,6 +72,7 @@ public class DataExportUtil {
         }
 
         System.out.println("[导出] CSV文件已保存: " + filePath + " (共" + contracts.size() + "条记录)");
+        FileLogger.info("DataExportUtil", "exportToCSV", "CSV导出成功, 记录数: " + contracts.size());
     }
 
     /**
@@ -86,6 +88,7 @@ public class DataExportUtil {
      * @throws IOException 文件写入异常
      */
     public static void exportToHTML(List<Contract> contracts, String filePath) throws IOException {
+        FileLogger.info("DataExportUtil", "exportToHTML", "开始HTML导出, 记录数: " + contracts.size() + ", 路径: " + filePath);
         try (BufferedWriter writer = new BufferedWriter(
                 new FileWriter(filePath, false))) {
 
@@ -181,6 +184,7 @@ public class DataExportUtil {
         }
 
         System.out.println("[导出] HTML报表已保存: " + filePath + " (共" + contracts.size() + "条记录)");
+        FileLogger.info("DataExportUtil", "exportToHTML", "HTML导出成功, 记录数: " + contracts.size());
     }
 
     /**

@@ -4,6 +4,7 @@ import com.contract.entity.Function;
 import com.contract.entity.Role;
 import com.contract.service.RoleService;
 import com.contract.dao.FunctionDao;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -223,6 +224,7 @@ public class RoleManagePanel extends JPanel {
             role.setDescription(txtDesc.getText().trim());
             role.setFunctions(funcStr.toString());
             if (roleService.addRole(role)) {
+                FileLogger.info("RoleManagePanel", "showAddDialog", "添加角色成功: name=" + name);
                 JOptionPane.showMessageDialog(dialog, "添加成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 dialog.dispose();  // 关闭对话框
                 loadData();        // 刷新角色列表
@@ -362,6 +364,7 @@ public class RoleManagePanel extends JPanel {
         int confirm = JOptionPane.showConfirmDialog(this, "确定要删除该角色吗？", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (roleService.deleteRole(id)) {
+                FileLogger.info("RoleManagePanel", "doDelete", "删除角色: id=" + id);
                 JOptionPane.showMessageDialog(this, "删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 loadData();  // 刷新角色列表
             } else {

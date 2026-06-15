@@ -2,6 +2,7 @@ package com.contract.view.panel;
 
 import com.contract.entity.Log;
 import com.contract.service.LogService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -109,6 +110,7 @@ public class LogPanel extends JPanel {
      * </p>
      */
     private void loadData() {
+        FileLogger.info("LogPanel", "loadData", "开始加载日志数据");
         // 清空表格现有数据
         tableModel.setRowCount(0);
         // 查询所有日志记录

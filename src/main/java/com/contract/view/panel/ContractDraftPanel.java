@@ -8,6 +8,7 @@ import com.contract.service.CustomerService;
 import com.contract.util.AIAssistantService;
 import com.contract.util.CalendarPickerUtil;
 import com.contract.util.FileUploadUtil;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -488,10 +489,12 @@ public class ContractDraftPanel extends JPanel {
 
         // === 前端必填项校验 ===
         if (name.isEmpty()) {
+            FileLogger.warn("ContractDraftPanel", "submitDraft", "提交校验失败: 合同名称为空");
             JOptionPane.showMessageDialog(this, "合同名称不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
         if (content.isEmpty()) {
+            FileLogger.warn("ContractDraftPanel", "submitDraft", "提交校验失败: 合同内容为空");
             JOptionPane.showMessageDialog(this, "合同内容不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -541,6 +544,7 @@ public class ContractDraftPanel extends JPanel {
             // 调用服务层保存合同
             if (contractService.draftContract(contract)) {
                 // 保存成功：显示生成的合同编号并重置表单
+                FileLogger.info("ContractDraftPanel", "submitDraft", "起草合同成功: contract=" + contract.getNum() + ", name=" + name);
                 JOptionPane.showMessageDialog(this, "起草成功！合同编号: " + contract.getNum(), "成功", JOptionPane.INFORMATION_MESSAGE);
                 // 自动保存版本v1（首次提交）
                 versionService.saveVersion(contract.getNum(), content, currentFileData,
@@ -552,6 +556,7 @@ public class ContractDraftPanel extends JPanel {
             }
         } catch (Exception e) {
             // 日期格式异常时的友好提示
+            FileLogger.error("ContractDraftPanel", "submitDraft", "起草合同异常: " + e.getMessage(), e);
             JOptionPane.showMessageDialog(this, "日期格式不正确，请使用 yyyy-MM-dd 格式！", "提示", JOptionPane.WARNING_MESSAGE);
         }
     }
@@ -612,6 +617,8 @@ public class ContractDraftPanel extends JPanel {
         // 保存文件数据到内存字段（提交合同时一起存入数据库）
         currentFileData = fileBytes;
         currentFileName = selectedName;
+
+        FileLogger.info("ContractDraftPanel", "uploadAttachment", "上传文件: " + selectedName + ", 大小=" + fileBytes.length + "字节");
 
         // 更新界面：显示已选择的文件名
         lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileBytes.length) + ")");
@@ -824,6 +831,7 @@ public class ContractDraftPanel extends JPanel {
     private void showAIReviewDialog() {
         String content = txtContent.getText().trim();
         if (content.isEmpty()) {
+            FileLogger.warn("ContractDraftPanel", "showAIReviewDialog", "AI审查校验失败: 合同内容为空");
             JOptionPane.showMessageDialog(this, "没有可供审查的合同内容，请先填写合同内容！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -856,6 +864,7 @@ public class ContractDraftPanel extends JPanel {
         dialog.setVisible(true);
 
         // 异步调用AI服务（避免阻塞UI）
+        FileLogger.info("ContractDraftPanel", "showAIReviewDialog", "调用AI审查, 内容长度=" + content.length());
         new Thread(() -> {
             String result = AIAssistantService.reviewContract(content);
             SwingUtilities.invokeLater(() -> txtResult.setText(result));
@@ -892,6 +901,7 @@ public class ContractDraftPanel extends JPanel {
 
         // 获取用户选择的图片文件
         File selectedImage = fileChooser.getSelectedFile();
+        FileLogger.info("ContractDraftPanel", "performOCRRecognition", "OCR识别文件: " + selectedImage.getName());
 
         // 创建进度提示对话框
         JDialog progressDlg = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),

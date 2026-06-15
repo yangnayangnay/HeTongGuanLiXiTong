@@ -6,6 +6,7 @@ import com.contract.entity.ContractState;
 import com.contract.service.ContractService;
 import com.contract.service.ContractVersionService;
 import com.contract.util.AIAssistantService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -280,6 +281,7 @@ public class ContractFinalizePanel extends JPanel {
         // 调用服务层执行定稿操作（传入合同编号、修改后的内容、当前用户名）
         if (contractService.finalizeContract(conNum, content, currentUser.getName())) {
             // 定稿成功提示
+            FileLogger.info("ContractFinalizePanel", "doFinalize", "定稿成功: contract=" + conNum);
             JOptionPane.showMessageDialog(this, "定稿成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             // 自动保存新版本（定稿版本）
             Contract contract = contractService.findByNum(conNum);

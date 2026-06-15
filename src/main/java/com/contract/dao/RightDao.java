@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.Right;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -44,6 +45,8 @@ public class RightDao {
      * @return 该用户拥有的权限（角色）列表
      */
     public List<Right> findByUserName(String userName) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RightDao", "findByUserName", "开始根据用户名查询权限, 用户名: " + userName);
         List<Right> list = new ArrayList<>();  // 用于存储查询结果的权限列表
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -52,6 +55,7 @@ public class RightDao {
             conn = DBUtil.getConnection();
             // 按用户名查询其所有角色分配记录
             pstmt = conn.prepareStatement("SELECT * FROM t_right WHERE userName = ?");
+            FileLogger.debug("RightDao", "findByUserName", "SQL=SELECT * FROM t_right WHERE userName = ?");
             pstmt.setString(1, userName);  // 设置用户名参数
             rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -59,7 +63,10 @@ public class RightDao {
                 list.add(new Right(rs.getInt("id"), rs.getString("userName"),
                         rs.getString("roleName"), rs.getString("description")));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RightDao", "findByUserName", "查询完成，共" + list.size() + "条权限记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("RightDao", "findByUserName", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -75,6 +82,8 @@ public class RightDao {
      * @return 所有权限记录的列表
      */
     public List<Right> findAll() {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RightDao", "findAll", "开始查询所有权限记录");
         List<Right> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -83,12 +92,16 @@ public class RightDao {
             conn = DBUtil.getConnection();
             // 查询所有权限记录
             pstmt = conn.prepareStatement("SELECT * FROM t_right ORDER BY id");
+            FileLogger.debug("RightDao", "findAll", "SQL=SELECT * FROM t_right ORDER BY id");
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(new Right(rs.getInt("id"), rs.getString("userName"),
                         rs.getString("roleName"), rs.getString("description")));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RightDao", "findAll", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("RightDao", "findAll", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -105,6 +118,8 @@ public class RightDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(Right right) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RightDao", "insert", "开始新增权限, 用户名: " + right.getUserName() + ", 角色名: " + right.getRoleName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -113,12 +128,17 @@ public class RightDao {
             int id = DBUtil.getNextId("seq_right");
             // 插入新的权限分配记录
             pstmt = conn.prepareStatement("INSERT INTO t_right(id, userName, roleName, description) VALUES(?, ?, ?, ?)");
+            FileLogger.debug("RightDao", "insert", "SQL=INSERT INTO t_right(id, userName, roleName, description) VALUES(...)");
             pstmt.setInt(1, id);                   // 参数1：权限记录ID
             pstmt.setString(2, right.getUserName());   // 参数2：用户名
             pstmt.setString(3, right.getRoleName());   // 参数3：角色名
             pstmt.setString(4, right.getDescription());// 参数4：备注说明
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RightDao", "insert", "新增权限" + (result ? "成功" : "失败") + ", 用户名: " + right.getUserName() + ", 角色名: " + right.getRoleName() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("RightDao", "insert", "新增权限失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -129,7 +149,7 @@ public class RightDao {
     /**
      * 删除指定用户的所有权限记录
      * <p>移除某用户的所有角色分配，通常在以下场景调用：</p>
- * <ul>
+     * <ul>
      *   <li>删除用户之前，先清理其权限关联</li>
      *   <li>重新分配角色时，先清除原有角色</li>
      * </ul>
@@ -138,16 +158,23 @@ public class RightDao {
      * @return true-删除成功（包括无记录可删的情况）；false-删除失败
      */
     public boolean deleteByUserName(String userName) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RightDao", "deleteByUserName", "开始删除用户权限, 用户名: " + userName);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 删除指定用户的所有权限记录
             pstmt = conn.prepareStatement("DELETE FROM t_right WHERE userName=?");
+            FileLogger.debug("RightDao", "deleteByUserName", "SQL=DELETE FROM t_right WHERE userName=?");
             pstmt.setString(1, userName);  // 设置用户名参数
             // 使用>=0判断，因为无记录删除时返回0也算成功
-            return pstmt.executeUpdate() >= 0;
+            boolean result = pstmt.executeUpdate() >= 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RightDao", "deleteByUserName", "删除用户权限" + (result ? "成功" : "失败") + ", 用户名: " + userName + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("RightDao", "deleteByUserName", "删除用户权限失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

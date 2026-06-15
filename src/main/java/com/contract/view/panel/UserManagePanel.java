@@ -6,6 +6,7 @@ import com.contract.entity.Right;
 import com.contract.service.UserService;
 import com.contract.service.RoleService;
 import com.contract.service.RightService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -321,6 +322,7 @@ public class UserManagePanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             // 调用服务层执行通过操作
             if (userService.approveUser(id)) {
+                FileLogger.info("UserManagePanel", "doApprove", "审核通过用户: name=" + name);
                 JOptionPane.showMessageDialog(this, "已通过用户 " + name + " 的注册申请！", "成功",
                     JOptionPane.INFORMATION_MESSAGE);
                 // 同时刷新两个列表（待审核列表和已有用户列表）
@@ -355,6 +357,7 @@ public class UserManagePanel extends JPanel {
         if (confirm == JOptionPane.YES_OPTION) {
             // 调用服务层执行拒绝操作
             if (userService.rejectUser(id)) {
+                FileLogger.info("UserManagePanel", "doReject", "审核拒绝用户: name=" + name);
                 JOptionPane.showMessageDialog(this, "已拒绝用户 " + name + " 的注册申请！", "成功",
                     JOptionPane.INFORMATION_MESSAGE);
                 // 同时刷新两个列表
@@ -462,6 +465,7 @@ public class UserManagePanel extends JPanel {
             user.setName(name);
             user.setPassword(pwd);
             if (userService.addUser(user)) {
+                FileLogger.info("UserManagePanel", "showAddDialog", "添加用户成功: name=" + name);
                 // 如果选择了角色，自动为新用户分配
                 List<String> selectedRoles = new ArrayList<>();
                 for (int i = 0; i < roles.size(); i++) {
@@ -578,6 +582,7 @@ public class UserManagePanel extends JPanel {
         int confirm = JOptionPane.showConfirmDialog(this, "确定要删除用户 " + name + " 吗？", "确认", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
             if (userService.deleteUser(id)) {
+                FileLogger.info("UserManagePanel", "doDelete", "删除用户: name=" + name);
                 JOptionPane.showMessageDialog(this, "删除成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
                 loadData();  // 刷新用户列表
             } else {

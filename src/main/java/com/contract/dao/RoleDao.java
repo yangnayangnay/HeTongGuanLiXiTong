@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.Role;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -43,6 +44,8 @@ public class RoleDao {
      * @return 角色列表（可能为空列表，但不会为null）
      */
     public List<Role> findAll() {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RoleDao", "findAll", "开始查询所有角色");
         List<Role> list = new ArrayList<>();  // 用于存储查询结果的角色列表
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -51,13 +54,17 @@ public class RoleDao {
             conn = DBUtil.getConnection();
             // 查询所有角色，按id排序
             pstmt = conn.prepareStatement("SELECT * FROM t_role ORDER BY id");
+            FileLogger.debug("RoleDao", "findAll", "SQL=SELECT * FROM t_role ORDER BY id");
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 // 将结果集映射为Role对象
                 list.add(new Role(rs.getInt("id"), rs.getString("name"),
                         rs.getString("description"), rs.getString("functions")));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RoleDao", "findAll", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("RoleDao", "findAll", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -73,6 +80,8 @@ public class RoleDao {
      * @return 找到的角色对象；如果未找到则返回null
      */
     public Role findByName(String name) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RoleDao", "findByName", "开始根据名称查询角色, 角色名: " + name);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -80,13 +89,20 @@ public class RoleDao {
             conn = DBUtil.getConnection();
             // 按角色名精确查询
             pstmt = conn.prepareStatement("SELECT * FROM t_role WHERE name = ?");
+            FileLogger.debug("RoleDao", "findByName", "SQL=SELECT * FROM t_role WHERE name = ?");
             pstmt.setString(1, name);  // 设置角色名参数
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return new Role(rs.getInt("id"), rs.getString("name"),
+                Role role = new Role(rs.getInt("id"), rs.getString("name"),
                         rs.getString("description"), rs.getString("functions"));
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("RoleDao", "findByName", "查询成功, 找到角色: " + name + ", 耗时" + cost + "ms");
+                return role;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RoleDao", "findByName", "查询完成, 未找到角色: " + name + ", 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("RoleDao", "findByName", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -103,6 +119,8 @@ public class RoleDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(Role role) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RoleDao", "insert", "开始新增角色, 角色名: " + role.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -111,12 +129,17 @@ public class RoleDao {
             int id = DBUtil.getNextId("seq_role");
             // 插入新角色记录
             pstmt = conn.prepareStatement("INSERT INTO t_role(id, name, description, functions) VALUES(?, ?, ?, ?)");
+            FileLogger.debug("RoleDao", "insert", "SQL=INSERT INTO t_role(id, name, description, functions) VALUES(...)");
             pstmt.setInt(1, id);                       // 参数1：角色ID
             pstmt.setString(2, role.getName());         // 参数2：角色名称
             pstmt.setString(3, role.getDescription());  // 参数3：角色描述
             pstmt.setString(4, role.getFunctions());    // 参数4：功能ID列表
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RoleDao", "insert", "新增角色" + (result ? "成功" : "失败") + ", 角色名: " + role.getName() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("RoleDao", "insert", "新增角色失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -133,18 +156,25 @@ public class RoleDao {
      * @return true-更新成功；false-更新失败
      */
     public boolean update(Role role) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RoleDao", "update", "开始更新角色, 角色ID: " + role.getId() + ", 角色名: " + role.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 根据ID更新角色信息
             pstmt = conn.prepareStatement("UPDATE t_role SET name=?, description=?, functions=? WHERE id=?");
+            FileLogger.debug("RoleDao", "update", "SQL=UPDATE t_role SET name=?, description=?, functions=? WHERE id=?");
             pstmt.setString(1, role.getName());         // 参数1：新角色名
             pstmt.setString(2, role.getDescription());  // 参数2：新描述
             pstmt.setString(3, role.getFunctions());    // 参数3：新功能列表
             pstmt.setInt(4, role.getId());              // 参数4：条件-角色ID
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RoleDao", "update", "更新角色" + (result ? "成功" : "失败") + ", 角色ID: " + role.getId() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("RoleDao", "update", "更新角色失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -161,15 +191,22 @@ public class RoleDao {
      * @return true-删除成功；false-删除失败
      */
     public boolean delete(int id) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("RoleDao", "delete", "开始删除角色, 角色ID: " + id);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 根据主键ID删除角色
             pstmt = conn.prepareStatement("DELETE FROM t_role WHERE id=?");
+            FileLogger.debug("RoleDao", "delete", "SQL=DELETE FROM t_role WHERE id=?");
             pstmt.setInt(1, id);  // 设置要删除的角色ID
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("RoleDao", "delete", "删除角色" + (result ? "成功" : "失败") + ", 角色ID: " + id + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("RoleDao", "delete", "删除角色失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

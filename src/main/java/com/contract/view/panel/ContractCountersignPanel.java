@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.entity.ContractProcess;
 import com.contract.service.ContractService;
 import com.contract.util.AIAssistantService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -224,6 +225,7 @@ public class ContractCountersignPanel extends JPanel {
         // 调用服务层执行会签操作
         if (contractService.countersignContract(processId, opinion)) {
             // 会签成功提示
+            FileLogger.info("ContractCountersignPanel", "doCountersign", "会签成功: processId=" + processId);
             JOptionPane.showMessageDialog(this, "会签成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             // 清空意见输入框
             txtOpinion.setText("");

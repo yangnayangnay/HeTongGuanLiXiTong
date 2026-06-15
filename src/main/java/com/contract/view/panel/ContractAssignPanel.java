@@ -5,6 +5,7 @@ import com.contract.entity.User;
 import com.contract.service.ContractService;
 import com.contract.service.UserService;
 import com.contract.util.EmailService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -257,6 +258,7 @@ public class ContractAssignPanel extends JPanel {
         // 调用服务层执行分配操作（传入合同编号和三组人员名单）
         if (contractService.assignContract(conNum, countersignUsers, approveUsers, signUsers)) {
             // 分配成功提示
+            FileLogger.info("ContractAssignPanel", "doAssign", "分配合同成功: contract=" + conNum + ", 会签=" + countersignUsers.size() + "人, 审批=" + approveUsers.size() + "人, 签订=" + signUsers.size() + "人");
             JOptionPane.showMessageDialog(this, "分配成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
 
             // 发送任务通知邮件给被分配的人员

@@ -51,6 +51,7 @@ public class CalendarPickerUtil {
      * @return 用户选中的Date对象；如果用户取消则返回null
      */
     public static Date showDatePicker(Component parent, String title, Date initialDate) {
+        FileLogger.info("CalendarPickerUtil", "showDatePicker", "显示日期选择器, 标题: " + title);
         // 用数组包装结果，以便在匿名内部类中修改（Java 8兼容）
         final Date[] result = new Date[1];
 
@@ -236,6 +237,7 @@ public class CalendarPickerUtil {
         dialog.setLocationRelativeTo(parent);
         dialog.setVisible(true);
 
+        FileLogger.info("CalendarPickerUtil", "showDatePicker", "日期选择完成, 结果: " + (result[0] != null ? DATE_FORMAT.format(result[0]) : "取消"));
         return result[0];
     }
 
@@ -404,11 +406,13 @@ public class CalendarPickerUtil {
      * @param targetTextField 目标文本框（填入yyyy-MM-dd格式日期）
      */
     public static void attachToButton(Component parent, final JTextField targetTextField) {
+        FileLogger.info("CalendarPickerUtil", "attachToButton", "按钮触发日期选择");
         // 此方法作为便捷入口，实际调用showDatePicker并将结果写入textField
         // 可通过按钮的ActionListener调用此方法
         Date selected = showDatePicker(parent, "选择日期", null);
         if (selected != null) {
             targetTextField.setText(DATE_FORMAT.format(selected));
+            FileLogger.info("CalendarPickerUtil", "attachToButton", "日期已填入文本框: " + DATE_FORMAT.format(selected));
         }
     }
 }

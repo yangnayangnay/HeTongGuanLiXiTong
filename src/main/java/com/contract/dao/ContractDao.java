@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.Contract;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -46,6 +47,8 @@ public class ContractDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(Contract contract) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "insert", "开始新增合同, 合同编号: " + contract.getNum() + ", 合同名称: " + contract.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -54,6 +57,7 @@ public class ContractDao {
             int id = DBUtil.getNextId("seq_contract");
             // 插入合同记录，包含所有业务字段（含附件字段和金额）
             pstmt = conn.prepareStatement("INSERT INTO t_contract(id, num, name, customer, beginTime, endTime, content, userName, file_data, file_name, file_type, amount) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            FileLogger.debug("ContractDao", "insert", "SQL=INSERT INTO t_contract(id, num, name, customer, beginTime, endTime, content, userName, file_data, file_name, file_type, amount) VALUES(...)");
             pstmt.setInt(1, id);  // 参数1：合同ID
             pstmt.setString(2, contract.getNum());      // 参数2：合同编号（业务主键）
             pstmt.setString(3, contract.getName());     // 参数3：合同名称
@@ -68,8 +72,12 @@ public class ContractDao {
             pstmt.setString(10, contract.getFileName()); // 参数10：附件文件名
             pstmt.setString(11, contract.getFileType()); // 参数11：文件类型
             pstmt.setDouble(12, contract.getAmount());   // 参数12：合同金额
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "insert", "新增合同" + (result ? "成功" : "失败") + ", 合同编号: " + contract.getNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "insert", "新增合同失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -86,12 +94,15 @@ public class ContractDao {
      * @return true-更新成功；false-更新失败
      */
     public boolean update(Contract contract) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "update", "开始更新合同, 合同编号: " + contract.getNum() + ", 合同名称: " + contract.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 根据合同编号（num）更新合同信息（含附件字段和金额）
             pstmt = conn.prepareStatement("UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=?, amount=? WHERE num=?");
+            FileLogger.debug("ContractDao", "update", "SQL=UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=?, amount=? WHERE num=?");
             pstmt.setString(1, contract.getName());     // 参数1：新合同名称
             pstmt.setString(2, contract.getCustomer()); // 参数2：新客户名称
             // 日期类型转换
@@ -104,8 +115,12 @@ public class ContractDao {
             pstmt.setString(8, contract.getFileType()); // 参数8：文件类型
             pstmt.setDouble(9, contract.getAmount());    // 参数9：合同金额
             pstmt.setString(10, contract.getNum());       // 参数10：条件-合同编号
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "update", "更新合同" + (result ? "成功" : "失败") + ", 合同编号: " + contract.getNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "update", "更新合同失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -121,6 +136,8 @@ public class ContractDao {
      * @return 找到的合同对象；如果未找到则返回null
      */
     public Contract findByNum(String num) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "findByNum", "开始根据编号查询合同, 合同编号: " + num);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -128,12 +145,19 @@ public class ContractDao {
             conn = DBUtil.getConnection();
             // 按合同编号精确查询
             pstmt = conn.prepareStatement("SELECT * FROM t_contract WHERE num = ?");
+            FileLogger.debug("ContractDao", "findByNum", "SQL=SELECT * FROM t_contract WHERE num = ?");
             pstmt.setString(1, num);  // 设置合同编号参数
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return mapContract(rs);  // 使用映射方法转换结果集
+                Contract c = mapContract(rs);  // 使用映射方法转换结果集
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("ContractDao", "findByNum", "查询成功, 找到合同: " + num + ", 耗时" + cost + "ms");
+                return c;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "findByNum", "查询完成, 未找到合同: " + num + ", 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "findByNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -149,6 +173,8 @@ public class ContractDao {
      * @return 合同列表（可能为空列表，但不会为null）
      */
     public List<Contract> findAll() {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "findAll", "开始查询所有合同");
         List<Contract> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -157,11 +183,15 @@ public class ContractDao {
             conn = DBUtil.getConnection();
             // 查询所有合同，按id降序排列使最新合同排在前面
             pstmt = conn.prepareStatement("SELECT * FROM t_contract ORDER BY id DESC");
+            FileLogger.debug("ContractDao", "findAll", "SQL=SELECT * FROM t_contract ORDER BY id DESC");
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapContract(rs));  // 使用映射方法转换每条记录
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "findAll", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "findAll", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -177,6 +207,8 @@ public class ContractDao {
      * @return 匹配的合同列表（按ID降序排列）
      */
     public List<Contract> findByName(String name) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "findByName", "开始根据名称模糊查询合同, 关键词: " + name);
         List<Contract> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -185,12 +217,16 @@ public class ContractDao {
             conn = DBUtil.getConnection();
             // 使用LIKE进行模糊匹配，%表示任意字符通配符
             pstmt = conn.prepareStatement("SELECT * FROM t_contract WHERE name LIKE ? ORDER BY id DESC");
+            FileLogger.debug("ContractDao", "findByName", "SQL=SELECT * FROM t_contract WHERE name LIKE ? ORDER BY id DESC");
             pstmt.setString(1, "%" + name + "%");  // 前后加%实现包含匹配
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapContract(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "findByName", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "findByName", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -207,6 +243,8 @@ public class ContractDao {
      * @return 该用户创建的合同列表（按ID降序排列）
      */
     public List<Contract> findByUserName(String userName) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "findByUserName", "开始根据创建人查询合同, 创建人: " + userName);
         List<Contract> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -215,12 +253,16 @@ public class ContractDao {
             conn = DBUtil.getConnection();
             // 按创建人查询
             pstmt = conn.prepareStatement("SELECT * FROM t_contract WHERE userName = ? ORDER BY id DESC");
+            FileLogger.debug("ContractDao", "findByUserName", "SQL=SELECT * FROM t_contract WHERE userName = ? ORDER BY id DESC");
             pstmt.setString(1, userName);  // 设置创建人参数
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapContract(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "findByUserName", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "findByUserName", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -237,15 +279,22 @@ public class ContractDao {
      * @return true-删除成功；false-删除失败
      */
     public boolean deleteByNum(String num) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractDao", "deleteByNum", "开始删除合同, 合同编号: " + num);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 根据合同编号删除
             pstmt = conn.prepareStatement("DELETE FROM t_contract WHERE num=?");
+            FileLogger.debug("ContractDao", "deleteByNum", "SQL=DELETE FROM t_contract WHERE num=?");
             pstmt.setString(1, num);  // 设置合同编号参数
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractDao", "deleteByNum", "删除合同" + (result ? "成功" : "失败") + ", 合同编号: " + num + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractDao", "deleteByNum", "删除合同失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

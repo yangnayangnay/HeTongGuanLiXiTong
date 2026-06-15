@@ -41,9 +41,11 @@ public class AIAssistantService {
      * @param model 模型名称（如qwen2.5, llama3.2等）
      */
     public static void configure(String url, String model) {
+        FileLogger.info("AIAssistantService", "configure", "配置AI服务, URL: " + url + ", 模型: " + model);
         ollamaUrl = url;
         modelName = model;
         aiEnabled = true;
+        FileLogger.info("AIAssistantService", "configure", "AI服务配置成功");
     }
 
     /**
@@ -54,7 +56,9 @@ public class AIAssistantService {
      * @return AI生成的审查建议；失败时返回错误提示
      */
     public static String reviewContract(String contractContent) {
+        FileLogger.info("AIAssistantService", "reviewContract", "开始AI合同审查, 输入长度: " + (contractContent != null ? contractContent.length() : 0));
         if (!aiEnabled) {
+            FileLogger.warn("AIAssistantService", "reviewContract", "AI功能未启用");
             return "[AI功能未启用]\n\n请先配置AI服务：\n1. 安装Ollama: https://ollama.ai\n2. 运行: ollama pull qwen2.5\n3. 在设置中启用AI功能";
         }
 
@@ -95,12 +99,16 @@ public class AIAssistantService {
             if (start > 11) {
                 int end = findJsonStringEnd(respStr, start);
                 if (end > start) {
-                    return unescapeJson(respStr.substring(start, end));
+                    String result = unescapeJson(respStr.substring(start, end));
+                    FileLogger.info("AIAssistantService", "reviewContract", "AI审查完成, 结果长度: " + result.length());
+                    return result;
                 }
             }
+            FileLogger.warn("AIAssistantService", "reviewContract", "AI返回结果解析失败");
             return "AI返回结果解析失败: " + respStr.substring(0, Math.min(200, respStr.length()));
 
         } catch (Exception e) {
+            FileLogger.error("AIAssistantService", "reviewContract", "AI审查失败: " + e.getMessage(), e);
             return "[AI服务连接失败]\n\n错误信息: " + e.getMessage() + "\n\n请确认：\n1. Ollama是否已安装并运行?\n2. 是否已下载模型? (运行: ollama pull qwen2.5)\n3. 服务地址是否正确? (当前: " + ollamaUrl + ")";
         }
     }
@@ -157,8 +165,11 @@ public class AIAssistantService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(3000);
-            return conn.getResponseCode() == 200;
+            boolean available = conn.getResponseCode() == 200;
+            FileLogger.info("AIAssistantService", "isAvailable", "AI服务可用性检查: " + available);
+            return available;
         } catch (Exception e) {
+            FileLogger.warn("AIAssistantService", "isAvailable", "AI服务不可用: " + e.getMessage());
             return false;
         }
     }

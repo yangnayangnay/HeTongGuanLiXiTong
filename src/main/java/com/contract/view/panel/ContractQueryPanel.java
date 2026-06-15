@@ -9,6 +9,7 @@ import com.contract.service.ContractVersionService;
 import com.contract.service.UserService;
 import com.contract.util.CalendarPickerUtil;
 import com.contract.util.DataExportUtil;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -571,6 +572,7 @@ public class ContractQueryPanel extends JPanel {
     private void doSearch() {
         tableModel.setRowCount(0);
         String name = txtSearchName.getText().trim();
+        FileLogger.info("ContractQueryPanel", "doSearch", "查询条件: name=" + name);
         List<Contract> contracts;
         if (name.isEmpty()) {
             contracts = contractService.findAll();
@@ -674,6 +676,7 @@ public class ContractQueryPanel extends JPanel {
             fileChooser.setSelectedFile(new java.io.File("合同数据.csv"));
             if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
                 DataExportUtil.exportToCSV(contracts, fileChooser.getSelectedFile().getAbsolutePath());
+                FileLogger.info("ContractQueryPanel", "exportToCSV", "导出CSV: " + fileChooser.getSelectedFile().getAbsolutePath() + ", 记录数=" + contracts.size());
                 JOptionPane.showMessageDialog(this, "CSV导出成功！", "成功", JOptionPane.INFORMATION_MESSAGE);
             }
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.Function;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -44,6 +45,8 @@ public class FunctionDao {
      * @return 功能列表（可能为空列表，但不会为null）
      */
     public List<Function> findAll() {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("FunctionDao", "findAll", "开始查询所有功能");
         List<Function> list = new ArrayList<>();  // 用于存储查询结果的功能列表
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -52,13 +55,17 @@ public class FunctionDao {
             conn = DBUtil.getConnection();
             // 查询所有功能，按id排序
             pstmt = conn.prepareStatement("SELECT * FROM t_function ORDER BY id");
+            FileLogger.debug("FunctionDao", "findAll", "SQL=SELECT * FROM t_function ORDER BY id");
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 // 将结果集映射为Function对象
                 list.add(new Function(rs.getInt("id"), rs.getString("num"),
                         rs.getString("name"), rs.getString("url"), rs.getString("description")));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("FunctionDao", "findAll", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("FunctionDao", "findAll", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -75,6 +82,8 @@ public class FunctionDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(Function func) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("FunctionDao", "insert", "开始新增功能, 功能编号: " + func.getNum() + ", 功能名称: " + func.getName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -83,13 +92,18 @@ public class FunctionDao {
             int id = DBUtil.getNextId("seq_function");
             // 插入新功能记录
             pstmt = conn.prepareStatement("INSERT INTO t_function(id, num, name, url, description) VALUES(?, ?, ?, ?, ?)");
+            FileLogger.debug("FunctionDao", "insert", "SQL=INSERT INTO t_function(id, num, name, url, description) VALUES(...)");
             pstmt.setInt(1, id);               // 参数1：功能ID
             pstmt.setString(2, func.getNum());  // 参数2：功能编号
             pstmt.setString(3, func.getName()); // 参数3：功能名称
             pstmt.setString(4, func.getUrl());  // 参数4：功能URL
             pstmt.setString(5, func.getDescription()); // 参数5：功能描述
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("FunctionDao", "insert", "新增功能" + (result ? "成功" : "失败") + ", 功能编号: " + func.getNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("FunctionDao", "insert", "新增功能失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -106,15 +120,22 @@ public class FunctionDao {
      * @return true-删除成功；false-删除失败
      */
     public boolean delete(int id) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("FunctionDao", "delete", "开始删除功能, 功能ID: " + id);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 根据主键ID删除功能
             pstmt = conn.prepareStatement("DELETE FROM t_function WHERE id=?");
+            FileLogger.debug("FunctionDao", "delete", "SQL=DELETE FROM t_function WHERE id=?");
             pstmt.setInt(1, id);  // 设置要删除的功能ID
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("FunctionDao", "delete", "删除功能" + (result ? "成功" : "失败") + ", 功能ID: " + id + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("FunctionDao", "delete", "删除功能失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

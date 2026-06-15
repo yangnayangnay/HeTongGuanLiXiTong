@@ -4,6 +4,7 @@ import com.contract.entity.Contract;
 import com.contract.service.ContractService;
 import com.contract.util.DataExportUtil;
 import com.contract.util.NotificationService;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -283,6 +284,7 @@ public class StatisticsPanel extends JPanel {
             updateTimeTrend(allContracts);
 
         } catch (Exception e) {
+            FileLogger.error("StatisticsPanel", "loadData", "加载统计数据失败: " + e.getMessage(), e);
             e.printStackTrace();
             JOptionPane.showMessageDialog(this, "加载数据失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
         }

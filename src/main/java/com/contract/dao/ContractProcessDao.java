@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.ContractProcess;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -38,6 +39,8 @@ public class ContractProcessDao {
      * @return true-插入成功；false-插入失败
      */
     public boolean insert(ContractProcess cp) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "insert", "开始新增流程记录, 合同编号: " + cp.getConNum() + ", 类型: " + cp.getType() + ", 操作人: " + cp.getUserName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
@@ -45,6 +48,7 @@ public class ContractProcessDao {
             int id = DBUtil.getNextId("seq_contract_process");
             // 插入流程记录，time字段若为空则使用当前时间
             pstmt = conn.prepareStatement("INSERT INTO t_contract_process(id, conNum, type, state, userName, content, time) VALUES(?, ?, ?, ?, ?, ?, ?)");
+            FileLogger.debug("ContractProcessDao", "insert", "SQL=INSERT INTO t_contract_process(id, conNum, type, state, userName, content, time) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, cp.getConNum());      // 关联合同编号
             pstmt.setInt(3, cp.getType());           // 流程类型（1-会签/2-审批/3-签订）
@@ -53,8 +57,12 @@ public class ContractProcessDao {
             pstmt.setString(6, cp.getContent());     // 处理意见
             // 时间戳转换，若无指定时间则使用当前系统时间
             pstmt.setTimestamp(7, cp.getTime() != null ? new java.sql.Timestamp(cp.getTime().getTime()) : new java.sql.Timestamp(System.currentTimeMillis()));
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "insert", "新增流程记录" + (result ? "成功" : "失败") + ", 合同编号: " + cp.getConNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "insert", "新增流程记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -72,18 +80,25 @@ public class ContractProcessDao {
      * @return true-更新成功；false-更新失败
      */
     public boolean updateState(int id, int state, String content) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "updateState", "开始更新流程状态, 流程ID: " + id + ", 新状态: " + state);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             // 更新状态、意见和时间，时间自动设为当前时间
             pstmt = conn.prepareStatement("UPDATE t_contract_process SET state=?, content=?, time=? WHERE id=?");
+            FileLogger.debug("ContractProcessDao", "updateState", "SQL=UPDATE t_contract_process SET state=?, content=?, time=? WHERE id=?");
             pstmt.setInt(1, state);                                    // 新状态
             pstmt.setString(2, content);                               // 处理意见
             pstmt.setTimestamp(3, new java.sql.Timestamp(System.currentTimeMillis())); // 操作时间
             pstmt.setInt(4, id);                                      // 条件-流程ID
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "updateState", "更新流程状态" + (result ? "成功" : "失败") + ", 流程ID: " + id + ", 状态: " + state + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "updateState", "更新流程状态失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -99,6 +114,8 @@ public class ContractProcessDao {
      * @return 该合同的流程记录列表
      */
     public List<ContractProcess> findByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "findByConNum", "开始根据合同编号查询流程, 合同编号: " + conNum);
         List<ContractProcess> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -106,12 +123,16 @@ public class ContractProcessDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_process WHERE conNum = ? ORDER BY id");
+            FileLogger.debug("ContractProcessDao", "findByConNum", "SQL=SELECT * FROM t_contract_process WHERE conNum = ? ORDER BY id");
             pstmt.setString(1, conNum);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapProcess(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "findByConNum", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "findByConNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -128,6 +149,8 @@ public class ContractProcessDao {
      * @return 匹配的流程记录列表
      */
     public List<ContractProcess> findByConNumAndType(String conNum, int type) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "findByConNumAndType", "开始根据合同编号和类型查询流程, 合同编号: " + conNum + ", 类型: " + type);
         List<ContractProcess> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -135,13 +158,17 @@ public class ContractProcessDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_process WHERE conNum = ? AND type = ? ORDER BY id");
+            FileLogger.debug("ContractProcessDao", "findByConNumAndType", "SQL=SELECT * FROM t_contract_process WHERE conNum = ? AND type = ? ORDER BY id");
             pstmt.setString(1, conNum);
             pstmt.setInt(2, type);
             rs = pstmt.executeQuery();
             while (rs.next()) {
                 list.add(mapProcess(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "findByConNumAndType", "查询完成，共" + list.size() + "条记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "findByConNumAndType", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -160,6 +187,8 @@ public class ContractProcessDao {
      * @return 待处理的流程任务列表
      */
     public List<ContractProcess> findByUserNameAndTypeAndState(String userName, int type, int state) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "findByUserNameAndTypeAndState", "开始查询待处理流程, 操作人: " + userName + ", 类型: " + type + ", 状态: " + state);
         List<ContractProcess> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -168,6 +197,7 @@ public class ContractProcessDao {
             conn = DBUtil.getConnection();
             // 三条件联合查询：操作人+流程类型+状态
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_process WHERE userName = ? AND type = ? AND state = ? ORDER BY id");
+            FileLogger.debug("ContractProcessDao", "findByUserNameAndTypeAndState", "SQL=SELECT * FROM t_contract_process WHERE userName = ? AND type = ? AND state = ? ORDER BY id");
             pstmt.setString(1, userName);
             pstmt.setInt(2, type);
             pstmt.setInt(3, state);
@@ -175,7 +205,10 @@ public class ContractProcessDao {
             while (rs.next()) {
                 list.add(mapProcess(rs));
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "findByUserNameAndTypeAndState", "查询完成，共" + list.size() + "条待处理记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "findByUserNameAndTypeAndState", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -190,18 +223,27 @@ public class ContractProcessDao {
      * @return 流程对象；未找到返回null
      */
     public ContractProcess findById(int id) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "findById", "开始根据ID查询流程, 流程ID: " + id);
         Connection conn = null;
         PreparedStatement pstmt = null;
         ResultSet rs = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_process WHERE id = ?");
+            FileLogger.debug("ContractProcessDao", "findById", "SQL=SELECT * FROM t_contract_process WHERE id = ?");
             pstmt.setInt(1, id);
             rs = pstmt.executeQuery();
             if (rs.next()) {
-                return mapProcess(rs);
+                ContractProcess cp = mapProcess(rs);
+                long cost = System.currentTimeMillis() - startTime;
+                FileLogger.info("ContractProcessDao", "findById", "查询成功, 找到流程ID: " + id + ", 耗时" + cost + "ms");
+                return cp;
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "findById", "查询完成, 未找到流程ID: " + id + ", 耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "findById", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -217,14 +259,21 @@ public class ContractProcessDao {
      * @return true-删除成功；false-删除失败
      */
     public boolean deleteByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "deleteByConNum", "开始删除合同流程记录, 合同编号: " + conNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("DELETE FROM t_contract_process WHERE conNum=?");
+            FileLogger.debug("ContractProcessDao", "deleteByConNum", "SQL=DELETE FROM t_contract_process WHERE conNum=?");
             pstmt.setString(1, conNum);
-            return pstmt.executeUpdate() >= 0;  // 无记录也算成功
+            boolean result = pstmt.executeUpdate() >= 0;  // 无记录也算成功
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "deleteByConNum", "删除流程记录" + (result ? "成功" : "失败") + ", 合同编号: " + conNum + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "deleteByConNum", "删除流程记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

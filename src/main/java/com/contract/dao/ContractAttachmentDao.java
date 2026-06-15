@@ -2,6 +2,7 @@ package com.contract.dao;
 
 import com.contract.entity.ContractAttachment;
 import com.contract.util.DBUtil;
+import com.contract.util.FileLogger;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -30,12 +31,15 @@ public class ContractAttachmentDao {
      * @return true-成功；false-失败
      */
     public boolean insert(ContractAttachment ca) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractAttachmentDao", "insert", "开始新增附件, 合同编号: " + ca.getConNum() + ", 文件名: " + ca.getFileName());
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             int id = DBUtil.getNextId("seq_contract_attachment");
             pstmt = conn.prepareStatement("INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime) VALUES(?, ?, ?, ?, ?, ?)");
+            FileLogger.debug("ContractAttachmentDao", "insert", "SQL=INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, ca.getConNum());       // 关联合同编号
             pstmt.setString(3, ca.getFileName());     // 原始文件名
@@ -43,8 +47,12 @@ public class ContractAttachmentDao {
             pstmt.setString(5, ca.getType());         // 附件类型分类
             // 上传时间使用当前系统时间
             pstmt.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
-            return pstmt.executeUpdate() > 0;
+            boolean result = pstmt.executeUpdate() > 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractAttachmentDao", "insert", "新增附件" + (result ? "成功" : "失败") + ", 合同编号: " + ca.getConNum() + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractAttachmentDao", "insert", "新增附件失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);
@@ -60,6 +68,8 @@ public class ContractAttachmentDao {
      * @return 附件列表
      */
     public List<ContractAttachment> findByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractAttachmentDao", "findByConNum", "开始根据合同编号查询附件, 合同编号: " + conNum);
         List<ContractAttachment> list = new ArrayList<>();
         Connection conn = null;
         PreparedStatement pstmt = null;
@@ -67,6 +77,7 @@ public class ContractAttachmentDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("SELECT * FROM t_contract_attachment WHERE conNum = ? ORDER BY id");
+            FileLogger.debug("ContractAttachmentDao", "findByConNum", "SQL=SELECT * FROM t_contract_attachment WHERE conNum = ? ORDER BY id");
             pstmt.setString(1, conNum);
             rs = pstmt.executeQuery();
             while (rs.next()) {
@@ -80,7 +91,10 @@ public class ContractAttachmentDao {
                 ca.setUploadTime(rs.getTimestamp("uploadTime"));
                 list.add(ca);
             }
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractAttachmentDao", "findByConNum", "查询完成，共" + list.size() + "条附件记录，耗时" + cost + "ms");
         } catch (Exception e) {
+            FileLogger.error("ContractAttachmentDao", "findByConNum", "查询异常: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt, rs);
@@ -96,14 +110,21 @@ public class ContractAttachmentDao {
      * @return true-成功；false-失败
      */
     public boolean deleteByConNum(String conNum) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractAttachmentDao", "deleteByConNum", "开始删除合同附件记录, 合同编号: " + conNum);
         Connection conn = null;
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement("DELETE FROM t_contract_attachment WHERE conNum=?");
+            FileLogger.debug("ContractAttachmentDao", "deleteByConNum", "SQL=DELETE FROM t_contract_attachment WHERE conNum=?");
             pstmt.setString(1, conNum);
-            return pstmt.executeUpdate() >= 0;
+            boolean result = pstmt.executeUpdate() >= 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractAttachmentDao", "deleteByConNum", "删除附件记录" + (result ? "成功" : "失败") + ", 合同编号: " + conNum + ", 耗时" + cost + "ms");
+            return result;
         } catch (Exception e) {
+            FileLogger.error("ContractAttachmentDao", "deleteByConNum", "删除附件记录失败: " + e.getMessage(), e);
             e.printStackTrace();
         } finally {
             DBUtil.close(conn, pstmt);

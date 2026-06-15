@@ -5,6 +5,7 @@ import com.contract.util.AppSettingsUtil;
 import com.contract.util.EmailService;
 import com.contract.util.I18NUtil;
 import com.contract.util.ThemeManager;
+import com.contract.util.FileLogger;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -326,6 +327,7 @@ public class SettingsPanel extends JPanel {
         AppSettingsUtil.saveSetting("smtp.port", txtSmtpPort.getText().trim());
         AppSettingsUtil.saveSetting("smtp.email", txtSenderEmail.getText().trim());
         AppSettingsUtil.saveSetting("smtp.password", new String(txtSenderPassword.getPassword()));
+        FileLogger.info("SettingsPanel", "saveEmailSettings", "保存邮件设置: host=" + txtSmtpHost.getText().trim() + ", email=" + txtSenderEmail.getText().trim());
         // 同时配置到EmailService
         try {
             EmailService.configure(
@@ -377,6 +379,7 @@ public class SettingsPanel extends JPanel {
     private void saveAISettings() {
         AppSettingsUtil.saveSetting("ai.url", txtAiUrl.getText().trim());
         AppSettingsUtil.saveSetting("ai.model", txtAiModel.getText().trim());
+        FileLogger.info("SettingsPanel", "saveAISettings", "保存AI设置: url=" + txtAiUrl.getText().trim() + ", model=" + txtAiModel.getText().trim());
         // 同时配置到AIAssistantService
         AIAssistantService.configure(txtAiUrl.getText().trim(), txtAiModel.getText().trim());
         JOptionPane.showMessageDialog(this, "AI设置已保存！", "成功", JOptionPane.INFORMATION_MESSAGE);
@@ -386,6 +389,7 @@ public class SettingsPanel extends JPanel {
      * 保存所有设置到持久化存储
      */
     private void saveAllSettings() {
+        FileLogger.info("SettingsPanel", "saveAllSettings", "保存所有设置");
         // 外观设置
         ThemeManager.ThemeType selectedTheme = (ThemeManager.ThemeType) cmbThemeColor.getSelectedItem();
         if (selectedTheme != null) AppSettingsUtil.saveSetting("theme", selectedTheme.name());
