@@ -148,7 +148,7 @@ public class ContractDraftPanel extends JPanel {
         });
         beginTimePanel.add(txtBeginTime);
         // 开始时间日历按钮（点击弹出日历选择器）
-        JButton btnCalBegin = new JButton("📅");
+        JButton btnCalBegin = new JButton("日期");
         btnCalBegin.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnCalBegin.setMargin(new Insets(1, 4, 1, 4));
         btnCalBegin.setFocusPainted(false);
@@ -184,7 +184,7 @@ public class ContractDraftPanel extends JPanel {
         endTimePanel.add(txtEndTime);
 
         // 结束时间日历按钮（点击弹出日历选择器）
-        JButton btnCalEnd = new JButton("📅");
+        JButton btnCalEnd = new JButton("日期");
         btnCalEnd.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnCalEnd.setMargin(new Insets(1, 4, 1, 4));
         btnCalEnd.setFocusPainted(false);
@@ -223,7 +223,7 @@ public class ContractDraftPanel extends JPanel {
         // 合同内容区域面板（包含模板按钮和文本区）
         JPanel contentPanel = new JPanel(new BorderLayout(5, 5));
         // 加载模板按钮：点击后将默认合同模板填充到文本区域
-        JButton btnLoadTemplate = new JButton("📄 加载模板");
+        JButton btnLoadTemplate = new JButton("加载模板");
         btnLoadTemplate.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnLoadTemplate.setFocusPainted(false);
         btnLoadTemplate.setBackground(new Color(241, 196, 15));
@@ -251,7 +251,7 @@ public class ContractDraftPanel extends JPanel {
         JPanel attachPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
 
         // 上传附件按钮：点击后弹出文件选择器选择PDF/Word文档
-        btnUploadFile = new JButton("📎 上传附件");
+        btnUploadFile = new JButton("上传附件");
         btnUploadFile.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnUploadFile.setFocusPainted(false);
         btnUploadFile.setBackground(new Color(46, 204, 113));
@@ -261,7 +261,7 @@ public class ContractDraftPanel extends JPanel {
         attachPanel.add(btnUploadFile);
 
         // OCR识别按钮：点击后选择图片文件进行OCR文字识别
-        JButton btnOCR = new JButton("📷 OCR识别");
+        JButton btnOCR = new JButton("OCR识别");
         btnOCR.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnOCR.setFocusPainted(false);
         btnOCR.setBackground(new Color(230, 126, 34));  // 橙色背景
@@ -278,7 +278,7 @@ public class ContractDraftPanel extends JPanel {
         attachPanel.add(lblFileName);
 
         // 下载附件按钮：将已上传的附件保存到用户选择的本地路径
-        btnDownloadFile = new JButton("⬇ 下载");
+        btnDownloadFile = new JButton("下载");
         btnDownloadFile.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnDownloadFile.setFocusPainted(false);
         btnDownloadFile.setEnabled(false);  // 默认禁用，有文件后才启用
@@ -310,7 +310,7 @@ public class ContractDraftPanel extends JPanel {
         btnPanel.add(btnReset);
 
         // AI审查按钮（调用AI服务对合同内容进行智能审查）
-        JButton btnAIReview = new JButton("🤖 AI审查");
+        JButton btnAIReview = new JButton("AI审查");
         btnAIReview.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         btnAIReview.setBackground(new Color(155, 89, 182));  // 紫色背景
         btnAIReview.setOpaque(true);
@@ -620,7 +620,7 @@ public class ContractDraftPanel extends JPanel {
                 // 小文件直接上传
                 this.currentFileData = fileData;
                 this.currentFileName = selectedName;
-                lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileSize) + ")");
+                lblFileName.setText(selectedName + " (" + formatFileSize(fileSize) + ")");
                 lblFileName.setForeground(new Color(39, 174, 96));
                 btnDownloadFile.setEnabled(true);
                 FileLogger.info("ContractDraftPanel", "uploadAttachment", "小文件直接上传: " + selectedName);
@@ -664,7 +664,7 @@ public class ContractDraftPanel extends JPanel {
                             SwingUtilities.invokeLater(() -> {
                                 this.currentFileData = mergedData;
                                 this.currentFileName = selectedName;
-                                lblFileName.setText("📄 " + selectedName + " (" + formatFileSize(fileSize) + ") [分块上传]");
+                                lblFileName.setText(selectedName + " (" + formatFileSize(fileSize) + ") [分块上传]");
                                 lblFileName.setForeground(new Color(39, 174, 96));
                                 btnDownloadFile.setEnabled(true);
                                 progressDialog.dispose();
@@ -898,7 +898,7 @@ public class ContractDraftPanel extends JPanel {
 
         // 创建AI审查结果对话框
         JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
-                "🤖 AI智能审查", false);
+                "AI智能审查", false);
         dialog.setLayout(new BorderLayout(5, 5));
         dialog.setSize(700, 550);
         dialog.setLocationRelativeTo(this);
@@ -909,7 +909,7 @@ public class ContractDraftPanel extends JPanel {
         txtResult.setLineWrap(true);
         txtResult.setWrapStyleWord(true);
         txtResult.setEditable(false);
-        txtResult.setText("⏳ 正在调用AI审查，请稍候...");
+        txtResult.setText("正在调用AI审查，请稍候...");
         dialog.add(new JScrollPane(txtResult), BorderLayout.CENTER);
 
         // 关闭按钮
@@ -965,7 +965,7 @@ public class ContractDraftPanel extends JPanel {
 
         // 创建进度提示对话框
         JDialog progressDlg = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
-                "📷 OCR文字识别", true);  // 模态对话框
+                "OCR文字识别", true);  // 模态对话框
         progressDlg.setLayout(new BorderLayout(10, 10));
         progressDlg.setSize(450, 200);
         progressDlg.setLocationRelativeTo(this);
@@ -974,7 +974,7 @@ public class ContractDraftPanel extends JPanel {
         JPanel msgPanel = new JPanel(new GridLayout(2, 1, 10, 10));
         msgPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblStatus = new JLabel("⏳ 正在识别图片文字，请稍候...", SwingConstants.CENTER);
+        JLabel lblStatus = new JLabel("正在识别图片文字，请稍候...", SwingConstants.CENTER);
         lblStatus.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         msgPanel.add(lblStatus);
 

@@ -38,7 +38,7 @@ public class AboutPanel extends JPanel {
         // 使用HTML格式构建项目说明内容
         String htmlContent =
             "<html><body style='font-family:微软雅黑,sans-serif; text-align:center; padding:20px;'>" +
-            "<h1 style='color:#2C3E50;'>📋 合同管理系统</h1>" +
+            "<h1 style='color:#2C3E50;'>合同管理系统</h1>" +
             "<hr style='border:none; border-top:2px solid #3498DB; width:60%; margin:15px auto;'>" +
             "<table style='margin:0 auto; border-collapse:collapse; width:70%;'>" +
             "  <tr><td style='padding:8px; color:#7F8C8D; text-align:right; font-weight:bold;'>版本号：</td>" +
@@ -49,20 +49,20 @@ public class AboutPanel extends JPanel {
             "      <td style='padding:8px; color:#2C3E50; text-align:left;'>2024 - 2026</td></tr>" +
             "</table>" +
 
-            "<h3 style='color:#2980B9; margin-top:25px;'>📦 功能模块（共12个）</h3>" +
+            "<h3 style='color:#2980B9; margin-top:25px;'>功能模块（共12个）</h3>" +
             "<table style='margin:10px auto; border-collapse:collapse; width:65%; background:#FAFAFA; border-radius:8px;'>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>📝 F01 - 起草合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>✍️ F02 - 会签合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>📄 F03 - 定稿合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>✅ F04 - 审批合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>🖋️ F05 - 签订合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>📤 F06 - 分配合同</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>🔍 F07 - 合同查询</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>👥 F09 - 客户管理</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>👤 F10 - 用户管理</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>🛡️ F11 - 角色管理</td></tr>" +
-            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>📋 F12 - 日志管理</td></tr>" +
-            "  <tr><td style='padding:6px 15px;'>⏰ 定时提醒 / 邮件通知</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F01 - 起草合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F02 - 会签合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F03 - 定稿合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F04 - 审批合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F05 - 签订合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F06 - 分配合同</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F07 - 合同查询</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F09 - 客户管理</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F10 - 用户管理</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F11 - 角色管理</td></tr>" +
+            "  <tr><td style='padding:6px 15px; border-bottom:1px solid #EEE;'>F12 - 日志管理</td></tr>" +
+            "  <tr><td style='padding:6px 15px;'>定时提醒 / 邮件通知</td></tr>" +
             "</table>" +
 
             "<hr style='border:none; border-top:1px solid #ECF0F1; width:40%; margin:20px auto;'>" +

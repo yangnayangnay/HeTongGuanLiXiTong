@@ -31,13 +31,25 @@ public class RegisterFrame extends JFrame {
     /** 用户服务对象 */
     private UserService userService = new UserService();
 
+    // ===== 颜色常量（与LoginFrame统一风格） =====
+    private static final Color BG_COLOR = new Color(245, 247, 250);
+    private static final Color TITLE_COLOR = new Color(44, 62, 80);
+    private static final Color SUBTITLE_COLOR = new Color(100, 120, 140);
+    private static final Color ACCENT_COLOR = new Color(41, 128, 185);
+    private static final Color BTN_REGISTER_BG = new Color(39, 174, 96);   // 注册按钮：绿色
+    private static final Color BTN_REGISTER_HOVER = new Color(30, 145, 78);
+    private static final Color BTN_CANCEL_BG = new Color(149, 165, 166);
+    private static final Color BTN_CANCEL_HOVER = new Color(127, 140, 141);
+    private static final Color LABEL_COLOR = new Color(80, 90, 100);
+    private static final Color INPUT_BORDER = new Color(200, 210, 220);
+
     /**
      * 构造方法：初始化注册窗口
      */
     public RegisterFrame() {
-        setTitle("📝 合同管理系统 - 注册");
-        setSize(420, 400);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);  // 关闭时只销毁本窗口，不退出程序
+        setTitle("合同管理系统 - 注册");
+        setSize(460, 520);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
         initUI();
@@ -47,89 +59,159 @@ public class RegisterFrame extends JFrame {
      * 初始化界面组件
      */
     private void initUI() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 40, 25, 40));
-        mainPanel.setBackground(new Color(245, 245, 250));
+        // 主面板：垂直布局，整体居中
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(BG_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(35, 60, 35, 60));
 
-        // 标题区域面板
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setOpaque(false);
+        // ===== 标题区域 =====
+        JLabel lblTitle = new JLabel("用户注册", SwingConstants.CENTER);
+        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 24));
+        lblTitle.setForeground(TITLE_COLOR);
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 主标题
-        JLabel lblTitle = new JLabel("👤 用户注册", SwingConstants.CENTER);
-        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(44, 62, 80));  // #2C3E50 深蓝灰
-        titlePanel.add(lblTitle, BorderLayout.CENTER);
-
-        // 副标题
         JLabel lblSubtitle = new JLabel("Create Your Account", SwingConstants.CENTER);
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lblSubtitle.setForeground(new Color(52, 152, 219));  // #3498DB 亮蓝
-        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
-        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubtitle.setForeground(SUBTITLE_COLOR);
+        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 表单面板
+        // 分隔线
+        JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
+        separator.setForeground(new Color(220, 225, 230));
+        separator.setMaximumSize(new Dimension(300, 1));
+        separator.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        mainPanel.add(lblTitle);
+        mainPanel.add(Box.createVerticalStrut(6));
+        mainPanel.add(lblSubtitle);
+        mainPanel.add(Box.createVerticalStrut(15));
+        mainPanel.add(separator);
+        mainPanel.add(Box.createVerticalStrut(20));
+
+        // ===== 表单区域（对称居中） =====
         JPanel formPanel = new JPanel(new GridBagLayout());
         formPanel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(6, 5, 6, 5);
+        gbc.insets = new Insets(6, 8, 6, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
+        // 统一标签宽度，保证左右对称
+        Dimension labelSize = new Dimension(75, 30);
+        Dimension inputSize = new Dimension(220, 36);
+
         // 用户名
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(createLabel("用户名:"), gbc);
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        JLabel lblUser = new JLabel("用户名:", SwingConstants.RIGHT);
+        lblUser.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblUser.setForeground(LABEL_COLOR);
+        lblUser.setPreferredSize(labelSize);
+        formPanel.add(lblUser, gbc);
+
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1;
-        txtUsername = new JTextField(15);
+        txtUsername = createStyledTextField();
+        txtUsername.setPreferredSize(inputSize);
         formPanel.add(txtUsername, gbc);
 
         // 密码
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
-        formPanel.add(createLabel("密  码:"), gbc);
+        JLabel lblPwd = new JLabel("密  码:", SwingConstants.RIGHT);
+        lblPwd.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblPwd.setForeground(LABEL_COLOR);
+        lblPwd.setPreferredSize(labelSize);
+        formPanel.add(lblPwd, gbc);
+
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1;
-        txtPassword = new JPasswordField(15);
+        txtPassword = createStyledPasswordField();
+        txtPassword.setPreferredSize(inputSize);
         formPanel.add(txtPassword, gbc);
 
         // 确认密码
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
-        formPanel.add(createLabel("确认密码:"), gbc);
+        JLabel lblConfirm = new JLabel("确认密码:", SwingConstants.RIGHT);
+        lblConfirm.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblConfirm.setForeground(LABEL_COLOR);
+        lblConfirm.setPreferredSize(labelSize);
+        formPanel.add(lblConfirm, gbc);
+
         gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1;
-        txtConfirmPassword = new JPasswordField(15);
+        txtConfirmPassword = createStyledPasswordField();
+        txtConfirmPassword.setPreferredSize(inputSize);
         formPanel.add(txtConfirmPassword, gbc);
 
-        // 邮箱（必填，用于接收任务通知）
+        // 邮箱（必填）
         gbc.gridx = 0; gbc.gridy = 3; gbc.weightx = 0;
-        formPanel.add(createLabel("邮  箱:*"), gbc);
+        JLabel lblEmail = new JLabel("邮  箱:*", SwingConstants.RIGHT);
+        lblEmail.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblEmail.setForeground(LABEL_COLOR);
+        lblEmail.setPreferredSize(labelSize);
+        formPanel.add(lblEmail, gbc);
+
         gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 1;
-        txtEmail = new JTextField(15);
+        txtEmail = createStyledTextField();
+        txtEmail.setPreferredSize(inputSize);
         txtEmail.setToolTipText("请输入有效的邮箱地址，用于接收合同任务通知邮件");
         formPanel.add(txtEmail, gbc);
 
-        mainPanel.add(formPanel, BorderLayout.CENTER);
+        // 表单居中
+        JPanel formWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formPanel);
+        formWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 按钮面板
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
+        mainPanel.add(formWrapper);
+        mainPanel.add(Box.createVerticalStrut(22));
+
+        // ===== 按钮区域（居中并排） =====
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
         btnPanel.setOpaque(false);
+        btnPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JButton btnRegister = new JButton("📝 注 册");
+        JButton btnRegister = new JButton("注 册");
         btnRegister.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        btnRegister.setPreferredSize(new Dimension(120, 38));
-        btnRegister.setBackground(new Color(39, 174, 96));  // #27AE60 绿色
+        btnRegister.setPreferredSize(new Dimension(130, 40));
+        btnRegister.setBackground(BTN_REGISTER_BG);
+        btnRegister.setForeground(Color.WHITE);
         btnRegister.setOpaque(true);
-        btnRegister.setForeground(Color.WHITE);  // 白色文字
+        btnRegister.setContentAreaFilled(true);
         btnRegister.setFocusPainted(false);
+        btnRegister.setBorderPainted(false);
+        btnRegister.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnRegister.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnRegister.setBackground(BTN_REGISTER_HOVER);
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnRegister.setBackground(BTN_REGISTER_BG);
+            }
+        });
 
         JButton btnCancel = new JButton("取 消");
         btnCancel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        btnCancel.setPreferredSize(new Dimension(100, 35));
-        btnCancel.setBackground(new Color(149, 165, 166));  // 灰色
+        btnCancel.setPreferredSize(new Dimension(130, 40));
+        btnCancel.setBackground(BTN_CANCEL_BG);
+        btnCancel.setForeground(Color.WHITE);
         btnCancel.setOpaque(true);
         btnCancel.setContentAreaFilled(true);
-        btnCancel.setForeground(Color.WHITE);
         btnCancel.setFocusPainted(false);
+        btnCancel.setBorderPainted(false);
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCancel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnCancel.setBackground(BTN_CANCEL_HOVER);
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnCancel.setBackground(BTN_CANCEL_BG);
+            }
+        });
 
         btnPanel.add(btnRegister);
         btnPanel.add(btnCancel);
-        mainPanel.add(btnPanel, BorderLayout.SOUTH);
+        mainPanel.add(btnPanel);
 
         add(mainPanel);
 
@@ -141,7 +223,7 @@ public class RegisterFrame extends JFrame {
             }
         });
 
-        // 取消按钮事件：关闭注册窗口
+        // 取消按钮事件
         btnCancel.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -151,17 +233,33 @@ public class RegisterFrame extends JFrame {
     }
 
     /**
-     * 创建表单标签
+     * 创建统一样式的文本输入框
      */
-    private JLabel createLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        return label;
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        return field;
+    }
+
+    /**
+     * 创建统一样式的密码输入框
+     */
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        return field;
     }
 
     /**
      * 执行注册操作
-     * <p>校验输入数据，调用Service完成注册</p>
      */
     private void register() {
         String username = txtUsername.getText().trim();
@@ -169,26 +267,22 @@ public class RegisterFrame extends JFrame {
         String confirmPassword = new String(txtConfirmPassword.getPassword()).trim();
         String email = txtEmail.getText().trim();
 
-        // 校验所有字段非空
         if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || email.isEmpty()) {
             FileLogger.warn("RegisterFrame", "register", "注册校验失败: 存在空字段");
             JOptionPane.showMessageDialog(this, "所有字段不能为空！（邮箱为必填项）", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        // 校验两次密码一致
         if (!password.equals(confirmPassword)) {
             FileLogger.warn("RegisterFrame", "register", "注册校验失败: 两次密码不一致, username=" + username);
             JOptionPane.showMessageDialog(this, "两次输入的密码不一致！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        // 校验邮箱格式（简单正则校验）
         if (!email.matches("^[a-zA-Z0-9_+&*-]+(?:\\.[a-zA-Z0-9_+&*-]+)*@(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,7}$")) {
             FileLogger.warn("RegisterFrame", "register", "注册校验失败: 邮箱格式不正确, email=" + email);
             JOptionPane.showMessageDialog(this, "请输入有效的邮箱地址格式！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 调用Service进行注册（传入邮箱参数）
         FileLogger.info("RegisterFrame", "register", "用户注册: username=" + username + ", email=" + email);
         boolean success = userService.register(username, password, email);
         if (success) {
@@ -196,7 +290,7 @@ public class RegisterFrame extends JFrame {
             JOptionPane.showMessageDialog(this,
                 "注册成功！请等待管理员审核通过后即可登录。",
                 "成功", JOptionPane.INFORMATION_MESSAGE);
-            dispose();  // 注册成功后关闭窗口
+            dispose();
         } else {
             FileLogger.warn("RegisterFrame", "register", "用户注册失败: username=" + username + " (用户名可能已存在)");
             JOptionPane.showMessageDialog(this, "注册失败，用户名可能已存在！", "错误", JOptionPane.ERROR_MESSAGE);

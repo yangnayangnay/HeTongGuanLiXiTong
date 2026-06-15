@@ -51,7 +51,7 @@ public class StatisticsPanel extends JPanel {
      */
     private void initUI() {
         // 标题区域
-        JLabel lblTitle = new JLabel("📊 数据统计");
+        JLabel lblTitle = new JLabel("数据统计");
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 18));
         lblTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
         add(lblTitle, BorderLayout.NORTH);
@@ -92,7 +92,7 @@ public class StatisticsPanel extends JPanel {
      */
     private JPanel createOverviewCards() {
         JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 15, 10));
-        cardsPanel.setBorder(BorderFactory.createTitledBorder("📈 数据概览"));
+        cardsPanel.setBorder(BorderFactory.createTitledBorder("数据概览"));
         cardsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
 
         // 创建4个统计卡片
@@ -145,7 +145,7 @@ public class StatisticsPanel extends JPanel {
      */
     private JPanel createStatusDistributionPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("📊 按状态分布"));
+        panel.setBorder(BorderFactory.createTitledBorder("按状态分布"));
 
         String[] columns = {"状态", "合同数量", "金额占比"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -168,7 +168,7 @@ public class StatisticsPanel extends JPanel {
      */
     private JPanel createCustomerRankingPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("🏆 客户排名 TOP10"));
+        panel.setBorder(BorderFactory.createTitledBorder("客户排名 TOP10"));
 
         String[] columns = {"排名", "客户名称", "合同数量", "总金额"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -191,7 +191,7 @@ public class StatisticsPanel extends JPanel {
      */
     private JPanel createTimeTrendPanel() {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("📅 最近6个月合同趋势"));
+        panel.setBorder(BorderFactory.createTitledBorder("最近6个月合同趋势"));
 
         String[] columns = {"月份", "新增合同数", "签约总额"};
         DefaultTableModel model = new DefaultTableModel(columns, 0) {
@@ -216,7 +216,7 @@ public class StatisticsPanel extends JPanel {
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
         panel.setBorder(new EmptyBorder(15, 0, 5, 0));
 
-        JButton btnExportCSV = new JButton("📥 导出CSV");
+        JButton btnExportCSV = new JButton("导出CSV");
         btnExportCSV.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnExportCSV.setBackground(new Color(66, 133, 244));
         btnExportCSV.setOpaque(true);
@@ -225,7 +225,7 @@ public class StatisticsPanel extends JPanel {
         btnExportCSV.setFocusPainted(false);
         btnExportCSV.addActionListener(e -> exportToCSV());
 
-        JButton btnExportHTML = new JButton("📄 导出报表");
+        JButton btnExportHTML = new JButton("导出报表");
         btnExportHTML.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnExportHTML.setBackground(new Color(46, 204, 113));
         btnExportHTML.setOpaque(true);

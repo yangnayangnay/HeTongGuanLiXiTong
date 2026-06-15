@@ -162,7 +162,7 @@ public class ContractSignPanel extends JPanel {
         btnPanel.add(btnViewContract);
 
         // AI审查按钮（调用AI服务审查合同内容）
-        JButton btnAIReview = new JButton("🤖 AI审查");
+        JButton btnAIReview = new JButton("AI审查");
         btnAIReview.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnAIReview.setBackground(new Color(155, 89, 182));  // 紫色背景
         btnAIReview.setOpaque(true);
@@ -373,7 +373,7 @@ public class ContractSignPanel extends JPanel {
 
         // 创建AI审查结果对话框
         JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
-                "🤖 AI智能审查 - " + conNum, false);
+                "AI智能审查 - " + conNum, false);
         dialog.setLayout(new BorderLayout(5, 5));
         dialog.setSize(700, 550);
         dialog.setLocationRelativeTo(this);  // 居中显示
@@ -384,7 +384,7 @@ public class ContractSignPanel extends JPanel {
         txtResult.setLineWrap(true);
         txtResult.setWrapStyleWord(true);
         txtResult.setEditable(false);
-        txtResult.setText("⏳ 正在调用AI审查，请稍候...");
+        txtResult.setText("正在调用AI审查，请稍候...");
         dialog.add(new JScrollPane(txtResult), BorderLayout.CENTER);
 
         // 关闭按钮

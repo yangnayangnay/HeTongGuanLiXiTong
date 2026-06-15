@@ -70,7 +70,7 @@ public class SettingsPanel extends JPanel {
      */
     private void initUI() {
         // 标题区域
-        JLabel lblTitle = new JLabel("⚙️ 系统设置");
+        JLabel lblTitle = new JLabel("系统设置");
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 18));
         lblTitle.setBorder(new EmptyBorder(0, 0, 15, 0));
         add(lblTitle, BorderLayout.NORTH);
@@ -227,7 +227,7 @@ public class SettingsPanel extends JPanel {
 
         // 保存全部设置按钮
         JPanel saveAllPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        JButton btnSaveAll = new JButton("💾 保存所有设置");
+        JButton btnSaveAll = new JButton("保存所有设置");
         btnSaveAll.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         btnSaveAll.setBackground(new Color(46, 204, 113));
         btnSaveAll.setOpaque(true);
@@ -358,12 +358,12 @@ public class SettingsPanel extends JPanel {
             SwingUtilities.invokeLater(() -> {
                 if (available) {
                     JOptionPane.showMessageDialog(SettingsPanel.this,
-                        "✅ AI服务连接成功！\n\n服务地址: " + txtAiUrl.getText().trim()
+                        "AI服务连接成功！\n\n服务地址: " + txtAiUrl.getText().trim()
                         + "\n模型: " + txtAiModel.getText().trim(),
                         "连接成功", JOptionPane.INFORMATION_MESSAGE);
                 } else {
                     JOptionPane.showMessageDialog(SettingsPanel.this,
-                        "❌ AI服务连接失败！\n\n请确认：\n"
+                        "AI服务连接失败！\n\n请确认：\n"
                         + "1. Ollama是否已安装并运行?\n"
                         + "2. 是否已下载模型? (运行: ollama pull " + txtAiModel.getText().trim() + ")\n"
                         + "3. 服务地址是否正确? (当前: " + txtAiUrl.getText().trim() + ")",
@@ -421,7 +421,7 @@ public class SettingsPanel extends JPanel {
         } catch (NumberFormatException ignored) { }
         AIAssistantService.configure(txtAiUrl.getText().trim(), txtAiModel.getText().trim());
 
-        JOptionPane.showMessageDialog(this, "✅ 所有设置已保存！\n\n设置文件位置: "
+        JOptionPane.showMessageDialog(this, "所有设置已保存！\n\n设置文件位置: "
             + AppSettingsUtil.getSettingsFilePath(), "保存成功", JOptionPane.INFORMATION_MESSAGE);
     }
 

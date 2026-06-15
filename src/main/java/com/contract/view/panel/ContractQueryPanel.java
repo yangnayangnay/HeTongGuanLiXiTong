@@ -163,7 +163,7 @@ public class ContractQueryPanel extends JPanel {
         row1.add(btnShowAll);
 
         // 导出CSV按钮
-        JButton btnExportCSV = new JButton("📥 导出CSV");
+        JButton btnExportCSV = new JButton("导出CSV");
         btnExportCSV.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnExportCSV.setBackground(new Color(66, 133, 244));
         btnExportCSV.setOpaque(true);
@@ -174,7 +174,7 @@ public class ContractQueryPanel extends JPanel {
         row1.add(btnExportCSV);
 
         // 导出HTML报表按钮
-        JButton btnExportHTML = new JButton("📄 导出报表");
+        JButton btnExportHTML = new JButton("导出报表");
         btnExportHTML.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnExportHTML.setBackground(new Color(46, 204, 113));
         btnExportHTML.setOpaque(true);
@@ -447,7 +447,7 @@ public class ContractQueryPanel extends JPanel {
         currentAttachmentFileName = null;
         if (contract != null && contract.getFileName() != null && !contract.getFileName().isEmpty()) {
             currentAttachmentFileName = contract.getFileName();
-            lblAttachmentInfo.setText("📎 附件: " + contract.getFileName());
+            lblAttachmentInfo.setText("附件: " + contract.getFileName());
             btnDownloadAttachment.setVisible(true);
         } else {
             lblAttachmentInfo.setText("");
@@ -729,7 +729,7 @@ public class ContractQueryPanel extends JPanel {
 
         // 创建版本历史对话框
         JDialog dialog = new JDialog((javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(this),
-                "📋 版本历史 - " + conName + " (" + conNum + ")", false);
+                "版本历史 - " + conName + " (" + conNum + ")", false);
         dialog.setLayout(new BorderLayout(8, 8));
         dialog.setSize(950, 600);
         dialog.setLocationRelativeTo(this);
@@ -794,7 +794,7 @@ public class ContractQueryPanel extends JPanel {
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 5));
 
         // 版本对比按钮
-        JButton btnCompare = new JButton("🔍 版本对比");
+        JButton btnCompare = new JButton("版本对比");
         btnCompare.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnCompare.setBackground(new Color(52, 152, 219));
         btnCompare.setOpaque(true);

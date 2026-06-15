@@ -37,15 +37,26 @@ public class LoginFrame extends JFrame {
     /** 用户服务对象，用于调用业务逻辑 */
     private UserService userService = new UserService();
 
+    // ===== 颜色常量 =====
+    private static final Color BG_COLOR = new Color(245, 247, 250);
+    private static final Color TITLE_COLOR = new Color(44, 62, 80);
+    private static final Color SUBTITLE_COLOR = new Color(100, 120, 140);
+    private static final Color ACCENT_COLOR = new Color(41, 128, 185);   // 主色调：深蓝
+    private static final Color BTN_LOGIN_BG = new Color(41, 128, 185);   // 登录按钮：深蓝
+    private static final Color BTN_LOGIN_HOVER = new Color(31, 97, 141);
+    private static final Color LABEL_COLOR = new Color(80, 90, 100);
+    private static final Color INPUT_BORDER = new Color(200, 210, 220);
+    private static final Color INPUT_FOCUS = new Color(41, 128, 185);
+
     /**
      * 构造方法：初始化登录窗口
      */
     public LoginFrame() {
-        setTitle("🔐 " + I18NUtil.getString("login.title"));
-        setSize(420, 380);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);  // 关闭窗口时退出程序
-        setLocationRelativeTo(null);  // 窗口居中显示
-        setResizable(false);  // 禁止调整大小
+        setTitle(I18NUtil.getString("login.title"));
+        setSize(460, 480);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+        setResizable(false);
         initUI();
     }
 
@@ -53,70 +64,115 @@ public class LoginFrame extends JFrame {
      * 初始化界面组件
      */
     private void initUI() {
-        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-        mainPanel.setBackground(new Color(245, 245, 250));  // 浅灰背景
+        // 主面板：垂直布局，整体居中
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(BG_COLOR);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(40, 60, 40, 60));
 
-        // 标题区域面板
-        JPanel titlePanel = new JPanel(new BorderLayout());
-        titlePanel.setOpaque(false);
+        // ===== 标题区域 =====
+        JLabel lblTitle = new JLabel(I18NUtil.getString("app.title"), SwingConstants.CENTER);
+        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 26));
+        lblTitle.setForeground(TITLE_COLOR);
+        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 主标题标签
-        JLabel lblTitle = new JLabel("📋 " + I18NUtil.getString("app.title"), SwingConstants.CENTER);
-        lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 24));
-        lblTitle.setForeground(new Color(44, 62, 80));  // #2C3E50 深蓝灰
-        titlePanel.add(lblTitle, BorderLayout.CENTER);
+        JLabel lblSubtitle = new JLabel("Contract Management System", SwingConstants.CENTER);
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubtitle.setForeground(SUBTITLE_COLOR);
+        lblSubtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 副标题
-        JLabel lblSubtitle = new JLabel("Enterprise Contract Management System", SwingConstants.CENTER);
-        lblSubtitle.setFont(new Font("Segoe UI", Font.ITALIC, 11));
-        lblSubtitle.setForeground(new Color(52, 152, 219));  // #3498DB 亮蓝
-        titlePanel.add(lblSubtitle, BorderLayout.SOUTH);
+        // 分隔线
+        JSeparator separator = new JSeparator(SwingConstants.HORIZONTAL);
+        separator.setForeground(new Color(220, 225, 230));
+        separator.setMaximumSize(new Dimension(300, 1));
+        separator.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        mainPanel.add(lblTitle);
+        mainPanel.add(Box.createVerticalStrut(6));
+        mainPanel.add(lblSubtitle);
+        mainPanel.add(Box.createVerticalStrut(20));
+        mainPanel.add(separator);
+        mainPanel.add(Box.createVerticalStrut(25));
 
-        // 表单面板（用户名、密码输入区）
+        // ===== 表单区域（对称居中） =====
         JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setOpaque(false);  // 透明背景
+        formPanel.setOpaque(false);
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 5, 8, 5);  // 组件间距
+        gbc.insets = new Insets(8, 8, 8, 8);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // 用户名输入行
-        gbc.gridx = 0; gbc.gridy = 0;
-        formPanel.add(createLabel(I18NUtil.getString("login.username")), gbc);
+        // 统一标签宽度，保证左右对称
+        Dimension labelSize = new Dimension(70, 30);
+        Dimension inputSize = new Dimension(220, 36);
+
+        // 用户名
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        JLabel lblUser = new JLabel(I18NUtil.getString("login.username"), SwingConstants.RIGHT);
+        lblUser.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblUser.setForeground(LABEL_COLOR);
+        lblUser.setPreferredSize(labelSize);
+        formPanel.add(lblUser, gbc);
+
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1;
-        txtUsername = new JTextField(15);
-        txtUsername.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        txtUsername = createStyledTextField();
+        txtUsername.setPreferredSize(inputSize);
         formPanel.add(txtUsername, gbc);
 
-        // 密码输入行
+        // 密码
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
-        formPanel.add(createLabel(I18NUtil.getString("login.password")), gbc);
+        JLabel lblPwd = new JLabel(I18NUtil.getString("login.password"), SwingConstants.RIGHT);
+        lblPwd.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        lblPwd.setForeground(LABEL_COLOR);
+        lblPwd.setPreferredSize(labelSize);
+        formPanel.add(lblPwd, gbc);
+
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1;
-        txtPassword = new JPasswordField(15);  // 密码框自动隐藏字符
-        txtPassword.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        txtPassword = createStyledPasswordField();
+        txtPassword.setPreferredSize(inputSize);
         formPanel.add(txtPassword, gbc);
 
-        mainPanel.add(formPanel, BorderLayout.CENTER);
+        // 表单居中
+        JPanel formWrapper = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formPanel);
+        formWrapper.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        // 按钮面板（登录、注册按钮）
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        btnPanel.setOpaque(false);
+        mainPanel.add(formWrapper);
+        mainPanel.add(Box.createVerticalStrut(25));
 
-        JButton btnLogin = new JButton("🔐 " + I18NUtil.getString("login.btnLogin"));
-        btnLogin.setFont(new Font("微软雅黑", Font.BOLD, 14));
-        btnLogin.setPreferredSize(new Dimension(120, 38));
-        btnLogin.setBackground(new Color(52, 152, 219));  // #3498DB 亮蓝
+        // ===== 按钮区域 =====
+        JButton btnLogin = new JButton(I18NUtil.getString("login.btnLogin"));
+        btnLogin.setFont(new Font("微软雅黑", Font.BOLD, 15));
+        btnLogin.setPreferredSize(new Dimension(300, 42));
+        btnLogin.setBackground(BTN_LOGIN_BG);
+        btnLogin.setForeground(Color.WHITE);
         btnLogin.setOpaque(true);
-        btnLogin.setForeground(Color.WHITE);  // 白色文字
-        btnLogin.setFocusPainted(false);  // 去除焦点边框
+        btnLogin.setContentAreaFilled(true);
+        btnLogin.setFocusPainted(false);
+        btnLogin.setBorderPainted(false);
+        btnLogin.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnLogin.setAlignmentX(Component.CENTER_ALIGNMENT);
+        // 悬停效果
+        btnLogin.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnLogin.setBackground(BTN_LOGIN_HOVER);
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnLogin.setBackground(BTN_LOGIN_BG);
+            }
+        });
 
-        // 注册链接（蓝色超链接样式）
-        JLabel lblRegister = new JLabel("<html><a href='#' style='color:#3498DB;text-decoration:none;'>📝 " + I18NUtil.getString("login.registerTip") + "</a></html>");
-        lblRegister.setFont(new Font("微软雅黑", Font.PLAIN, 12));
-        lblRegister.setForeground(new Color(52, 152, 219));  // 蓝色超链接
+        mainPanel.add(btnLogin);
+        mainPanel.add(Box.createVerticalStrut(18));
+
+        // 注册链接
+        JLabel lblRegister = new JLabel(I18NUtil.getString("login.registerTip"));
+        lblRegister.setFont(new Font("微软雅黑", Font.PLAIN, 13));
+        lblRegister.setForeground(ACCENT_COLOR);
         lblRegister.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        lblRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblRegister.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
             public void mouseClicked(java.awt.event.MouseEvent evt) {
@@ -124,21 +180,19 @@ public class LoginFrame extends JFrame {
             }
             @Override
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                lblRegister.setForeground(new Color(41, 128, 185));  // 悬停加深
+                lblRegister.setForeground(BTN_LOGIN_HOVER);
             }
             @Override
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                lblRegister.setForeground(new Color(52, 152, 219));  // 恢复蓝色
+                lblRegister.setForeground(ACCENT_COLOR);
             }
         });
 
-        btnPanel.add(btnLogin);
-        btnPanel.add(lblRegister);
-        mainPanel.add(btnPanel, BorderLayout.SOUTH);
+        mainPanel.add(lblRegister);
 
         add(mainPanel);
 
-        // 登录按钮事件：执行登录逻辑
+        // 登录按钮事件
         btnLogin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -146,7 +200,7 @@ public class LoginFrame extends JFrame {
             }
         });
 
-        // 密码框回车事件：支持回车键快捷登录
+        // 密码框回车事件
         txtPassword.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -156,42 +210,51 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * 创建表单标签的辅助方法
-     *
-     * @param text 标签文字
-     * @return 格式化后的JLabel
+     * 创建统一样式的文本输入框
      */
-    private JLabel createLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font("微软雅黑", Font.PLAIN, 14));
-        return label;
+    private JTextField createStyledTextField() {
+        JTextField field = new JTextField();
+        field.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        return field;
+    }
+
+    /**
+     * 创建统一样式的密码输入框
+     */
+    private JPasswordField createStyledPasswordField() {
+        JPasswordField field = new JPasswordField();
+        field.setFont(new Font("微软雅黑", Font.PLAIN, 14));
+        field.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(INPUT_BORDER, 1, true),
+            BorderFactory.createEmptyBorder(4, 10, 4, 10)
+        ));
+        return field;
     }
 
     /**
      * 执行登录操作
-     * <p>获取用户输入，调用Service层验证，根据结果显示不同提示</p>
      */
     private void login() {
-        String username = txtUsername.getText().trim();  // 获取并去除首尾空格
+        String username = txtUsername.getText().trim();
         String password = new String(txtPassword.getPassword()).trim();
 
-        // 输入校验
         if (username.isEmpty() || password.isEmpty()) {
             FileLogger.warn("LoginFrame", "login", "登录校验失败: 用户名或密码为空");
             JOptionPane.showMessageDialog(this, "用户名和密码不能为空！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
-        // 调用Service进行登录验证
         FileLogger.info("LoginFrame", "login", "用户登录尝试: username=" + username);
         User user = userService.login(username, password);
         if (user != null) {
-            // 登录成功：关闭登录窗，打开主窗口
             FileLogger.info("LoginFrame", "login", "用户登录成功: username=" + username);
             this.dispose();
             new MainFrame(user).setVisible(true);
         } else {
-            // 登录失败：区分不同的失败原因给出具体提示
             FileLogger.warn("LoginFrame", "login", "用户登录失败: username=" + username);
             User checkUser = userService.getUserForStatusCheck(username);
             if (checkUser == null) {

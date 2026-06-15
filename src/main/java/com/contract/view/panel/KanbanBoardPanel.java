@@ -49,11 +49,11 @@ public class KanbanBoardPanel extends JPanel {
 
     /** 状态列定义：名称、类型码、颜色 */
     private static final String[][] STATUS_COLUMNS = {
-        {"📝 起草", "1", new Color(52, 152, 219).toString()},   // 蓝色
-        {"✍️ 会签完成", "2", new Color(155, 89, 182).toString()},   // 紫色
-        {"📋 定稿完成", "3", new Color(241, 196, 15).toString()},   // 黄色
-        {"✅ 审批完成", "4", new Color(230, 126, 34).toString()},   // 橙色
-        {"📝 签订完成", "5", new Color(46, 204, 113).toString()}    // 绿色
+        {"起草", "1", new Color(52, 152, 219).toString()},   // 蓝色
+        {"会签完成", "2", new Color(155, 89, 182).toString()},   // 紫色
+        {"定稿完成", "3", new Color(241, 196, 15).toString()},   // 黄色
+        {"审批完成", "4", new Color(230, 126, 34).toString()},   // 橙色
+        {"签订完成", "5", new Color(46, 204, 113).toString()}    // 绿色
     };
 
     /**
@@ -76,13 +76,13 @@ public class KanbanBoardPanel extends JPanel {
 
         // 左侧：标题和刷新按钮
         JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        JLabel lblTitle = new JLabel("📋 合同流程看板");
+        JLabel lblTitle = new JLabel("合同流程看板");
         lblTitle.setFont(new Font("微软雅黑", Font.BOLD, 20));
         lblTitle.setForeground(new Color(44, 62, 80));
         leftPanel.add(lblTitle);
 
         // 刷新按钮
-        JButton btnRefresh = new JButton("🔄 刷新");
+        JButton btnRefresh = new JButton("刷新");
         btnRefresh.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnRefresh.setFocusPainted(false);
         btnRefresh.setBackground(new Color(52, 152, 219));
@@ -375,11 +375,11 @@ public class KanbanBoardPanel extends JPanel {
             // 第3行：客户和负责人
             StringBuilder infoBuilder = new StringBuilder();
             if (contract.getCustomer() != null && !contract.getCustomer().isEmpty()) {
-                infoBuilder.append("👤 ").append(truncate(contract.getCustomer(), 10));
+                infoBuilder.append(truncate(contract.getCustomer(), 10));
             }
             if (contract.getUserName() != null && !contract.getUserName().isEmpty()) {
                 if (infoBuilder.length() > 0) infoBuilder.append(" | ");
-                infoBuilder.append("👤 ").append(truncate(contract.getUserName(), 8));
+                infoBuilder.append(truncate(contract.getUserName(), 8));
             }
             JLabel lblInfo = new JLabel(infoBuilder.toString());
             lblInfo.setFont(new Font("微软雅黑", Font.PLAIN, 10));
@@ -469,22 +469,22 @@ public class KanbanBoardPanel extends JPanel {
          */
         private String getDaysLabel(Date endTime, int stateType) {
             if (stateType == 5) {
-                return "✅ 已签订完成";
+                return "已签订完成";
             }
 
             if (endTime == null) {
-                return "⏳ 进行中";
+                return "进行中";
             }
 
             long days = calculateDaysRemaining(endTime);
             if (days < 0) {
-                return "⚠️ 已过期 " + Math.abs(days) + " 天";
+                return "已过期 " + Math.abs(days) + " 天";
             } else if (days <= 7) {
-                return "🔴 剩余 " + days + " 天";
+                return "剩余 " + days + " 天";
             } else if (days <= 30) {
-                return "🟡 剩余 " + days + " 天";
+                return "剩余 " + days + " 天";
             } else {
-                return "🟢 剩余 " + days + " 天";
+                return "剩余 " + days + " 天";
             }
         }
 
@@ -511,7 +511,7 @@ public class KanbanBoardPanel extends JPanel {
             FileLogger.info("KanbanBoardPanel", "showContractDetailDialog", "查看合同详情: " + contract.getNum());
             JDialog detailDlg = new JDialog(
                 (javax.swing.JFrame) javax.swing.SwingUtilities.getWindowAncestor(KanbanBoardPanel.this),
-                "📄 合同详情: " + contract.getNum(),
+                "合同详情: " + contract.getNum(),
                 true  // 模态对话框
             );
             detailDlg.setSize(500, 450);
