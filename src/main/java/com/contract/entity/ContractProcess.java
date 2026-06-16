@@ -52,6 +52,8 @@ public class ContractProcess {
      * </ul>
      */
     private int type;
+    /** 合同名称（非数据库字段，用于页面显示） */
+    private String contractName;
     /**
      * 处理状态
      * <ul>
@@ -140,6 +142,9 @@ public class ContractProcess {
      * @param type 类型码（1-会签, 2-审批, 3-签订）
      */
     public void setType(int type) { this.type = type; }
+
+    public String getContractName() { return contractName; }
+    public void setContractName(String contractName) { this.contractName = contractName; }
 
     /**
      * 获取处理状态

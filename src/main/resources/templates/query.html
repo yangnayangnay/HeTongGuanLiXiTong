@@ -73,8 +73,14 @@
                             </td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-outline-primary"
-                                        th:onclick="'viewDetail(\'' + ${contract.num} + '\')'">
+                                        th:data-num="${contract.num}"
+                                        onclick="viewDetail(this.dataset.num)">
                                     <i class="fas fa-eye"></i> 详情
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        th:data-num="${contract.num}"
+                                        onclick="downloadContract(this.dataset.num)">
+                                    <i class="fas fa-download"></i> 下载
                                 </button>
                             </td>
                         </tr>
@@ -138,7 +144,7 @@
                     '<td>' + formatDate(c.beginTime) + '</td>' +
                     '<td>' + formatDate(c.endTime) + '</td>' +
                     '<td>' + getContractStateBadge(c.stateName || '起草') + '</td>' +
-                    '<td><button type="button" class="btn btn-sm btn-outline-primary" onclick="viewDetail(\'' + c.num + '\')"><i class="fas fa-eye"></i> 详情</button></td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-primary" onclick="viewDetail(\'' + c.num + '\')"><i class="fas fa-eye"></i> 详情</button> <button type="button" class="btn btn-sm btn-outline-info" onclick="downloadContract(\'' + c.num + '\')"><i class="fas fa-download"></i> 下载</button></td>' +
                     '</tr>';
             });
             tbody.innerHTML = html;
@@ -167,6 +173,30 @@
 
                     document.getElementById('detailSection').style.display = 'block';
                     document.getElementById('detailSection').scrollIntoView({behavior: 'smooth'});
+                } else {
+                    showMessage(result.message || '获取合同详情失败', 'danger');
+                }
+            });
+        }
+
+        function downloadContract(num) {
+            fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    var content = c.content || '';
+                    if (!content) {
+                        showMessage('合同内容为空，无法下载', 'danger');
+                        return;
+                    }
+                    var name = c.name || '合同';
+                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = name + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showMessage('合同内容已下载', 'success');
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');
                 }

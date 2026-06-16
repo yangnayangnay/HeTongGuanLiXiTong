@@ -46,6 +46,10 @@
                                         th:onclick="'viewContract(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-eye"></i> 查看
                                 </button>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        th:onclick="'downloadContract(\'' + ${contract.num} + '\')'">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
                                 <button type="button" class="btn btn-sm btn-success"
                                         th:onclick="'openApprove(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-check"></i> 审批
@@ -130,6 +134,30 @@
                         '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
                         (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
                     openModal('viewModal');
+                } else {
+                    showMessage(result.message || '获取合同详情失败', 'danger');
+                }
+            });
+        }
+
+        function downloadContract(num) {
+            fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    var content = c.content || '';
+                    if (!content) {
+                        showMessage('合同内容为空，无法下载', 'danger');
+                        return;
+                    }
+                    var name = c.name || '合同';
+                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = name + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showMessage('合同内容已下载', 'success');
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');
                 }

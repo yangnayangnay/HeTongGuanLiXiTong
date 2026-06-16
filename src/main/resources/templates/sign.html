@@ -46,6 +46,10 @@
                                         th:onclick="'viewContract(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-eye"></i> 查看
                                 </button>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        th:onclick="'downloadContract(\'' + ${contract.num} + '\')'">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
                                 <button type="button" class="btn btn-sm btn-success"
                                         th:onclick="'confirmSign(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-signature"></i> 签订
@@ -85,6 +89,7 @@
     <script>
         var currentSignNum = '';
         var signatureCanvas, signatureCtx, isDrawing = false;
+        var uploadedSignatureUrl = '';
 
         function viewContract(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
@@ -108,8 +113,34 @@
             });
         }
 
+        function downloadContract(num) {
+            fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    var content = c.content || '';
+                    if (!content) {
+                        showMessage('合同内容为空，无法下载', 'danger');
+                        return;
+                    }
+                    var name = c.name || '合同';
+                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = name + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showMessage('合同内容已下载', 'success');
+                } else {
+                    showMessage(result.message || '获取合同详情失败', 'danger');
+                }
+            });
+        }
+
         function confirmSign(num) {
             currentSignNum = num;
+            uploadedSignatureUrl = '';
+            document.getElementById('signaturePreview').innerHTML = '';
             openModal('signModal');
             initSignaturePad();
         }
@@ -133,6 +164,37 @@
 
         function clearSignature() {
             if (signatureCtx) signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            uploadedSignatureUrl = '';
+            document.getElementById('signaturePreview').innerHTML = '';
+        }
+
+        function uploadSignatureImage() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/contract/uploadSignature', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        uploadedSignatureUrl = result.signatureUrl;
+                        document.getElementById('signaturePreview').innerHTML =
+                            '<img src="' + result.signatureUrl + '" style="max-width: 200px; max-height: 80px; border: 1px solid #ddd; border-radius: 4px; padding: 4px;">';
+                        // Clear canvas since uploaded image takes precedence
+                        if (signatureCtx) signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                        showMessage('签名图片已上传', 'success');
+                    } else {
+                        showMessage(result.message || '签名上传失败', 'danger');
+                    }
+                });
+            };
+            input.click();
         }
 
         function submitSign() {
@@ -143,11 +205,12 @@
             for (var i = 3; i < imageData.data.length; i += 4) {
                 if (imageData.data[i] > 0) { hasContent = true; break; }
             }
-            if (!hasContent) {
+            if (!hasContent && !uploadedSignatureUrl) {
                 if (!confirm('您尚未签名，确认直接签订？')) return;
             }
             submitForm('/api/contract/sign', {
-                contractNum: currentSignNum
+                contractNum: currentSignNum,
+                content: uploadedSignatureUrl ? '[签名图片]\n' + uploadedSignatureUrl : '签订确认'
             }, function(result) {
                 if (result.success) {
                     showMessage('合同签订成功', 'success');
@@ -170,13 +233,17 @@
                 </button>
             </div>
             <div class="modal-body">
-                <p style="margin-bottom: 10px;">请在下方签名区域手写签名：</p>
+                <p style="margin-bottom: 10px;">请在下方签名区域手写签名，或上传签名图片：</p>
                 <canvas id="signatureCanvas" class="signature-canvas" width="520" height="200"></canvas>
-                <div style="margin-top: 8px;">
+                <div style="margin-top: 8px; display: flex; gap: 8px;">
                     <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature()">
                         <i class="fas fa-eraser"></i> 清除重签
                     </button>
+                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="uploadSignatureImage()">
+                        <i class="fas fa-image"></i> 上传签名图片
+                    </button>
                 </div>
+                <div id="signaturePreview" style="margin-top: 8px;"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success" onclick="submitSign()">

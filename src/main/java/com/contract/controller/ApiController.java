@@ -685,6 +685,497 @@ public class ApiController {
         return result;
     }
 
+    // ==================== 前端适配端点（单数路径 + JSON请求体） ====================
+
+    // ---------- 客户相关（前端使用 /api/customer/...） ----------
+
+    @GetMapping("/customer/detail")
+    public Map<String, Object> getCustomerDetail(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        List<Customer> all = customerService.findAll();
+        Customer found = all.stream().filter(c -> c.getId() == id).findFirst().orElse(null);
+        if (found != null) {
+            result.put("success", true);
+            result.put("data", found);
+        } else {
+            result.put("success", false);
+            result.put("message", "客户不存在");
+        }
+        return result;
+    }
+
+    @PostMapping("/customer/add")
+    public Map<String, Object> addCustomerJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        Customer customer = new Customer();
+        customer.setName(body.get("name"));
+        customer.setTel(body.getOrDefault("phone", ""));
+        customer.setAddress(body.getOrDefault("address", ""));
+        boolean ok = customerService.addCustomer(customer);
+        result.put("success", ok);
+        result.put("message", ok ? "添加成功" : "添加失败");
+        return result;
+    }
+
+    @PostMapping("/customer/update")
+    public Map<String, Object> updateCustomerJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        Customer customer = new Customer();
+        customer.setId(Integer.parseInt(body.getOrDefault("id", "0")));
+        customer.setName(body.get("name"));
+        customer.setTel(body.getOrDefault("phone", ""));
+        customer.setAddress(body.getOrDefault("address", ""));
+        boolean ok = customerService.updateCustomer(customer);
+        result.put("success", ok);
+        result.put("message", ok ? "更新成功" : "更新失败");
+        return result;
+    }
+
+    @DeleteMapping("/customer/delete")
+    public Map<String, Object> deleteCustomerJson(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        boolean ok = customerService.deleteCustomer(id);
+        result.put("success", ok);
+        result.put("message", ok ? "删除成功" : "删除失败");
+        return result;
+    }
+
+    // ---------- 用户相关（前端使用 /api/user/...） ----------
+
+    @GetMapping("/user/detail")
+    public Map<String, Object> getUserDetail(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        List<User> all = userService.findAll();
+        User found = all.stream().filter(u -> u.getId() == id).findFirst().orElse(null);
+        if (found != null) {
+            result.put("success", true);
+            result.put("data", found);
+        } else {
+            result.put("success", false);
+            result.put("message", "用户不存在");
+        }
+        return result;
+    }
+
+    @PostMapping("/user/add")
+    public Map<String, Object> addUserJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        String name = body.get("name");
+        String password = body.getOrDefault("password", "123456");
+        String email = body.getOrDefault("email", "default@example.com");
+        boolean ok = userService.register(name, password, email);
+        result.put("success", ok);
+        result.put("message", ok ? "添加成功" : "添加失败");
+        return result;
+    }
+
+    @PostMapping("/user/update")
+    public Map<String, Object> updateUserJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        User user = new User();
+        user.setId(Integer.parseInt(body.getOrDefault("id", "0")));
+        user.setName(body.get("name"));
+        user.setEmail(body.getOrDefault("email", ""));
+        boolean ok = userService.updateUser(user);
+        result.put("success", ok);
+        result.put("message", ok ? "更新成功" : "更新失败");
+        return result;
+    }
+
+    @PostMapping("/user/approve")
+    public Map<String, Object> approveUserJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        int id = Integer.parseInt(body.getOrDefault("id", "0"));
+        int status = Integer.parseInt(body.getOrDefault("status", "1"));
+        boolean ok;
+        if (status == 1) {
+            ok = userService.approveUser(id);
+        } else {
+            ok = userService.rejectUser(id);
+        }
+        result.put("success", ok);
+        result.put("message", ok ? "操作成功" : "操作失败");
+        return result;
+    }
+
+    @PostMapping("/user/assignRole")
+    public Map<String, Object> assignUserRole(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        String username = body.getOrDefault("userId", "");
+        String roleName = body.getOrDefault("roleName", "");
+        boolean ok = userService.assignRole(username, roleName);
+        result.put("success", ok);
+        result.put("message", ok ? "分配成功" : "分配失败");
+        return result;
+    }
+
+    @DeleteMapping("/user/delete")
+    public Map<String, Object> deleteUserJson(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        boolean ok = userService.deleteUser(id);
+        result.put("success", ok);
+        result.put("message", ok ? "删除成功" : "删除失败");
+        return result;
+    }
+
+    // ---------- 角色相关（前端使用 /api/role/...） ----------
+
+    @GetMapping("/role/detail")
+    public Map<String, Object> getRoleDetail(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        List<Role> all = roleService.findAll();
+        Role found = all.stream().filter(r -> r.getId() == id).findFirst().orElse(null);
+        if (found != null) {
+            result.put("success", true);
+            result.put("data", found);
+        } else {
+            result.put("success", false);
+            result.put("message", "角色不存在");
+        }
+        return result;
+    }
+
+    @PostMapping("/role/add")
+    public Map<String, Object> addRoleJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        Role role = new Role();
+        role.setName(body.get("name"));
+        role.setDescription(body.getOrDefault("description", ""));
+        boolean ok = roleService.addRole(role);
+        result.put("success", ok);
+        result.put("message", ok ? "添加成功" : "添加失败");
+        return result;
+    }
+
+    @PostMapping("/role/update")
+    public Map<String, Object> updateRoleJson(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        Role role = new Role();
+        role.setId(Integer.parseInt(body.getOrDefault("id", "0")));
+        role.setName(body.get("name"));
+        role.setDescription(body.getOrDefault("description", ""));
+        boolean ok = roleService.updateRole(role);
+        result.put("success", ok);
+        result.put("message", ok ? "更新成功" : "更新失败");
+        return result;
+    }
+
+    @DeleteMapping("/role/delete")
+    public Map<String, Object> deleteRoleJson(@RequestParam int id) {
+        Map<String, Object> result = new HashMap<>();
+        boolean ok = roleService.deleteRole(id);
+        result.put("success", ok);
+        result.put("message", ok ? "删除成功" : "删除失败");
+        return result;
+    }
+
+    // ---------- 合同流程相关（前端使用 /api/contract/...） ----------
+
+    @GetMapping("/contract/flow")
+    public Map<String, Object> getContractFlowList(@RequestParam(required = false) String state,
+                                                    @RequestParam(required = false) String keyword) {
+        Map<String, Object> result = new HashMap<>();
+        List<ContractProcess> allProcesses = new ArrayList<>();
+        List<Contract> contracts = contractService.findAll();
+        for (Contract c : contracts) {
+            allProcesses.addAll(contractService.getContractProcesses(c.getNum()));
+        }
+        result.put("success", true);
+        result.put("data", allProcesses);
+        return result;
+    }
+
+    @PostMapping("/contract/assign")
+    public Map<String, Object> assignContractJson(@RequestBody Map<String, Object> body) {
+        Map<String, Object> result = new HashMap<>();
+        String conNum = (String) body.get("contractNum");
+        @SuppressWarnings("unchecked")
+        List<String> countersignUsers = (List<String>) body.getOrDefault("countersignUsers", new ArrayList<>());
+        @SuppressWarnings("unchecked")
+        List<String> approveUsers = (List<String>) body.getOrDefault("approveUsers", new ArrayList<>());
+        @SuppressWarnings("unchecked")
+        List<String> signUsers = (List<String>) body.getOrDefault("signUsers", new ArrayList<>());
+        boolean ok = contractService.assignContract(conNum, countersignUsers, approveUsers, signUsers);
+        result.put("success", ok);
+        result.put("message", ok ? "分配成功" : "分配失败");
+        return result;
+    }
+
+    @PostMapping("/contract/countersign")
+    public Map<String, Object> countersignContractJson(@RequestBody Map<String, String> body, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        String contractNum = body.get("contractNum");
+        String content = body.getOrDefault("content", "");
+        List<ContractProcess> processes = contractService.getUserPendingProcesses(currentUser.getName(), 1);
+        int processId = -1;
+        for (ContractProcess p : processes) {
+            if (p.getConNum().equals(contractNum)) {
+                processId = p.getId();
+                break;
+            }
+        }
+        if (processId == -1) {
+            result.put("success", false);
+            result.put("message", "未找到待会签记录");
+            return result;
+        }
+        boolean ok = contractService.countersignContract(processId, content);
+        result.put("success", ok);
+        result.put("message", ok ? "会签成功" : "会签失败");
+        return result;
+    }
+
+    @PostMapping("/contract/finalize")
+    public Map<String, Object> finalizeContractJson(@RequestBody Map<String, String> body, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        String userName = currentUser != null ? currentUser.getName() : "unknown";
+        String contractNum = body.get("contractNum");
+        String content = body.getOrDefault("content", "");
+        boolean ok = contractService.finalizeContract(contractNum, content, userName);
+        result.put("success", ok);
+        result.put("message", ok ? "定稿成功" : "定稿失败");
+        return result;
+    }
+
+    @PostMapping("/contract/approve")
+    public Map<String, Object> approveContractJson(@RequestBody Map<String, Object> body, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        String contractNum = (String) body.get("contractNum");
+        int state = Integer.parseInt(body.getOrDefault("state", "1").toString());
+        String content = (String) body.getOrDefault("content", state == 1 ? "审批通过" : "审批拒绝");
+        List<ContractProcess> processes = contractService.getUserPendingProcesses(currentUser.getName(), 2);
+        int processId = -1;
+        for (ContractProcess p : processes) {
+            if (p.getConNum().equals(contractNum)) {
+                processId = p.getId();
+                break;
+            }
+        }
+        if (processId == -1) {
+            result.put("success", false);
+            result.put("message", "未找到待审批记录");
+            return result;
+        }
+        boolean approved = state == 1;
+        boolean ok = contractService.approveContract(processId, approved, content, currentUser.getName());
+        result.put("success", ok);
+        result.put("message", ok ? (approved ? "审批通过" : "已拒绝") : "审批操作失败");
+        return result;
+    }
+
+    @PostMapping("/contract/sign")
+    public Map<String, Object> signContractJson(@RequestBody Map<String, String> body, HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
+        String contractNum = body.get("contractNum");
+        String info = body.getOrDefault("content", "签订确认");
+        List<ContractProcess> processes = contractService.getUserPendingProcesses(currentUser.getName(), 3);
+        int processId = -1;
+        for (ContractProcess p : processes) {
+            if (p.getConNum().equals(contractNum)) {
+                processId = p.getId();
+                break;
+            }
+        }
+        if (processId == -1) {
+            result.put("success", false);
+            result.put("message", "未找到待签订记录");
+            return result;
+        }
+        boolean ok = contractService.signContract(processId, info, currentUser.getName());
+        result.put("success", ok);
+        result.put("message", ok ? "签订成功" : "签订失败");
+        return result;
+    }
+
+    @PostMapping("/contract/draft")
+    public Map<String, Object> draftContractJson(@RequestParam(required = false) String name,
+                                                  @RequestParam(required = false) String customer,
+                                                  @RequestParam(required = false) String beginTime,
+                                                  @RequestParam(required = false) String endTime,
+                                                  @RequestParam(required = false) String content,
+                                                  @RequestParam(required = false) String userName,
+                                                  @RequestParam(required = false) MultipartFile file,
+                                                  HttpSession session) {
+        Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        Contract contract = new Contract();
+        contract.setName(name);
+        contract.setCustomer(customer);
+        contract.setContent(content);
+        contract.setUserName(currentUser != null ? currentUser.getName() : "unknown");
+
+        try {
+            if (beginTime != null && !beginTime.isEmpty()) {
+                contract.setBeginTime(new SimpleDateFormat("yyyy-MM-dd").parse(beginTime));
+            }
+            if (endTime != null && !endTime.isEmpty()) {
+                contract.setEndTime(new SimpleDateFormat("yyyy-MM-dd").parse(endTime));
+            }
+        } catch (Exception e) {
+            // ignore parse errors
+        }
+
+        if (file != null && !file.isEmpty()) {
+            try {
+                contract.setFileData(file.getBytes());
+                contract.setFileName(file.getOriginalFilename());
+                contract.setFileType(file.getContentType());
+            } catch (Exception e) {
+                FileLogger.error("ApiController", "draftContractJson", "文件读取失败", e);
+            }
+        }
+
+        boolean ok = contractService.draftContract(contract);
+        result.put("success", ok);
+        result.put("message", ok ? "起草成功" : "起草失败");
+        return result;
+    }
+
+    @GetMapping("/contract/opinions")
+    public Map<String, Object> getContractOpinions(@RequestParam String num) {
+        Map<String, Object> result = new HashMap<>();
+        List<ContractProcess> processes = contractService.getContractProcessesByType(num, 1);
+        result.put("success", true);
+        result.put("data", processes);
+        return result;
+    }
+
+    @GetMapping("/contract/detail")
+    public Map<String, Object> getContractDetailByNum(@RequestParam String num) {
+        Map<String, Object> result = new HashMap<>();
+        Contract contract = contractService.findByNum(num);
+        if (contract != null) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", contract.getId());
+            data.put("num", contract.getNum());
+            data.put("name", contract.getName());
+            data.put("customer", contract.getCustomer());
+            data.put("userName", contract.getUserName());
+            data.put("beginTime", contract.getBeginTime());
+            data.put("endTime", contract.getEndTime());
+            data.put("content", contract.getContent());
+            data.put("fileName", contract.getFileName());
+            data.put("fileType", contract.getFileType());
+            data.put("stateType", contractService.getContractStateType(num));
+            data.put("stateName", contractService.getContractStateName(num));
+            data.put("canViewFull", true);
+            result.put("success", true);
+            result.put("data", data);
+        } else {
+            result.put("success", false);
+            result.put("message", "合同不存在");
+        }
+        return result;
+    }
+
+    // ---------- 邮件设置相关 ----------
+
+    @PostMapping("/settings/email")
+    public Map<String, Object> saveEmailSettings(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String host = body.get("host");
+            int port = Integer.parseInt(body.getOrDefault("port", "465"));
+            String email = body.get("email");
+            String password = body.get("password");
+            com.contract.util.EmailService.configure(host, port, email, password);
+            result.put("success", true);
+            result.put("message", "邮件配置已保存");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "配置保存失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    @PostMapping("/settings/ai")
+    public Map<String, Object> saveAISettings(@RequestBody Map<String, String> body) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String url = body.getOrDefault("url", "http://localhost:11434");
+            String model = body.getOrDefault("model", "qwen2.5");
+            com.contract.util.AIAssistantService.configure(url, model);
+            result.put("success", true);
+            result.put("message", "AI配置已保存");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "配置保存失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    // ==================== 合同内容下载/上传/签名 ====================
+
+    @PostMapping("/contract/downloadContent")
+    public ResponseEntity<byte[]> downloadContractContent(@RequestBody Map<String, String> body) {
+        String content = body.getOrDefault("content", "");
+        String contractName = body.getOrDefault("name", "合同");
+        String fileName = contractName + ".txt";
+
+        byte[] fileBytes = content.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        try {
+            fileName = java.net.URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+        } catch (Exception e) {
+            // ignore
+        }
+        headers.setContentDispositionFormData("attachment", fileName);
+        headers.setContentLength(fileBytes.length);
+        return new ResponseEntity<>(fileBytes, headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/contract/uploadContent")
+    public Map<String, Object> uploadContractContent(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String content = new String(file.getBytes(), java.nio.charset.StandardCharsets.UTF_8);
+            result.put("success", true);
+            result.put("content", content);
+            result.put("fileName", file.getOriginalFilename());
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "文件读取失败");
+        }
+        return result;
+    }
+
+    @PostMapping("/contract/uploadSignature")
+    public Map<String, Object> uploadSignature(@RequestParam("file") MultipartFile file) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            String base64 = java.util.Base64.getEncoder().encodeToString(file.getBytes());
+            String dataUrl = "data:" + file.getContentType() + ";base64," + base64;
+            result.put("success", true);
+            result.put("signatureUrl", dataUrl);
+            result.put("message", "签名图片上传成功");
+        } catch (Exception e) {
+            result.put("success", false);
+            result.put("message", "签名图片上传失败");
+        }
+        return result;
+    }
+
     // ==================== 工具方法 ====================
 
     @GetMapping("/contract/template")

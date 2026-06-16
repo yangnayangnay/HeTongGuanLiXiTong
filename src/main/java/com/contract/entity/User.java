@@ -43,6 +43,8 @@ public class User {
     private int status;
     /** 用户邮箱地址，用于接收任务通知邮件 */
     private String email;
+    /** 用户角色名称（非数据库字段，用于页面显示） */
+    private String roleName;
 
     /**
      * 无参构造方法
@@ -142,6 +144,9 @@ public class User {
      * @param email 邮箱地址
      */
     public void setEmail(String email) { this.email = email; }
+
+    public String getRoleName() { return roleName; }
+    public void setRoleName(String roleName) { this.roleName = roleName; }
 
     /**
      * 返回用户名的字符串表示

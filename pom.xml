@@ -40,6 +40,11 @@
             <artifactId>ojdbc8</artifactId>
             <version>21.11.0.0</version>
         </dependency>
+        <!-- Spring JDBC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
         <!-- JavaMail 邮件发送（用于任务分配通知） -->
         <dependency>
             <groupId>com.sun.mail</groupId>

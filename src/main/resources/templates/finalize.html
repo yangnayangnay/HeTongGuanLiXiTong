@@ -46,6 +46,14 @@
                                         th:onclick="'viewOpinions(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-comments"></i> 会签意见
                                 </button>
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        th:onclick="'downloadContract(\'' + ${contract.num} + '\')'">
+                                    <i class="fas fa-download"></i> 下载
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        th:onclick="'viewContract(\'' + ${contract.num} + '\')'">
+                                    <i class="fas fa-eye"></i> 查看合同
+                                </button>
                                 <button type="button" class="btn btn-sm btn-success"
                                         th:onclick="'openFinalize(\'' + ${contract.num} + '\')'">
                                     <i class="fas fa-edit"></i> 定稿
@@ -59,6 +67,20 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看合同详情模态框 -->
+    <div id="viewModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog" style="max-width: 700px;">
+            <div class="modal-header">
+                <h5><i class="fas fa-file-contract"></i> 合同详情</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('viewModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="contractDetail">
             </div>
         </div>
     </div>
@@ -115,6 +137,52 @@
 
     <script src="/js/app.js"></script>
     <script>
+        function viewContract(num) {
+            fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    document.getElementById('contractDetail').innerHTML =
+                        '<div class="detail-grid">' +
+                        '<div class="detail-item"><span class="detail-label">合同编号：</span><span class="detail-value">' + (c.num || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">合同名称：</span><span class="detail-value">' + (c.name || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">客户：</span><span class="detail-value">' + (c.customer || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">起草人：</span><span class="detail-value">' + (c.userName || '') + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
+                        '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
+                        '</div>' +
+                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
+                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
+                    openModal('viewModal');
+                } else {
+                    showMessage(result.message || '获取合同详情失败', 'danger');
+                }
+            });
+        }
+
+        function downloadContract(num) {
+            fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    var content = c.content || '';
+                    if (!content) {
+                        showMessage('合同内容为空，无法下载', 'danger');
+                        return;
+                    }
+                    var name = c.name || '合同';
+                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+                    var url = URL.createObjectURL(blob);
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.download = name + '.txt';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showMessage('合同内容已下载', 'success');
+                } else {
+                    showMessage(result.message || '获取合同详情失败', 'danger');
+                }
+            });
+        }
+
         function viewOpinions(num) {
             fetchData('/api/contract/opinions?num=' + encodeURIComponent(num), function(result) {
                 if (result.success) {

@@ -98,6 +98,8 @@ public class Contract {
      * <p>记录合同的总金额，用于统计分析</p>
      */
     private double amount;
+    /** 合同当前状态类型（1起草/2会签/3定稿/4审批/5签订/6已签订） */
+    private int stateType;
 
     /**
      * 无参构造方法
@@ -272,6 +274,9 @@ public class Contract {
      * @param amount 合同金额
      */
     public void setAmount(double amount) { this.amount = amount; }
+
+    public int getStateType() { return stateType; }
+    public void setStateType(int stateType) { this.stateType = stateType; }
 
     /**
      * 返回合同编号和名称的组合字符串

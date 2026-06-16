@@ -88,7 +88,8 @@
                                     <i class="fas fa-edit"></i> 编辑
                                 </button>
                                 <button type="button" class="btn btn-sm btn-warning"
-                                        th:onclick="'assignRole(' + ${user.id} + ', \'' + ${user.name} + '\')'">
+                                        th:data-id="${user.id}" th:data-name="${user.name}"
+                                        onclick="assignRole(this.dataset.id, this.dataset.name)">
                                     <i class="fas fa-user-tag"></i> 分配角色
                                 </button>
                                 <button type="button" class="btn btn-sm btn-danger"

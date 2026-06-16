@@ -116,17 +116,29 @@
 
         function testAI() {
             document.getElementById('aiTestResult').textContent = '测试中...';
-            fetchData('/api/contract/template', function(result) {
-                if (result.success) {
-                    document.getElementById('aiTestResult').innerHTML = '<span style="color:green;"><i class="fas fa-check"></i> 服务正常</span>';
-                } else {
-                    document.getElementById('aiTestResult').innerHTML = '<span style="color:red;"><i class="fas fa-times"></i> 服务不可用</span>';
-                }
-            });
+            var url = document.getElementById('aiUrl').value;
+            fetch(url + '/api/tags', { method: 'GET' })
+                .then(function(r) {
+                    if (r.ok) {
+                        document.getElementById('aiTestResult').innerHTML = '<span style="color:green;"><i class="fas fa-check"></i> Ollama服务正常</span>';
+                    } else {
+                        document.getElementById('aiTestResult').innerHTML = '<span style="color:red;"><i class="fas fa-times"></i> 服务响应异常</span>';
+                    }
+                })
+                .catch(function() {
+                    document.getElementById('aiTestResult').innerHTML = '<span style="color:red;"><i class="fas fa-times"></i> 无法连接Ollama，请确认已安装并启动</span>';
+                });
         }
 
         function saveAIConfig() {
-            showMessage('AI配置已保存', 'success');
+            var config = {
+                url: document.getElementById('aiUrl').value,
+                model: document.getElementById('aiModel').value
+            };
+            submitForm('/api/settings/ai', config, function(result) {
+                if (result.success) showMessage('AI配置已保存', 'success');
+                else showMessage(result.message || '保存失败', 'danger');
+            });
         }
 
         function saveReminderConfig() {

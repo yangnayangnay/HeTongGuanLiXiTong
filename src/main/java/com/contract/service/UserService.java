@@ -340,6 +340,30 @@ public class UserService {
     }
 
     /**
+     * 为用户分配角色
+     * <p>将指定角色分配给用户，用于权限控制</p>
+     *
+     * @param username 用户名
+     * @param roleName 角色名称
+     * @return true-分配成功；false-分配失败
+     */
+    public boolean assignRole(String username, String roleName) {
+        FileLogger.info("UserService", "assignRole", "开始分配角色, 用户: " + username + ", 角色: " + roleName);
+        try {
+            Right right = new Right();
+            right.setUserName(username);
+            right.setRoleName(roleName);
+            right.setDescription("分配角色");
+            rightDao.insert(right);
+            FileLogger.info("UserService", "assignRole", "分配角色成功, 用户: " + username + ", 角色: " + roleName);
+            return true;
+        } catch (Exception e) {
+            FileLogger.error("UserService", "assignRole", "分配角色失败: " + e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
      * 根据用户名查找用户
      *
      * @param name 用户名

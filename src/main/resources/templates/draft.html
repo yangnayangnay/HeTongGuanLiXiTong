@@ -64,6 +64,15 @@
                         <button type="button" class="btn btn-sm btn-outline-info ml-2" onclick="loadTemplate()">
                             <i class="fas fa-file-alt"></i> 加载合同模板
                         </button>
+                        <button type="button" class="btn btn-sm btn-outline-success ml-1" onclick="downloadContractContent()">
+                            <i class="fas fa-download"></i> 下载合同
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="uploadContractFile()">
+                            <i class="fas fa-upload"></i> 上传文件
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-warning ml-1" onclick="insertSignature()">
+                            <i class="fas fa-signature"></i> 插入签名
+                        </button>
                     </label>
                     <textarea class="form-control" id="content" name="content" rows="8"
                               placeholder="请输入合同内容条款，或点击'加载合同模板'一键填充"></textarea>
@@ -150,6 +159,74 @@
                     showMessage('加载模板失败', 'danger');
                 }
             });
+        }
+
+        function downloadContractContent() {
+            var content = document.getElementById('content').value;
+            if (!content) {
+                showMessage('合同内容为空，无法下载', 'danger');
+                return;
+            }
+            var name = document.getElementById('name').value || '合同';
+            var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = name + '.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('合同内容已下载', 'success');
+        }
+
+        function uploadContractFile() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.txt,.pdf,.docx';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/contract/uploadContent', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        document.getElementById('content').value = result.content;
+                        showMessage('文件内容已导入', 'success');
+                    } else {
+                        showMessage(result.message || '上传失败', 'danger');
+                    }
+                });
+            };
+            input.click();
+        }
+
+        function insertSignature() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = function(e) {
+                var file = e.target.files[0];
+                if (!file) return;
+                var formData = new FormData();
+                formData.append('file', file);
+                fetch('/api/contract/uploadSignature', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        var content = document.getElementById('content');
+                        content.value += '\n[签名图片]\n' + result.signatureUrl;
+                        showMessage('签名图片已插入', 'success');
+                    } else {
+                        showMessage(result.message || '签名上传失败', 'danger');
+                    }
+                });
+            };
+            input.click();
         }
     </script>
 </body>
