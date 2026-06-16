@@ -31,7 +31,7 @@ public class AIAssistantService {
     /** Ollama API地址（默认本地） */
     private static String ollamaUrl = "http://localhost:11434";
     /** 使用的模型名称 */
-    private static String modelName = "qwen2.5";
+    private static String modelName = "qwen2:7b";
     /** 是否启用AI功能 */
     private static boolean aiEnabled = false;
 
