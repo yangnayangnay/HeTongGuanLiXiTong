@@ -1,5 +1,7 @@
 package com.contract.service;
 
+import org.springframework.stereotype.Service;
+
 import com.contract.dao.CustomerDao;
 import com.contract.dao.LogDao;
 import com.contract.entity.Customer;
@@ -19,6 +21,7 @@ import java.util.List;
  * @version 1.0
  * @since 2024-01-01
  */
+@Service
 public class CustomerService {
     /** 客户数据访问对象 */
     private CustomerDao customerDao = new CustomerDao();

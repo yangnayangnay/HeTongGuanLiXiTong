@@ -78,7 +78,14 @@
     </div>
 
     <script src="/js/app.js"></script>
+    <style>
+    .signature-canvas { border: 2px dashed #ccc; border-radius: 8px; cursor: crosshair; background: #fff; }
+    .signature-canvas:hover { border-color: #3498db; }
+    </style>
     <script>
+        var currentSignNum = '';
+        var signatureCanvas, signatureCtx, isDrawing = false;
+
         function viewContract(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
                 if (result.success) {
@@ -92,7 +99,8 @@
                         '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
                         '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
                         '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>';
+                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
+                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
                     openModal('viewModal');
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');
@@ -101,14 +109,49 @@
         }
 
         function confirmSign(num) {
-            if (!confirm('确认签订此合同？签订后合同将正式生效。')) {
-                return;
+            currentSignNum = num;
+            openModal('signModal');
+            initSignaturePad();
+        }
+
+        function initSignaturePad() {
+            signatureCanvas = document.getElementById('signatureCanvas');
+            signatureCtx = signatureCanvas.getContext('2d');
+            signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+            isDrawing = false;
+
+            signatureCanvas.onmousedown = function(e) { isDrawing = true; signatureCtx.beginPath(); signatureCtx.moveTo(e.offsetX, e.offsetY); };
+            signatureCanvas.onmousemove = function(e) { if (isDrawing) { signatureCtx.lineTo(e.offsetX, e.offsetY); signatureCtx.strokeStyle = '#000'; signatureCtx.lineWidth = 2; signatureCtx.stroke(); } };
+            signatureCanvas.onmouseup = function() { isDrawing = false; };
+            signatureCanvas.onmouseleave = function() { isDrawing = false; };
+
+            // Touch support
+            signatureCanvas.ontouchstart = function(e) { e.preventDefault(); var t = e.touches[0]; var r = signatureCanvas.getBoundingClientRect(); isDrawing = true; signatureCtx.beginPath(); signatureCtx.moveTo(t.clientX - r.left, t.clientY - r.top); };
+            signatureCanvas.ontouchmove = function(e) { e.preventDefault(); if (isDrawing) { var t = e.touches[0]; var r = signatureCanvas.getBoundingClientRect(); signatureCtx.lineTo(t.clientX - r.left, t.clientY - r.top); signatureCtx.strokeStyle = '#000'; signatureCtx.lineWidth = 2; signatureCtx.stroke(); } };
+            signatureCanvas.ontouchend = function() { isDrawing = false; };
+        }
+
+        function clearSignature() {
+            if (signatureCtx) signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+        }
+
+        function submitSign() {
+            var canvas = document.getElementById('signatureCanvas');
+            var ctx = canvas.getContext('2d');
+            var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var hasContent = false;
+            for (var i = 3; i < imageData.data.length; i += 4) {
+                if (imageData.data[i] > 0) { hasContent = true; break; }
+            }
+            if (!hasContent) {
+                if (!confirm('您尚未签名，确认直接签订？')) return;
             }
             submitForm('/api/contract/sign', {
-                contractNum: num
+                contractNum: currentSignNum
             }, function(result) {
                 if (result.success) {
                     showMessage('合同签订成功', 'success');
+                    closeModal('signModal');
                     setTimeout(function() { location.reload(); }, 1500);
                 } else {
                     showMessage(result.message || '签订失败', 'danger');
@@ -116,5 +159,34 @@
             });
         }
     </script>
+
+    <!-- 签订模态框 -->
+    <div id="signModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog" style="max-width: 600px;">
+            <div class="modal-header">
+                <h5><i class="fas fa-signature"></i> 电子签名签订</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('signModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom: 10px;">请在下方签名区域手写签名：</p>
+                <canvas id="signatureCanvas" class="signature-canvas" width="520" height="200"></canvas>
+                <div style="margin-top: 8px;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearSignature()">
+                        <i class="fas fa-eraser"></i> 清除重签
+                    </button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" onclick="submitSign()">
+                    <i class="fas fa-check"></i> 确认签订
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('signModal')">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

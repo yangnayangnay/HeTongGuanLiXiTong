@@ -127,7 +127,8 @@
                         '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
                         '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
                         '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>';
+                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
+                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
                     openModal('viewModal');
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');

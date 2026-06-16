@@ -188,6 +188,99 @@ public class DataExportUtil {
     }
 
     /**
+     * 导出合同列表为CSV字符串
+     * <p>将合同数据以CSV格式导出为字符串，用于HTTP响应直接返回</p>
+     *
+     * @param contracts 合同列表
+     * @return CSV格式的字符串
+     */
+    public static String exportContractsCsv(List<Contract> contracts) {
+        FileLogger.info("DataExportUtil", "exportContractsCsv", "开始CSV字符串导出, 记录数: " + contracts.size());
+        StringBuilder sb = new StringBuilder();
+        // UTF-8 BOM
+        sb.append('\ufeff');
+        sb.append("合同编号,合同名称,客户,开始时间,结束时间,起草人,合同金额\n");
+        for (Contract c : contracts) {
+            sb.append(escapeCSVField(c.getNum())).append(",");
+            sb.append(escapeCSVField(c.getName())).append(",");
+            sb.append(escapeCSVField(c.getCustomer())).append(",");
+            sb.append(escapeCSVField(c.getBeginTime() != null ? DATE_FORMAT.format(c.getBeginTime()) : "")).append(",");
+            sb.append(escapeCSVField(c.getEndTime() != null ? DATE_FORMAT.format(c.getEndTime()) : "")).append(",");
+            sb.append(escapeCSVField(c.getUserName())).append(",");
+            sb.append(AMOUNT_FORMAT.format(c.getAmount())).append("\n");
+        }
+        FileLogger.info("DataExportUtil", "exportContractsCsv", "CSV字符串导出成功, 记录数: " + contracts.size());
+        return sb.toString();
+    }
+
+    /**
+     * 导出合同列表为HTML字符串
+     * <p>将合同数据以HTML格式导出为字符串，用于HTTP响应直接返回</p>
+     *
+     * @param contracts 合同列表
+     * @return HTML格式的字符串
+     */
+    public static String exportContractsHtml(List<Contract> contracts) {
+        FileLogger.info("DataExportUtil", "exportContractsHtml", "开始HTML字符串导出, 记录数: " + contracts.size());
+        double totalAmount = 0;
+        for (Contract c : contracts) {
+            totalAmount += c.getAmount();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n");
+        sb.append("<meta charset=\"UTF-8\">\n");
+        sb.append("<title>合同统计报表</title>\n");
+        sb.append("<style>\n");
+        sb.append("body { font-family: 'Microsoft YaHei', 'Segoe UI', Arial, sans-serif; margin: 20px; background-color: #f5f7fa; }\n");
+        sb.append(".container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }\n");
+        sb.append("h1 { color: #2c3e50; text-align: center; font-size: 24px; margin-bottom: 5px; }\n");
+        sb.append(".subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }\n");
+        sb.append("table { width: 100%; border-collapse: collapse; margin-top: 15px; }\n");
+        sb.append("th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 10px; text-align: left; font-size: 13px; }\n");
+        sb.append("td { padding: 10px; border-bottom: 1px solid #ecf0f1; font-size: 13px; }\n");
+        sb.append("tr:nth-child(even) { background-color: #f9f9f9; }\n");
+        sb.append("tr:hover { background-color: #e8f4fd; }\n");
+        sb.append(".amount { text-align: right; font-weight: bold; color: #27ae60; }\n");
+        sb.append(".summary { margin-top: 20px; padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }\n");
+        sb.append(".summary-label { font-size: 16px; }\n");
+        sb.append(".summary-value { font-size: 22px; font-weight: bold; }\n");
+        sb.append(".footer { text-align: center; margin-top: 20px; color: #95a5a6; font-size: 12px; }\n");
+        sb.append("@media print { body { background: white; } .container { box-shadow: none; } .no-print { display: none; } }\n");
+        sb.append("</style>\n</head>\n<body>\n");
+        sb.append("<div class=\"container\">\n");
+        sb.append("<h1>合同管理系统 - 统计报表</h1>\n");
+        sb.append("<div class=\"subtitle\">导出时间: ").append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date()))
+          .append(" | 共 ").append(contracts.size()).append(" 条记录</div>\n");
+        sb.append("<table>\n<thead><tr>\n");
+        sb.append("<th>序号</th><th>合同编号</th><th>合同名称</th><th>客户</th><th>开始时间</th><th>结束时间</th><th>起草人</th><th>合同金额(元)</th>\n");
+        sb.append("</tr></thead>\n<tbody>\n");
+        int index = 1;
+        for (Contract c : contracts) {
+            sb.append("<tr>");
+            sb.append("<td>").append(index++).append("</td>");
+            sb.append("<td>").append(escapeHtml(c.getNum())).append("</td>");
+            sb.append("<td>").append(escapeHtml(c.getName())).append("</td>");
+            sb.append("<td>").append(escapeHtml(c.getCustomer())).append("</td>");
+            sb.append("<td>").append(c.getBeginTime() != null ? DATE_FORMAT.format(c.getBeginTime()) : "-").append("</td>");
+            sb.append("<td>").append(c.getEndTime() != null ? DATE_FORMAT.format(c.getEndTime()) : "-").append("</td>");
+            sb.append("<td>").append(escapeHtml(c.getUserName())).append("</td>");
+            sb.append("<td class=\"amount\">").append(AMOUNT_FORMAT.format(c.getAmount())).append("</td>");
+            sb.append("</tr>\n");
+        }
+        sb.append("</tbody></table>\n");
+        sb.append("<div class=\"summary\">\n");
+        sb.append("<span class=\"summary-label\">合计金额:</span>\n");
+        sb.append("<span class=\"summary-value\">").append(AMOUNT_FORMAT.format(totalAmount)).append(" 元</span>\n");
+        sb.append("</div>\n");
+        sb.append("<div class=\"footer\">\n");
+        sb.append("<p>本报表由合同管理系统自动生成</p>\n");
+        sb.append("</div>\n");
+        sb.append("</div>\n</body>\n</html>");
+        FileLogger.info("DataExportUtil", "exportContractsHtml", "HTML字符串导出成功, 记录数: " + contracts.size());
+        return sb.toString();
+    }
+
+    /**
      * CSV字段转义处理
      * <p>
      * 如果字段内容包含逗号、双引号或换行符，需要用双引号包裹，

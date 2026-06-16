@@ -1,5 +1,7 @@
 package com.contract.service;
 
+import org.springframework.stereotype.Service;
+
 import com.contract.entity.ContractVersion;
 import com.contract.dao.ContractVersionDao;
 import com.contract.util.FileLogger;
@@ -14,6 +16,7 @@ import java.util.List;
  * @author 合同管理系统
  * @version 2.0
  */
+@Service
 public class ContractVersionService {
 
     /** 版本数据访问对象 */

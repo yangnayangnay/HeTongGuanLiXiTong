@@ -60,9 +60,13 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="content">合同内容</label>
+                    <label for="content">合同内容
+                        <button type="button" class="btn btn-sm btn-outline-info ml-2" onclick="loadTemplate()">
+                            <i class="fas fa-file-alt"></i> 加载合同模板
+                        </button>
+                    </label>
                     <textarea class="form-control" id="content" name="content" rows="8"
-                              placeholder="请输入合同内容条款"></textarea>
+                              placeholder="请输入合同内容条款，或点击'加载合同模板'一键填充"></textarea>
                 </div>
 
                 <div class="form-group">
@@ -137,6 +141,16 @@
                 });
             }
         });
+        function loadTemplate() {
+            fetchData('/api/contract/template', function(result) {
+                if (result.success) {
+                    document.getElementById('content').value = result.data;
+                    showMessage('合同模板已加载', 'success');
+                } else {
+                    showMessage('加载模板失败', 'danger');
+                }
+            });
+        }
     </script>
 </body>
 </html>

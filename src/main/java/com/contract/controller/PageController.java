@@ -52,4 +52,16 @@ public class PageController {
 
     @GetMapping("/pending")
     public String pending() { return "pending"; }
+
+    @GetMapping("/about")
+    public String about() { return "about"; }
+
+    @GetMapping("/settings")
+    public String settings() { return "settings"; }
+
+    @GetMapping("/statistics")
+    public String statistics() { return "statistics"; }
+
+    @GetMapping("/kanban")
+    public String kanban() { return "kanban"; }
 }

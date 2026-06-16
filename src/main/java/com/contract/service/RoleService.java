@@ -1,5 +1,7 @@
 package com.contract.service;
 
+import org.springframework.stereotype.Service;
+
 import com.contract.dao.RoleDao;
 import com.contract.dao.LogDao;
 import com.contract.entity.Role;
@@ -19,6 +21,7 @@ import java.util.List;
  * @version 1.0
  * @since 2024-01-01
  */
+@Service
 public class RoleService {
     /** 角色数据访问对象 */
     private RoleDao roleDao = new RoleDao();

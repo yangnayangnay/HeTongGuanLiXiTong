@@ -12,6 +12,10 @@ import com.contract.entity.ContractAttachment;
 import com.contract.entity.Log;
 import com.contract.util.NetworkUtil;
 import com.contract.util.FileLogger;
+import com.contract.util.EmailService;
+import com.contract.dao.UserDao;
+import com.contract.service.ContractVersionService;
+import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -46,6 +50,7 @@ import java.util.UUID;
  * @version 1.0
  * @since 2024-01-01
  */
+@Service
 public class ContractService {
     /** 合同数据访问对象 */
     private ContractDao contractDao = new ContractDao();
@@ -57,6 +62,10 @@ public class ContractService {
     private ContractAttachmentDao attachmentDao = new ContractAttachmentDao();
     /** 日志数据访问对象 */
     private LogDao logDao = new LogDao();
+    /** 用户数据访问对象 */
+    private UserDao userDao = new UserDao();
+    /** 版本控制服务 */
+    private ContractVersionService versionService = new ContractVersionService();
 
     /**
      * 起草合同
@@ -133,6 +142,20 @@ public class ContractService {
             processDao.insert(cp);
         }
 
+        // 发送邮件通知会签人员
+        for (String userName : countersignUsers) {
+            try {
+                com.contract.entity.User u = userDao.findByName(userName);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
+                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
+                        "会签", 5, 5000);
+                }
+            } catch (Exception e) {
+                FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
+            }
+        }
+
         // 为每位审批人员创建流程记录（type=2表示审批）
         for (String userName : approveUsers) {
             ContractProcess cp = new ContractProcess();
@@ -145,6 +168,20 @@ public class ContractService {
             processDao.insert(cp);
         }
 
+        // 发送邮件通知审批人员
+        for (String userName : approveUsers) {
+            try {
+                com.contract.entity.User u = userDao.findByName(userName);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
+                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
+                        "审批", 5, 5000);
+                }
+            } catch (Exception e) {
+                FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
+            }
+        }
+
         // 为每位签订人员创建流程记录（type=3表示签订）
         for (String userName : signUsers) {
             ContractProcess cp = new ContractProcess();
@@ -155,6 +192,20 @@ public class ContractService {
             cp.setContent("");
             cp.setTime(new Date());
             processDao.insert(cp);
+        }
+
+        // 发送邮件通知签订人员
+        for (String userName : signUsers) {
+            try {
+                com.contract.entity.User u = userDao.findByName(userName);
+                if (u != null && u.getEmail() != null) {
+                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
+                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
+                        "签订", 5, 5000);
+                }
+            } catch (Exception e) {
+                FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
+            }
         }
 
         FileLogger.info("ContractService", "assignContract", "分配合同人员成功, 合同编号: " + conNum);
@@ -236,6 +287,16 @@ public class ContractService {
         if (contract == null) {
             FileLogger.info("ContractService", "finalizeContract", "定稿失败, 合同不存在, 合同编号: " + conNum);
             return false;
+        }
+        // 保存定稿前版本
+        try {
+            Contract oldContract = contractDao.findByNum(conNum);
+            if (oldContract != null && oldContract.getContent() != null && !oldContract.getContent().equals(content)) {
+                versionService.saveVersion(conNum, oldContract.getContent(),
+                    oldContract.getFileData(), oldContract.getFileName(), userName, "定稿前自动保存版本");
+            }
+        } catch (Exception e) {
+            FileLogger.error("ContractService", "finalizeContract", "保存版本失败: " + e.getMessage(), e);
         }
         contract.setContent(content);  // 更新合同内容为定稿版本
         boolean result = contractDao.update(contract);

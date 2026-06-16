@@ -5,6 +5,10 @@ import com.contract.service.*;
 import com.contract.util.FileLogger;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -383,13 +387,18 @@ public class ApiController {
     }
 
     @GetMapping("/contracts/query")
-    public Map<String, Object> queryContracts(@RequestParam(required = false) String name) {
+    public Map<String, Object> queryContracts(@RequestParam(required = false) String name,
+                                               @RequestParam(required = false) Integer state) {
         Map<String, Object> result = new HashMap<>();
         List<Contract> contracts;
         if (name != null && !name.isEmpty()) {
             contracts = contractService.findByName(name);
         } else {
             contracts = contractService.findAll();
+        }
+        // Filter by state if specified
+        if (state != null && state > 0) {
+            contracts.removeIf(c -> contractService.getContractStateType(c.getNum()) != state);
         }
         result.put("success", true);
         result.put("message", "查询成功");
@@ -596,28 +605,38 @@ public class ApiController {
     }
 
     @GetMapping("/files/download/{contractNum}")
-    public Map<String, Object> downloadFile(@PathVariable String contractNum) {
-        Map<String, Object> result = new HashMap<>();
+    public ResponseEntity<byte[]> downloadFile(@PathVariable String contractNum) {
         Contract contract = contractService.findByNum(contractNum);
         if (contract != null && contract.getFileData() != null) {
-            result.put("success", true);
-            result.put("message", "查询成功");
-            Map<String, Object> fileData = new HashMap<>();
-            fileData.put("fileName", contract.getFileName());
-            fileData.put("fileType", contract.getFileType());
-            result.put("data", fileData);
-        } else {
-            List<ContractAttachment> attachments = contractService.getAttachments(contractNum);
-            if (!attachments.isEmpty()) {
-                result.put("success", true);
-                result.put("message", "查询成功");
-                result.put("data", attachments);
-            } else {
-                result.put("success", false);
-                result.put("message", "未找到附件");
+            HttpHeaders headers = new HttpHeaders();
+            String fileName = contract.getFileName() != null ? contract.getFileName() : "contract";
+            try {
+                fileName = java.net.URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+            } catch (Exception e) {
+                // ignore
+            }
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", fileName);
+            headers.setContentLength(contract.getFileData().length);
+            return new ResponseEntity<>(contract.getFileData(), headers, HttpStatus.OK);
+        }
+        // Check attachments
+        List<ContractAttachment> attachments = contractService.getAttachments(contractNum);
+        if (!attachments.isEmpty()) {
+            ContractAttachment att = attachments.get(0);
+            if (att.getFileData() != null) {
+                HttpHeaders headers = new HttpHeaders();
+                String fileName = att.getFileName() != null ? att.getFileName() : "attachment";
+                try {
+                    fileName = java.net.URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+                } catch (Exception e) {}
+                headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+                headers.setContentDispositionFormData("attachment", fileName);
+                headers.setContentLength(att.getFileData().length);
+                return new ResponseEntity<>(att.getFileData(), headers, HttpStatus.OK);
             }
         }
-        return result;
+        return ResponseEntity.notFound().build();
     }
 
     // ==================== 权限相关 ====================
@@ -665,6 +684,103 @@ public class ApiController {
     }
 
     // ==================== 工具方法 ====================
+
+    @GetMapping("/contract/template")
+    public Map<String, Object> getContractTemplate() {
+        Map<String, Object> result = new HashMap<>();
+        String template = "合同编号：__________\n\n" +
+            "甲方（委托方）：__________\n" +
+            "乙方（受托方）：__________\n\n" +
+            "根据《中华人民共和国合同法》及相关法律法规的规定，甲乙双方在平等、自愿、公平、诚实信用的原则基础上，经协商一致，订立本合同。\n\n" +
+            "第一条 合同标的\n__________\n\n" +
+            "第二条 合同金额\n本合同总金额为人民币__________元整（￥__________）。\n\n" +
+            "第三条 付款方式\n__________\n\n" +
+            "第四条 履行期限\n本合同自____年____月____日起至____年____月____日止。\n\n" +
+            "第五条 双方权利义务\n1. 甲方权利义务：__________\n2. 乙方权利义务：__________\n\n" +
+            "第六条 违约责任\n__________\n\n" +
+            "第七条 争议解决\n本合同在履行过程中发生的争议，由双方当事人协商解决；协商不成的，依法向人民法院起诉。\n\n" +
+            "第八条 其他约定\n__________\n\n" +
+            "甲方（签章）：__________          乙方（签章）：__________\n" +
+            "日期：____年____月____日           日期：____年____月____日";
+        result.put("success", true);
+        result.put("data", template);
+        return result;
+    }
+
+    @PostMapping("/contract/ai-review")
+    public Map<String, Object> aiReviewContract(@RequestParam String content) {
+        Map<String, Object> result = new HashMap<>();
+        try {
+            com.contract.util.AIAssistantService aiService = new com.contract.util.AIAssistantService();
+            if (!aiService.isAvailable()) {
+                result.put("success", false);
+                result.put("message", "AI服务未配置或不可用，请在设置中配置Ollama服务");
+                return result;
+            }
+            String review = aiService.reviewContract(content);
+            result.put("success", true);
+            result.put("data", review);
+        } catch (Exception e) {
+            FileLogger.error("ApiController", "aiReviewContract", "AI审查异常: " + e.getMessage(), e);
+            result.put("success", false);
+            result.put("message", "AI审查失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    @GetMapping("/contracts/export")
+    public ResponseEntity<byte[]> exportContracts(@RequestParam(required = false) String format) {
+        try {
+            List<Contract> contracts = contractService.findAll();
+            byte[] data;
+            String fileName;
+            if ("html".equals(format)) {
+                data = com.contract.util.DataExportUtil.exportContractsHtml(contracts).getBytes("UTF-8");
+                fileName = "contracts.html";
+            } else {
+                data = com.contract.util.DataExportUtil.exportContractsCsv(contracts).getBytes("UTF-8");
+                fileName = "contracts.csv";
+            }
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+            headers.setContentDispositionFormData("attachment", fileName);
+            headers.setContentLength(data.length);
+            return new ResponseEntity<>(data, headers, HttpStatus.OK);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/statistics")
+    public Map<String, Object> getStatistics() {
+        Map<String, Object> result = new HashMap<>();
+        List<Contract> all = contractService.findAll();
+        int total = all.size();
+        int draft = 0, countersign = 0, finalize = 0, approve = 0, sign = 0;
+        double totalAmount = 0;
+        for (Contract c : all) {
+            int st = contractService.getContractStateType(c.getNum());
+            switch (st) {
+                case 1: draft++; break;
+                case 2: countersign++; break;
+                case 3: finalize++; break;
+                case 4: approve++; break;
+                case 5: sign++; break;
+            }
+            if (c.getAmount() > 0) totalAmount += c.getAmount();
+        }
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total", total);
+        stats.put("draft", draft);
+        stats.put("countersign", countersign);
+        stats.put("finalize", finalize);
+        stats.put("approve", approve);
+        stats.put("sign", sign);
+        stats.put("totalAmount", totalAmount);
+        result.put("success", true);
+        result.put("data", stats);
+        return result;
+    }
 
     private String getFileExtension(String fileName) {
         if (fileName == null || fileName.lastIndexOf(".") == -1) {

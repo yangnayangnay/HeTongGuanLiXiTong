@@ -1,5 +1,7 @@
 package com.contract.service;
 
+import org.springframework.stereotype.Service;
+
 import com.contract.dao.RightDao;
 import com.contract.dao.LogDao;
 import com.contract.entity.Right;
@@ -19,6 +21,7 @@ import java.util.List;
  * @version 1.0
  * @since 2024-01-01
  */
+@Service
 public class RightService {
     /** 权限数据访问对象 */
     private RightDao rightDao = new RightDao();

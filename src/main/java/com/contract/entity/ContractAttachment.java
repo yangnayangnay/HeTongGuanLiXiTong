@@ -62,6 +62,11 @@ public class ContractAttachment {
      */
     private String type;
     /**
+     * 附件文件数据
+     * <p>附件文件的二进制内容</p>
+     */
+    private byte[] fileData;
+    /**
      * 上传时间
      * <p>记录文件上传到系统的时间戳</p>
      * <p>用于确定附件版本和排序显示</p>
@@ -153,6 +158,18 @@ public class ContractAttachment {
      * @param type 附件类型描述
      */
     public void setType(String type) { this.type = type; }
+
+    /**
+     * 获取附件文件数据
+     * @return 附件文件的字节数组
+     */
+    public byte[] getFileData() { return fileData; }
+
+    /**
+     * 设置附件文件数据
+     * @param fileData 附件文件的字节数组
+     */
+    public void setFileData(byte[] fileData) { this.fileData = fileData; }
 
     /**
      * 获取上传时间

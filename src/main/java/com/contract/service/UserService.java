@@ -11,6 +11,8 @@ import com.contract.util.FileLogger;
 
 import java.util.List;
 
+import org.springframework.stereotype.Service;
+
 /**
  * 用户业务逻辑类（User Service）
  * <p>
@@ -32,6 +34,7 @@ import java.util.List;
  * @version 1.0
  * @since 2024-01-01
  */
+@Service
 public class UserService {
     /** 用户数据访问对象 */
     private UserDao userDao = new UserDao();

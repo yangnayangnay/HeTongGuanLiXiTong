@@ -97,6 +97,10 @@
                     <textarea class="form-control" id="fzContent" rows="10"
                               placeholder="请修改合同内容"></textarea>
                 </div>
+                <div class="form-group">
+                    <label>合同附件</label>
+                    <div id="fzFileArea">无附件</div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-success" onclick="submitFinalize()">
@@ -144,6 +148,11 @@
                     document.getElementById('fzContractNum').value = c.num;
                     document.getElementById('fzName').value = c.name;
                     document.getElementById('fzContent').value = c.content || '';
+                    // Show file download if exists
+                    var fileArea = document.getElementById('fzFileArea');
+                    if (fileArea) {
+                        fileArea.innerHTML = c.fileName ? '<a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a>' : '无附件';
+                    }
                     openModal('finalizeModal');
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');

@@ -19,7 +19,15 @@
         <div class="content-card">
             <div class="search-bar">
                 <input type="text" class="form-control" id="searchName" placeholder="按合同名称模糊查询"
-                       style="min-width: 250px;">
+                       style="min-width: 200px;">
+                <select class="form-control" id="searchState" style="min-width: 140px;">
+                    <option value="">全部状态</option>
+                    <option value="1">起草</option>
+                    <option value="2">会签</option>
+                    <option value="3">定稿</option>
+                    <option value="4">审批</option>
+                    <option value="5">签订</option>
+                </select>
                 <button type="button" class="btn btn-primary" onclick="searchContracts()">
                     <i class="fas fa-search"></i> 查询
                 </button>
@@ -94,7 +102,12 @@
     <script>
         function searchContracts() {
             var name = document.getElementById('searchName').value.trim();
-            fetchData('/api/contract/query?name=' + encodeURIComponent(name), function(result) {
+            var state = document.getElementById('searchState').value;
+            var url = '/api/contracts/query?name=' + encodeURIComponent(name);
+            if (state) {
+                url += '&state=' + state;
+            }
+            fetchData(url, function(result) {
                 if (result.success) {
                     renderContractList(result.data || []);
                 } else {
@@ -105,6 +118,7 @@
 
         function resetSearch() {
             document.getElementById('searchName').value = '';
+            document.getElementById('searchState').value = '';
             location.reload();
         }
 
@@ -148,7 +162,8 @@
                         '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
                         '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
                         '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong>' + contentHtml + '</div>';
+                        '<div style="margin-top: 16px;"><strong>合同内容：</strong>' + contentHtml + '</div>' +
+                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
 
                     document.getElementById('detailSection').style.display = 'block';
                     document.getElementById('detailSection').scrollIntoView({behavior: 'smooth'});

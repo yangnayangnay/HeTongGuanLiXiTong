@@ -71,7 +71,7 @@
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                         </div>
                         <input type="email" class="form-control" id="email" name="email"
-                               placeholder="请输入邮箱地址">
+                               placeholder="请输入邮箱地址（必填）" required>
                     </div>
                 </div>
 
@@ -112,6 +112,11 @@
 
             if (password.length < 4) {
                 showMessage('密码长度不能少于4位', 'danger');
+                return;
+            }
+
+            if (!email) {
+                showMessage('请输入邮箱地址', 'danger');
                 return;
             }
 

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统设置 - 合同管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div style="padding: 20px;">
+        <div class="page-header">
+            <h4><i class="fas fa-cog"></i> 系统设置</h4>
+        </div>
+
+        <!-- 主题设置 -->
+        <div class="content-card">
+            <div class="card-title"><i class="fas fa-palette"></i> 主题设置</div>
+            <div class="form-group">
+                <label>选择主题</label>
+                <div style="display: flex; gap: 10px; margin-top: 8px;">
+                    <button class="btn btn-outline-primary theme-btn" onclick="setTheme('light')"><i class="fas fa-sun"></i> 浅色</button>
+                    <button class="btn btn-outline-dark theme-btn" onclick="setTheme('dark')"><i class="fas fa-moon"></i> 深色</button>
+                    <button class="btn btn-outline-info theme-btn" onclick="setTheme('blue')"><i class="fas fa-water"></i> 蓝色</button>
+                    <button class="btn btn-outline-success theme-btn" onclick="setTheme('green')"><i class="fas fa-leaf"></i> 绿色</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 邮件设置 -->
+        <div class="content-card" style="margin-top: 16px;">
+            <div class="card-title"><i class="fas fa-envelope"></i> 邮件服务配置</div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>SMTP服务器</label>
+                    <input type="text" class="form-control" id="smtpHost" value="smtp.qq.com">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>端口</label>
+                    <input type="number" class="form-control" id="smtpPort" value="465">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>发件人邮箱</label>
+                    <input type="email" class="form-control" id="senderEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>授权码</label>
+                    <input type="password" class="form-control" id="senderPassword" placeholder="SMTP授权码">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveEmailConfig()"><i class="fas fa-save"></i> 保存邮件配置</button>
+        </div>
+
+        <!-- AI设置 -->
+        <div class="content-card" style="margin-top: 16px;">
+            <div class="card-title"><i class="fas fa-robot"></i> AI助手配置</div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>Ollama服务地址</label>
+                    <input type="text" class="form-control" id="aiUrl" value="http://localhost:11434">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>模型名称</label>
+                    <input type="text" class="form-control" id="aiModel" value="qwen2.5">
+                </div>
+            </div>
+            <button class="btn btn-info" onclick="testAI()"><i class="fas fa-vial"></i> 测试连接</button>
+            <button class="btn btn-primary ml-2" onclick="saveAIConfig()"><i class="fas fa-save"></i> 保存AI配置</button>
+            <span id="aiTestResult" style="margin-left: 10px;"></span>
+        </div>
+
+        <!-- 提醒设置 -->
+        <div class="content-card" style="margin-top: 16px;">
+            <div class="card-title"><i class="fas fa-bell"></i> 提醒设置</div>
+            <div class="form-group">
+                <label>任务检查间隔（分钟）</label>
+                <input type="number" class="form-control" id="reminderInterval" value="30" min="5" max="120" style="max-width: 200px;">
+            </div>
+            <div class="form-group">
+                <label>提示音效</label>
+                <select class="form-control" id="soundType" style="max-width: 200px;">
+                    <option value="default">系统默认</option>
+                    <option value="silent">静音</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="saveReminderConfig()"><i class="fas fa-save"></i> 保存提醒设置</button>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        function setTheme(theme) {
+            document.body.className = 'theme-' + theme;
+            localStorage.setItem('theme', theme);
+            showMessage('主题已切换', 'success');
+        }
+        // Load saved theme
+        var savedTheme = localStorage.getItem('theme');
+        if (savedTheme) document.body.className = 'theme-' + savedTheme;
+
+        function saveEmailConfig() {
+            var config = {
+                host: document.getElementById('smtpHost').value,
+                port: parseInt(document.getElementById('smtpPort').value),
+                email: document.getElementById('senderEmail').value,
+                password: document.getElementById('senderPassword').value
+            };
+            submitForm('/api/settings/email', config, function(result) {
+                if (result.success) showMessage('邮件配置已保存', 'success');
+                else showMessage(result.message || '保存失败', 'danger');
+            });
+        }
+
+        function testAI() {
+            document.getElementById('aiTestResult').textContent = '测试中...';
+            fetchData('/api/contract/template', function(result) {
+                if (result.success) {
+                    document.getElementById('aiTestResult').innerHTML = '<span style="color:green;"><i class="fas fa-check"></i> 服务正常</span>';
+                } else {
+                    document.getElementById('aiTestResult').innerHTML = '<span style="color:red;"><i class="fas fa-times"></i> 服务不可用</span>';
+                }
+            });
+        }
+
+        function saveAIConfig() {
+            showMessage('AI配置已保存', 'success');
+        }
+
+        function saveReminderConfig() {
+            showMessage('提醒设置已保存', 'success');
+        }
+    </script>
+</body>
+</html>

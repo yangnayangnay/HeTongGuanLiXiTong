@@ -106,6 +106,29 @@
                             <i class="fas fa-clipboard-list"></i> <span>日志管理</span>
                         </a>
                     </li>
+
+                    <!-- 更多功能 -->
+                    <li class="menu-header">更多功能</li>
+                    <li>
+                        <a class="menu-item" href="/kanban" target="contentFrame">
+                            <i class="fas fa-columns"></i> <span>流程看板</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="menu-item" href="/statistics" target="contentFrame">
+                            <i class="fas fa-chart-bar"></i> <span>统计分析</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="menu-item" href="/settings" target="contentFrame">
+                            <i class="fas fa-cog"></i> <span>系统设置</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="menu-item" href="/about" target="contentFrame">
+                            <i class="fas fa-info-circle"></i> <span>关于系统</span>
+                        </a>
+                    </li>
                 </ul>
             </nav>
 
@@ -128,5 +151,61 @@
             });
         });
     </script>
+    <script>
+// 检查待办任务并弹窗提醒
+(function() {
+    var iframe = document.querySelector('iframe[name="contentFrame"]');
+    if (iframe) {
+        iframe.addEventListener('load', function() {
+            try {
+                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                // Check if there are pending tasks displayed
+                var pendingItems = iframeDoc.querySelectorAll('.pending-count');
+                if (pendingItems.length > 0) {
+                    var total = 0;
+                    pendingItems.forEach(function(el) { total += parseInt(el.textContent) || 0; });
+                    if (total > 0) {
+                        // Show notification badge on bell icon
+                        var bellLink = document.querySelector('.header-user a[title="我的待办"]');
+                        if (bellLink && !bellLink.querySelector('.notification-badge')) {
+                            var badge = document.createElement('span');
+                            badge.className = 'notification-badge';
+                            badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;';
+                            badge.textContent = total;
+                            bellLink.style.position = 'relative';
+                            bellLink.appendChild(badge);
+                        }
+                    }
+                }
+            } catch(e) {}
+        });
+    }
+
+    // Auto check pending tasks on page load
+    fetch('/api/users/pending')
+    .then(function(r) { return r.json(); })
+    .then(function(result) {
+        if (result.success && result.data && result.data.length > 0) {
+            var bellLink = document.querySelector('.header-user a[title="我的待办"]');
+            if (bellLink && !bellLink.querySelector('.notification-badge')) {
+                var badge = document.createElement('span');
+                badge.className = 'notification-badge';
+                badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;';
+                badge.textContent = result.data.length;
+                bellLink.style.position = 'relative';
+                bellLink.appendChild(badge);
+            }
+            // Show popup notification
+            setTimeout(function() {
+                if (confirm('您有 ' + result.data.length + ' 条待审核用户，是否前往查看？')) {
+                    var contentFrame = document.querySelector('iframe[name="contentFrame"]');
+                    if (contentFrame) contentFrame.src = '/pending';
+                }
+            }, 1000);
+        }
+    })
+    .catch(function() {});
+})();
+</script>
 </body>
 </html>
