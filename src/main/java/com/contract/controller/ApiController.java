@@ -47,6 +47,8 @@ public class ApiController {
         User user = userService.login(username, password);
         if (user != null) {
             session.setAttribute("currentUser", user);
+            session.setAttribute("userName", user.getName());
+            session.setAttribute("functions", userService.getUserFunctions(user.getName()));
             result.put("success", true);
             result.put("message", "登录成功");
             result.put("data", user);

@@ -1,18 +1,40 @@
 package com.contract.controller;
 
+import com.contract.service.UserService;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpSession;
+import java.util.HashSet;
+import java.util.Set;
 
 @Controller
 public class PageController {
-    @GetMapping("/")
+
+    private UserService userService = new UserService();
+
+    @GetMapping({"/", "/login"})
     public String login() { return "login"; }
 
     @GetMapping("/register")
     public String register() { return "register"; }
 
     @GetMapping("/main")
-    public String main() { return "main"; }
+    public String main(HttpSession session, Model model) {
+        String userName = (String) session.getAttribute("userName");
+        if (userName == null) {
+            return "redirect:/login";
+        }
+        @SuppressWarnings("unchecked")
+        Set<String> functions = (Set<String>) session.getAttribute("functions");
+        if (functions == null) {
+            functions = userService.getUserFunctions(userName);
+            session.setAttribute("functions", functions);
+        }
+        model.addAttribute("functions", functions);
+        return "main";
+    }
 
     @GetMapping("/draft")
     public String draft() { return "draft"; }

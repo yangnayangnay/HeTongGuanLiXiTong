@@ -19,7 +19,7 @@
             <div class="header-user">
                 <span class="user-name">
                     <i class="fas fa-user-circle"></i>
-                    <span th:text="${session.userName}">当前用户</span>
+                    <span th:text="${session.userName} ?: '未登录'">当前用户</span>
                 </span>
                 <a href="/pending" title="我的待办">
                     <i class="fas fa-bell"></i>
@@ -151,61 +151,5 @@
             });
         });
     </script>
-    <script>
-// 检查待办任务并弹窗提醒
-(function() {
-    var iframe = document.querySelector('iframe[name="contentFrame"]');
-    if (iframe) {
-        iframe.addEventListener('load', function() {
-            try {
-                var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                // Check if there are pending tasks displayed
-                var pendingItems = iframeDoc.querySelectorAll('.pending-count');
-                if (pendingItems.length > 0) {
-                    var total = 0;
-                    pendingItems.forEach(function(el) { total += parseInt(el.textContent) || 0; });
-                    if (total > 0) {
-                        // Show notification badge on bell icon
-                        var bellLink = document.querySelector('.header-user a[title="我的待办"]');
-                        if (bellLink && !bellLink.querySelector('.notification-badge')) {
-                            var badge = document.createElement('span');
-                            badge.className = 'notification-badge';
-                            badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;';
-                            badge.textContent = total;
-                            bellLink.style.position = 'relative';
-                            bellLink.appendChild(badge);
-                        }
-                    }
-                }
-            } catch(e) {}
-        });
-    }
-
-    // Auto check pending tasks on page load
-    fetch('/api/users/pending')
-    .then(function(r) { return r.json(); })
-    .then(function(result) {
-        if (result.success && result.data && result.data.length > 0) {
-            var bellLink = document.querySelector('.header-user a[title="我的待办"]');
-            if (bellLink && !bellLink.querySelector('.notification-badge')) {
-                var badge = document.createElement('span');
-                badge.className = 'notification-badge';
-                badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;display:flex;align-items:center;justify-content:center;';
-                badge.textContent = result.data.length;
-                bellLink.style.position = 'relative';
-                bellLink.appendChild(badge);
-            }
-            // Show popup notification
-            setTimeout(function() {
-                if (confirm('您有 ' + result.data.length + ' 条待审核用户，是否前往查看？')) {
-                    var contentFrame = document.querySelector('iframe[name="contentFrame"]');
-                    if (contentFrame) contentFrame.src = '/pending';
-                }
-            }, 1000);
-        }
-    })
-    .catch(function() {});
-})();
-</script>
 </body>
 </html>
