@@ -205,7 +205,6 @@
         }
 
         function deleteCustomer(id) {
-            if (!confirm('确定要删除此客户吗？')) return;
             deleteData('/api/customer/delete?id=' + id, function(result) {
                 if (result.success) {
                     showMessage('客户删除成功', 'success');

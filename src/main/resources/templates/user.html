@@ -268,7 +268,7 @@
                 return;
             }
 
-            submitForm('/api/user/assignRole', {userId: parseInt(userId), roleName: roleName}, function(result) {
+            submitForm('/api/user/assignRole', {userId: document.getElementById('roleUserName').value, roleName: roleName}, function(result) {
                 if (result.success) {
                     showMessage('角色分配成功', 'success');
                     closeModal('roleModal');
@@ -280,7 +280,6 @@
         }
 
         function deleteUser(id) {
-            if (!confirm('确定要删除此用户吗？')) return;
             deleteData('/api/user/delete?id=' + id, function(result) {
                 if (result.success) {
                     showMessage('用户删除成功', 'success');

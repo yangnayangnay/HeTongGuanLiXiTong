@@ -851,6 +851,7 @@ public class ApiController {
         Role role = new Role();
         role.setName(body.get("name"));
         role.setDescription(body.getOrDefault("description", ""));
+        role.setFunctions(body.getOrDefault("functions", ""));
         boolean ok = roleService.addRole(role);
         result.put("success", ok);
         result.put("message", ok ? "添加成功" : "添加失败");
@@ -864,6 +865,7 @@ public class ApiController {
         role.setId(Integer.parseInt(body.getOrDefault("id", "0")));
         role.setName(body.get("name"));
         role.setDescription(body.getOrDefault("description", ""));
+        role.setFunctions(body.getOrDefault("functions", ""));
         boolean ok = roleService.updateRole(role);
         result.put("success", ok);
         result.put("message", ok ? "更新成功" : "更新失败");

@@ -43,19 +43,19 @@
                             <td th:text="${contract.endTime != null ? #dates.format(contract.endTime, 'yyyy-MM-dd') : ''}">2024-12-31</td>
                             <td class="text-nowrap">
                                 <button type="button" class="btn btn-sm btn-outline-primary"
-                                        th:onclick="'viewOpinions(\'' + ${contract.num} + '\')'">
+                                        th:data-num="${contract.num}" onclick="viewOpinions(this.dataset.num)">
                                     <i class="fas fa-comments"></i> 会签意见
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-info"
-                                        th:onclick="'downloadContract(\'' + ${contract.num} + '\')'">
+                                        th:data-num="${contract.num}" onclick="downloadContract(this.dataset.num)">
                                     <i class="fas fa-download"></i> 下载
                                 </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        th:onclick="'viewContract(\'' + ${contract.num} + '\')'">
+                                        th:data-num="${contract.num}" onclick="viewContract(this.dataset.num)">
                                     <i class="fas fa-eye"></i> 查看合同
                                 </button>
                                 <button type="button" class="btn btn-sm btn-success"
-                                        th:onclick="'openFinalize(\'' + ${contract.num} + '\')'">
+                                        th:data-num="${contract.num}" onclick="openFinalize(this.dataset.num)">
                                     <i class="fas fa-edit"></i> 定稿
                                 </button>
                             </td>

@@ -35,10 +35,10 @@
                         </thead>
                         <tbody>
                             <tr th:each="task : ${countersignTasks}">
-                                <td th:text="${task.num}">HT2024001</td>
-                                <td th:text="${task.name}">合同名称</td>
-                                <td th:text="${task.customer}">客户</td>
-                                <td th:text="${task.userName}">起草人</td>
+                                <td th:text="${task.conNum}">HT2024001</td>
+                                <td th:text="${task.contractName}">合同名称</td>
+                                <td>-</td>
+                                <td th:text="${task.userName}">操作人</td>
                                 <td>
                                     <a href="/countersign" class="btn btn-sm btn-success" target="contentFrame">
                                         <i class="fas fa-pen"></i> 去会签
@@ -71,10 +71,10 @@
                         </thead>
                         <tbody>
                             <tr th:each="task : ${approveTasks}">
-                                <td th:text="${task.num}">HT2024001</td>
-                                <td th:text="${task.name}">合同名称</td>
-                                <td th:text="${task.customer}">客户</td>
-                                <td th:text="${task.userName}">起草人</td>
+                                <td th:text="${task.conNum}">HT2024001</td>
+                                <td th:text="${task.contractName}">合同名称</td>
+                                <td>-</td>
+                                <td th:text="${task.userName}">操作人</td>
                                 <td>
                                     <a href="/approve" class="btn btn-sm btn-success" target="contentFrame">
                                         <i class="fas fa-check"></i> 去审批
@@ -107,10 +107,10 @@
                         </thead>
                         <tbody>
                             <tr th:each="task : ${signTasks}">
-                                <td th:text="${task.num}">HT2024001</td>
-                                <td th:text="${task.name}">合同名称</td>
-                                <td th:text="${task.customer}">客户</td>
-                                <td th:text="${task.userName}">起草人</td>
+                                <td th:text="${task.conNum}">HT2024001</td>
+                                <td th:text="${task.contractName}">合同名称</td>
+                                <td>-</td>
+                                <td th:text="${task.userName}">操作人</td>
                                 <td>
                                     <a href="/sign" class="btn btn-sm btn-success" target="contentFrame">
                                         <i class="fas fa-signature"></i> 去签订

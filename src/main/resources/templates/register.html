@@ -120,19 +120,26 @@
                 return;
             }
 
-            submitForm('/api/register', {
-                username: username,
-                password: password,
-                email: email
-            }, function(result) {
+            var formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+            formData.append('email', email);
+            fetch('/api/register', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(result) {
                 if (result.success) {
                     showMessage('注册成功，请等待管理员审核', 'success');
-                    setTimeout(function() {
-                        window.location.href = '/login';
-                    }, 2000);
+                    setTimeout(function() { window.location.href = '/login'; }, 2000);
                 } else {
                     showMessage(result.message || '注册失败', 'danger');
                 }
+            })
+            .catch(function(error) {
+                console.error('注册失败:', error);
+                showMessage('注册请求失败', 'danger');
             });
         });
     </script>

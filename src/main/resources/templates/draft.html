@@ -114,41 +114,25 @@
                 return;
             }
 
+            var formData = new FormData();
+            formData.append('name', name);
+            formData.append('customer', document.getElementById('customer').value);
+            formData.append('beginTime', document.getElementById('beginTime').value);
+            formData.append('endTime', document.getElementById('endTime').value);
+            formData.append('content', document.getElementById('content').value);
             var fileInput = document.getElementById('fileInput');
-            if (fileInput.files.length > 0) {
-                var formData = new FormData();
-                formData.append('name', name);
-                formData.append('customer', document.getElementById('customer').value);
-                formData.append('beginTime', document.getElementById('beginTime').value);
-                formData.append('endTime', document.getElementById('endTime').value);
-                formData.append('content', document.getElementById('content').value);
+            if (fileInput && fileInput.files.length > 0) {
                 formData.append('file', fileInput.files[0]);
-
-                submitFormWithFile('/api/contract/draft', formData, function(result) {
-                    if (result.success) {
-                        showMessage('合同起草成功', 'success');
-                        document.getElementById('draftForm').reset();
-                        document.getElementById('filePreview').innerHTML = '';
-                    } else {
-                        showMessage(result.message || '起草失败', 'danger');
-                    }
-                });
-            } else {
-                submitForm('/api/contract/draft', {
-                    name: name,
-                    customer: document.getElementById('customer').value,
-                    beginTime: document.getElementById('beginTime').value,
-                    endTime: document.getElementById('endTime').value,
-                    content: document.getElementById('content').value
-                }, function(result) {
-                    if (result.success) {
-                        showMessage('合同起草成功', 'success');
-                        document.getElementById('draftForm').reset();
-                    } else {
-                        showMessage(result.message || '起草失败', 'danger');
-                    }
-                });
             }
+            submitFormWithFile('/api/contract/draft', formData, function(result) {
+                if (result.success) {
+                    showMessage('合同起草成功', 'success');
+                    document.getElementById('draftForm').reset();
+                    document.getElementById('filePreview').innerHTML = '';
+                } else {
+                    showMessage(result.message || '起草失败', 'danger');
+                }
+            });
         });
         function loadTemplate() {
             fetchData('/api/contract/template', function(result) {

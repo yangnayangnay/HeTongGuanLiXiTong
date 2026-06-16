@@ -235,7 +235,6 @@
         }
 
         function deleteRole(id) {
-            if (!confirm('确定要删除此角色吗？')) return;
             deleteData('/api/role/delete?id=' + id, function(result) {
                 if (result.success) {
                     showMessage('角色删除成功', 'success');
