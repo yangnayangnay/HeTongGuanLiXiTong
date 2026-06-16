@@ -72,15 +72,25 @@
                 return;
             }
 
-            submitForm('/api/login', {
-                username: username,
-                password: password
-            }, function(result) {
+            var formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
+
+            fetch('/api/login', {
+                method: 'POST',
+                body: formData
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(result) {
                 if (result.success) {
                     window.location.href = '/main';
                 } else {
                     showMessage(result.message || '登录失败，请检查用户名和密码', 'danger');
                 }
+            })
+            .catch(function(error) {
+                console.error('登录失败:', error);
+                showMessage('登录请求失败，请稍后重试', 'danger');
             });
         });
     </script>
