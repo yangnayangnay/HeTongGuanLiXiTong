@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>角色管理 - 合同管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div style="padding: 20px;">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h4><i class="fas fa-user-shield"></i> 角色管理</h4>
+            <button type="button" class="btn btn-primary" onclick="openAddRole()">
+                <i class="fas fa-plus"></i> 添加角色
+            </button>
+        </div>
+
+        <!-- 角色列表 -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-list"></i> 角色列表
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>角色名称</th>
+                            <th>描述</th>
+                            <th>权限</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="role : ${roles}">
+                            <td th:text="${role.id}">1</td>
+                            <td th:text="${role.name}">角色名称</td>
+                            <td th:text="${role.description}">描述</td>
+                            <td th:text="${role.functions}">F01,F02</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        th:onclick="'editRole(' + ${role.id} + ')'">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        th:onclick="'deleteRole(' + ${role.id} + ')'"
+                                        th:if="${role.name != '管理员'}">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(roles)}">
+                            <td colspan="5" class="text-center" style="padding: 30px; color: #999;">
+                                <i class="fas fa-inbox"></i> 暂无角色数据
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑角色模态框 -->
+    <div id="roleModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog" style="max-width: 650px;">
+            <div class="modal-header">
+                <h5 id="roleModalTitle"><i class="fas fa-user-shield"></i> 添加角色</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('roleModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="roleId">
+                <div class="form-group">
+                    <label for="rName">角色名称 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="rName" placeholder="请输入角色名称">
+                </div>
+                <div class="form-group">
+                    <label for="rDesc">角色描述</label>
+                    <input type="text" class="form-control" id="rDesc" placeholder="请输入角色描述">
+                </div>
+                <div class="form-group">
+                    <label>权限配置</label>
+                    <div class="permission-grid">
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF01" name="functions" value="F01">
+                            <label for="pF01">F01 - 起草合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF02" name="functions" value="F02">
+                            <label for="pF02">F02 - 会签合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF03" name="functions" value="F03">
+                            <label for="pF03">F03 - 定稿合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF04" name="functions" value="F04">
+                            <label for="pF04">F04 - 审批合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF05" name="functions" value="F05">
+                            <label for="pF05">F05 - 签订合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF06" name="functions" value="F06">
+                            <label for="pF06">F06 - 分配合同</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF07" name="functions" value="F07">
+                            <label for="pF07">F07 - 合同查询</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF08" name="functions" value="F08">
+                            <label for="pF08">F08 - 流程查询</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF09" name="functions" value="F09">
+                            <label for="pF09">F09 - 客户管理</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF10" name="functions" value="F10">
+                            <label for="pF10">F10 - 用户管理</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF11" name="functions" value="F11">
+                            <label for="pF11">F11 - 角色管理</label>
+                        </div>
+                        <div class="permission-item">
+                            <input type="checkbox" id="pF12" name="functions" value="F12">
+                            <label for="pF12">F12 - 日志管理</label>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="selectAllPermissions()">全选</button>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="deselectAllPermissions()">取消全选</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveRole()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('roleModal')">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        var functionIds = ['F01','F02','F03','F04','F05','F06','F07','F08','F09','F10','F11','F12'];
+
+        function openAddRole() {
+            document.getElementById('roleModalTitle').innerHTML = '<i class="fas fa-user-shield"></i> 添加角色';
+            document.getElementById('roleId').value = '';
+            document.getElementById('rName').value = '';
+            document.getElementById('rDesc').value = '';
+            deselectAllPermissions();
+            openModal('roleModal');
+        }
+
+        function editRole(id) {
+            fetchData('/api/role/detail?id=' + id, function(result) {
+                if (result.success) {
+                    var r = result.data;
+                    document.getElementById('roleModalTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑角色';
+                    document.getElementById('roleId').value = r.id;
+                    document.getElementById('rName').value = r.name;
+                    document.getElementById('rDesc').value = r.description || '';
+
+                    deselectAllPermissions();
+                    if (r.functions) {
+                        var funcs = r.functions.split(',');
+                        funcs.forEach(function(f) {
+                            f = f.trim();
+                            var cb = document.getElementById('p' + f);
+                            if (cb) cb.checked = true;
+                        });
+                    }
+                    openModal('roleModal');
+                } else {
+                    showMessage(result.message || '获取角色信息失败', 'danger');
+                }
+            });
+        }
+
+        function selectAllPermissions() {
+            document.querySelectorAll('input[name="functions"]').forEach(function(cb) {
+                cb.checked = true;
+            });
+        }
+
+        function deselectAllPermissions() {
+            document.querySelectorAll('input[name="functions"]').forEach(function(cb) {
+                cb.checked = false;
+            });
+        }
+
+        function saveRole() {
+            var name = document.getElementById('rName').value.trim();
+            if (!name) {
+                showMessage('角色名称不能为空', 'danger');
+                return;
+            }
+
+            var selectedFuncs = [];
+            document.querySelectorAll('input[name="functions"]:checked').forEach(function(cb) {
+                selectedFuncs.push(cb.value);
+            });
+
+            var data = {
+                name: name,
+                description: document.getElementById('rDesc').value.trim(),
+                functions: selectedFuncs.join(',')
+            };
+
+            var id = document.getElementById('roleId').value;
+            if (id) data.id = parseInt(id);
+
+            var url = id ? '/api/role/update' : '/api/role/add';
+            submitForm(url, data, function(result) {
+                if (result.success) {
+                    showMessage(id ? '角色更新成功' : '角色添加成功', 'success');
+                    closeModal('roleModal');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '操作失败', 'danger');
+                }
+            });
+        }
+
+        function deleteRole(id) {
+            if (!confirm('确定要删除此角色吗？')) return;
+            deleteData('/api/role/delete?id=' + id, function(result) {
+                if (result.success) {
+                    showMessage('角色删除成功', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '删除失败', 'danger');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

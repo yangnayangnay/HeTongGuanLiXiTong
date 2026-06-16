@@ -80,9 +80,9 @@ public class ContractStateDao {
         ResultSet rs = null;
         try {
             conn = DBUtil.getConnection();
-            // 使用FETCH FIRST 1 ROWS ONLY只取最新一条记录（DB2语法）
-            pstmt = conn.prepareStatement("SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC FETCH FIRST 1 ROWS ONLY");
-            FileLogger.debug("ContractStateDao", "findLatestByConNum", "SQL=SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC FETCH FIRST 1 ROWS ONLY");
+            // 使用LIMIT 1只取最新一条记录（MySQL语法）
+            pstmt = conn.prepareStatement("SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC LIMIT 1");
+            FileLogger.debug("ContractStateDao", "findLatestByConNum", "SQL=SELECT * FROM t_contract_state WHERE conNum = ? ORDER BY id DESC LIMIT 1");
             pstmt.setString(1, conNum);
             rs = pstmt.executeQuery();
             if (rs.next()) {

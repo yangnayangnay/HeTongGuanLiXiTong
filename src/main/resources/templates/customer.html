@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户管理 - 合同管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div style="padding: 20px;">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h4><i class="fas fa-building"></i> 客户管理</h4>
+            <button type="button" class="btn btn-primary" onclick="openAddCustomer()">
+                <i class="fas fa-plus"></i> 添加客户
+            </button>
+        </div>
+
+        <!-- 客户列表 -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-list"></i> 客户列表
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>客户编号</th>
+                            <th>客户名称</th>
+                            <th>地址</th>
+                            <th>电话</th>
+                            <th>传真</th>
+                            <th>邮编</th>
+                            <th>开户银行</th>
+                            <th>银行账号</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="customer : ${customers}">
+                            <td th:text="${customer.num}">C001</td>
+                            <td th:text="${customer.name}">客户名称</td>
+                            <td th:text="${customer.address}">地址</td>
+                            <td th:text="${customer.tel}">电话</td>
+                            <td th:text="${customer.fax}">传真</td>
+                            <td th:text="${customer.code}">邮编</td>
+                            <td th:text="${customer.bank}">银行</td>
+                            <td th:text="${customer.account}">账号</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        th:onclick="'editCustomer(' + ${customer.id} + ')'">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        th:onclick="'deleteCustomer(' + ${customer.id} + ')'">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(customers)}">
+                            <td colspan="9" class="text-center" style="padding: 30px; color: #999;">
+                                <i class="fas fa-inbox"></i> 暂无客户数据
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑客户模态框 -->
+    <div id="customerModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog" style="max-width: 650px;">
+            <div class="modal-header">
+                <h5 id="customerModalTitle"><i class="fas fa-building"></i> 添加客户</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('customerModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="custId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custNum">客户编号 <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="custNum" name="num" placeholder="如：C003">
+                    </div>
+                    <div class="form-group">
+                        <label for="custName">客户名称 <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="custName" name="name" placeholder="请输入客户名称">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="custAddress">地址</label>
+                    <input type="text" class="form-control" id="custAddress" name="address" placeholder="请输入地址">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custTel">电话</label>
+                        <input type="text" class="form-control" id="custTel" name="tel" placeholder="请输入电话">
+                    </div>
+                    <div class="form-group">
+                        <label for="custFax">传真</label>
+                        <input type="text" class="form-control" id="custFax" name="fax" placeholder="请输入传真">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="custCode">邮编</label>
+                        <input type="text" class="form-control" id="custCode" name="code" placeholder="请输入邮编">
+                    </div>
+                    <div class="form-group">
+                        <label for="custBank">开户银行</label>
+                        <input type="text" class="form-control" id="custBank" name="bank" placeholder="请输入开户银行">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="custAccount">银行账号</label>
+                    <input type="text" class="form-control" id="custAccount" name="account" placeholder="请输入银行账号">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveCustomer()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('customerModal')">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        function openAddCustomer() {
+            document.getElementById('customerModalTitle').innerHTML = '<i class="fas fa-building"></i> 添加客户';
+            document.getElementById('custId').value = '';
+            document.getElementById('custNum').value = '';
+            document.getElementById('custName').value = '';
+            document.getElementById('custAddress').value = '';
+            document.getElementById('custTel').value = '';
+            document.getElementById('custFax').value = '';
+            document.getElementById('custCode').value = '';
+            document.getElementById('custBank').value = '';
+            document.getElementById('custAccount').value = '';
+            document.getElementById('custNum').readOnly = false;
+            openModal('customerModal');
+        }
+
+        function editCustomer(id) {
+            fetchData('/api/customer/detail?id=' + id, function(result) {
+                if (result.success) {
+                    var c = result.data;
+                    document.getElementById('customerModalTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑客户';
+                    document.getElementById('custId').value = c.id;
+                    document.getElementById('custNum').value = c.num;
+                    document.getElementById('custName').value = c.name;
+                    document.getElementById('custAddress').value = c.address || '';
+                    document.getElementById('custTel').value = c.tel || '';
+                    document.getElementById('custFax').value = c.fax || '';
+                    document.getElementById('custCode').value = c.code || '';
+                    document.getElementById('custBank').value = c.bank || '';
+                    document.getElementById('custAccount').value = c.account || '';
+                    document.getElementById('custNum').readOnly = true;
+                    openModal('customerModal');
+                } else {
+                    showMessage(result.message || '获取客户信息失败', 'danger');
+                }
+            });
+        }
+
+        function saveCustomer() {
+            var num = document.getElementById('custNum').value.trim();
+            var name = document.getElementById('custName').value.trim();
+            if (!num || !name) {
+                showMessage('客户编号和名称不能为空', 'danger');
+                return;
+            }
+
+            var data = {
+                num: num,
+                name: name,
+                address: document.getElementById('custAddress').value.trim(),
+                tel: document.getElementById('custTel').value.trim(),
+                fax: document.getElementById('custFax').value.trim(),
+                code: document.getElementById('custCode').value.trim(),
+                bank: document.getElementById('custBank').value.trim(),
+                account: document.getElementById('custAccount').value.trim()
+            };
+
+            var id = document.getElementById('custId').value;
+            var url = id ? '/api/customer/update' : '/api/customer/add';
+            if (id) data.id = parseInt(id);
+
+            submitForm(url, data, function(result) {
+                if (result.success) {
+                    showMessage(id ? '客户更新成功' : '客户添加成功', 'success');
+                    closeModal('customerModal');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '操作失败', 'danger');
+                }
+            });
+        }
+
+        function deleteCustomer(id) {
+            if (!confirm('确定要删除此客户吗？')) return;
+            deleteData('/api/customer/delete?id=' + id, function(result) {
+                if (result.success) {
+                    showMessage('客户删除成功', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '删除失败', 'danger');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

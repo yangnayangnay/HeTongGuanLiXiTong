@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分配合同 - 合同管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div style="padding: 20px;">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h4><i class="fas fa-tasks"></i> 分配合同</h4>
+        </div>
+
+        <!-- 待分配合同列表 -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-list"></i> 待分配合同
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="text-center">选择</th>
+                            <th>合同编号</th>
+                            <th>合同名称</th>
+                            <th>客户</th>
+                            <th>起草人</th>
+                            <th>起草时间</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="contract : ${contracts}">
+                            <td class="text-center">
+                                <input type="radio" name="contractNum" th:value="${contract.num}"
+                                       onclick="selectContract(this)">
+                            </td>
+                            <td th:text="${contract.num}">HT2024001</td>
+                            <td th:text="${contract.name}">合同名称</td>
+                            <td th:text="${contract.customer}">客户名称</td>
+                            <td th:text="${contract.userName}">起草人</td>
+                            <td th:text="${#dates.format(contract.beginTime, 'yyyy-MM-dd')}">2024-01-01</td>
+                            <td><span class="badge badge-draft">待分配</span></td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(contracts)}">
+                            <td colspan="7" class="text-center" style="padding: 30px; color: #999;">
+                                <i class="fas fa-inbox"></i> 暂无待分配合同
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 人员分配区域 -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-user-plus"></i> 人员分配
+            </div>
+            <div class="assign-columns">
+                <!-- 会签人员 -->
+                <div class="assign-column">
+                    <div class="column-title">
+                        <span><i class="fas fa-users"></i> 会签人员</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('countersignUsers', this)">
+                            全选/取消
+                        </button>
+                    </div>
+                    <div class="checkbox-list">
+                        <div class="checkbox-item" th:each="user : ${countersignUsers}">
+                            <input type="checkbox" name="countersignUsers" th:value="${user.name}"
+                                   id="cs" th:id="'cs_' + ${user.name}">
+                            <label th:for="'cs_' + ${user.name}" th:text="${user.name}">用户名</label>
+                        </div>
+                        <div th:if="${#lists.isEmpty(countersignUsers)}" style="text-align: center; padding: 20px; color: #999;">
+                            暂无可分配的会签人员
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 审批人员 -->
+                <div class="assign-column">
+                    <div class="column-title">
+                        <span><i class="fas fa-thumbs-up"></i> 审批人员</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('approveUsers', this)">
+                            全选/取消
+                        </button>
+                    </div>
+                    <div class="checkbox-list">
+                        <div class="checkbox-item" th:each="user : ${approveUsers}">
+                            <input type="checkbox" name="approveUsers" th:value="${user.name}"
+                                   id="ap" th:id="'ap_' + ${user.name}">
+                            <label th:for="'ap_' + ${user.name}" th:text="${user.name}">用户名</label>
+                        </div>
+                        <div th:if="${#lists.isEmpty(approveUsers)}" style="text-align: center; padding: 20px; color: #999;">
+                            暂无可分配的审批人员
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 签订人员 -->
+                <div class="assign-column">
+                    <div class="column-title">
+                        <span><i class="fas fa-signature"></i> 签订人员</span>
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="toggleSelectAll('signUsers', this)">
+                            全选/取消
+                        </button>
+                    </div>
+                    <div class="checkbox-list">
+                        <div class="checkbox-item" th:each="user : ${signUsers}">
+                            <input type="checkbox" name="signUsers" th:value="${user.name}"
+                                   id="sg" th:id="'sg_' + ${user.name}">
+                            <label th:for="'sg_' + ${user.name}" th:text="${user.name}">用户名</label>
+                        </div>
+                        <div th:if="${#lists.isEmpty(signUsers)}" style="text-align: center; padding: 20px; color: #999;">
+                            暂无可分配的签订人员
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-bar">
+                <button type="button" class="btn btn-primary btn-lg" onclick="submitAssign()">
+                    <i class="fas fa-check"></i> 确认分配
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        var selectedContract = '';
+
+        function selectContract(radio) {
+            selectedContract = radio.value;
+        }
+
+        function toggleSelectAll(checkboxName, btn) {
+            var checkboxes = document.querySelectorAll('input[name="' + checkboxName + '"]');
+            var allChecked = true;
+            for (var i = 0; i < checkboxes.length; i++) {
+                if (!checkboxes[i].checked) {
+                    allChecked = false;
+                    break;
+                }
+            }
+            for (var i = 0; i < checkboxes.length; i++) {
+                checkboxes[i].checked = !allChecked;
+            }
+        }
+
+        function submitAssign() {
+            if (!selectedContract) {
+                showMessage('请先选择要分配的合同', 'danger');
+                return;
+            }
+
+            var countersignUsers = [];
+            var approveUsers = [];
+            var signUsers = [];
+
+            document.querySelectorAll('input[name="countersignUsers"]:checked').forEach(function(cb) {
+                countersignUsers.push(cb.value);
+            });
+            document.querySelectorAll('input[name="approveUsers"]:checked').forEach(function(cb) {
+                approveUsers.push(cb.value);
+            });
+            document.querySelectorAll('input[name="signUsers"]:checked').forEach(function(cb) {
+                signUsers.push(cb.value);
+            });
+
+            if (countersignUsers.length === 0 && approveUsers.length === 0 && signUsers.length === 0) {
+                showMessage('请至少选择一种类型的人员', 'danger');
+                return;
+            }
+
+            submitForm('/api/contract/assign', {
+                contractNum: selectedContract,
+                countersignUsers: countersignUsers,
+                approveUsers: approveUsers,
+                signUsers: signUsers
+            }, function(result) {
+                if (result.success) {
+                    showMessage('合同分配成功', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '分配失败', 'danger');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

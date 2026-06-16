@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户管理 - 合同管理系统</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div style="padding: 20px;">
+        <!-- 页面标题 -->
+        <div class="page-header">
+            <h4><i class="fas fa-users-cog"></i> 用户管理</h4>
+            <button type="button" class="btn btn-primary" onclick="openAddUser()">
+                <i class="fas fa-plus"></i> 添加用户
+            </button>
+        </div>
+
+        <!-- 待审核用户区域 -->
+        <div class="content-card" th:if="${not #lists.isEmpty(pendingUsers)}">
+            <div class="card-title">
+                <i class="fas fa-user-clock"></i> 待审核用户
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${pendingUsers}">
+                            <td th:text="${user.name}">用户名</td>
+                            <td th:text="${user.email}">邮箱</td>
+                            <td>-</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-success"
+                                        th:onclick="'approveUser(' + ${user.id} + ', 1)'">
+                                    <i class="fas fa-check"></i> 通过
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        th:onclick="'approveUser(' + ${user.id} + ', 2)'">
+                                    <i class="fas fa-times"></i> 拒绝
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 用户列表 -->
+        <div class="content-card">
+            <div class="card-title">
+                <i class="fas fa-list"></i> 用户列表
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>状态</th>
+                            <th>角色</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="user : ${users}">
+                            <td th:text="${user.id}">1</td>
+                            <td th:text="${user.name}">用户名</td>
+                            <td th:text="${user.email}">邮箱</td>
+                            <td>
+                                <span class="badge badge-pending" th:if="${user.status == 0}">待审核</span>
+                                <span class="badge badge-approved" th:if="${user.status == 1}">已通过</span>
+                                <span class="badge badge-rejected" th:if="${user.status == 2}">已拒绝</span>
+                            </td>
+                            <td th:text="${user.roleName}">角色</td>
+                            <td class="text-nowrap">
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        th:onclick="'editUser(' + ${user.id} + ')'">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </button>
+                                <button type="button" class="btn btn-sm btn-warning"
+                                        th:onclick="'assignRole(' + ${user.id} + ', \'' + ${user.name} + '\')'">
+                                    <i class="fas fa-user-tag"></i> 分配角色
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger"
+                                        th:onclick="'deleteUser(' + ${user.id} + ')'"
+                                        th:if="${user.name != 'admin'}">
+                                    <i class="fas fa-trash"></i> 删除
+                                </button>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(users)}">
+                            <td colspan="6" class="text-center" style="padding: 30px; color: #999;">
+                                <i class="fas fa-inbox"></i> 暂无用户数据
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑用户模态框 -->
+    <div id="userModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h5 id="userModalTitle"><i class="fas fa-user-plus"></i> 添加用户</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('userModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="userId">
+                <div class="form-group">
+                    <label for="uName">用户名 <span class="required">*</span></label>
+                    <input type="text" class="form-control" id="uName" placeholder="请输入用户名">
+                </div>
+                <div class="form-group">
+                    <label for="uPassword">密码 <span class="required">*</span></label>
+                    <input type="password" class="form-control" id="uPassword" placeholder="请输入密码">
+                </div>
+                <div class="form-group">
+                    <label for="uEmail">邮箱</label>
+                    <input type="email" class="form-control" id="uEmail" placeholder="请输入邮箱">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分配角色模态框 -->
+    <div id="roleModal" class="modal-overlay" style="display: none;">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h5><i class="fas fa-user-tag"></i> 分配角色</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('roleModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="roleUserId">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" class="form-control" id="roleUserName" readonly>
+                </div>
+                <div class="form-group">
+                    <label>选择角色</label>
+                    <select class="form-control" id="roleSelect">
+                        <option value="">-- 请选择角色 --</option>
+                        <option th:each="role : ${roles}" th:value="${role.name}" th:text="${role.name}">角色名</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" onclick="saveRole()">
+                    <i class="fas fa-save"></i> 保存
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('roleModal')">
+                    <i class="fas fa-times"></i> 取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        function openAddUser() {
+            document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-user-plus"></i> 添加用户';
+            document.getElementById('userId').value = '';
+            document.getElementById('uName').value = '';
+            document.getElementById('uPassword').value = '';
+            document.getElementById('uEmail').value = '';
+            document.getElementById('uName').readOnly = false;
+            openModal('userModal');
+        }
+
+        function editUser(id) {
+            fetchData('/api/user/detail?id=' + id, function(result) {
+                if (result.success) {
+                    var u = result.data;
+                    document.getElementById('userModalTitle').innerHTML = '<i class="fas fa-edit"></i> 编辑用户';
+                    document.getElementById('userId').value = u.id;
+                    document.getElementById('uName').value = u.name;
+                    document.getElementById('uPassword').value = '';
+                    document.getElementById('uEmail').value = u.email || '';
+                    document.getElementById('uName').readOnly = true;
+                    openModal('userModal');
+                } else {
+                    showMessage(result.message || '获取用户信息失败', 'danger');
+                }
+            });
+        }
+
+        function saveUser() {
+            var name = document.getElementById('uName').value.trim();
+            var password = document.getElementById('uPassword').value.trim();
+            var email = document.getElementById('uEmail').value.trim();
+            var id = document.getElementById('userId').value;
+
+            if (!name) {
+                showMessage('用户名不能为空', 'danger');
+                return;
+            }
+            if (!id && !password) {
+                showMessage('密码不能为空', 'danger');
+                return;
+            }
+
+            var data = {name: name, email: email};
+            if (password) data.password = password;
+            if (id) data.id = parseInt(id);
+
+            var url = id ? '/api/user/update' : '/api/user/add';
+            submitForm(url, data, function(result) {
+                if (result.success) {
+                    showMessage(id ? '用户更新成功' : '用户添加成功', 'success');
+                    closeModal('userModal');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '操作失败', 'danger');
+                }
+            });
+        }
+
+        function approveUser(id, status) {
+            var statusText = status === 1 ? '通过' : '拒绝';
+            if (!confirm('确定要' + statusText + '此用户的审核吗？')) return;
+
+            submitForm('/api/user/approve', {id: id, status: status}, function(result) {
+                if (result.success) {
+                    showMessage('审核' + statusText, 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '操作失败', 'danger');
+                }
+            });
+        }
+
+        function assignRole(id, name) {
+            document.getElementById('roleUserId').value = id;
+            document.getElementById('roleUserName').value = name;
+            document.getElementById('roleSelect').value = '';
+            openModal('roleModal');
+        }
+
+        function saveRole() {
+            var userId = document.getElementById('roleUserId').value;
+            var roleName = document.getElementById('roleSelect').value;
+            if (!roleName) {
+                showMessage('请选择角色', 'danger');
+                return;
+            }
+
+            submitForm('/api/user/assignRole', {userId: parseInt(userId), roleName: roleName}, function(result) {
+                if (result.success) {
+                    showMessage('角色分配成功', 'success');
+                    closeModal('roleModal');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '角色分配失败', 'danger');
+                }
+            });
+        }
+
+        function deleteUser(id) {
+            if (!confirm('确定要删除此用户吗？')) return;
+            deleteData('/api/user/delete?id=' + id, function(result) {
+                if (result.success) {
+                    showMessage('用户删除成功', 'success');
+                    setTimeout(function() { location.reload(); }, 1500);
+                } else {
+                    showMessage(result.message || '删除失败', 'danger');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
