@@ -708,9 +708,14 @@ public class ApiController {
     public Map<String, Object> addCustomerJson(@RequestBody Map<String, String> body) {
         Map<String, Object> result = new HashMap<>();
         Customer customer = new Customer();
-        customer.setName(body.get("name"));
-        customer.setTel(body.getOrDefault("phone", ""));
+        customer.setNum(body.getOrDefault("num", ""));
+        customer.setName(body.getOrDefault("name", ""));
         customer.setAddress(body.getOrDefault("address", ""));
+        customer.setTel(body.getOrDefault("tel", ""));
+        customer.setFax(body.getOrDefault("fax", ""));
+        customer.setCode(body.getOrDefault("code", ""));
+        customer.setBank(body.getOrDefault("bank", ""));
+        customer.setAccount(body.getOrDefault("account", ""));
         boolean ok = customerService.addCustomer(customer);
         result.put("success", ok);
         result.put("message", ok ? "添加成功" : "添加失败");
@@ -722,9 +727,14 @@ public class ApiController {
         Map<String, Object> result = new HashMap<>();
         Customer customer = new Customer();
         customer.setId(Integer.parseInt(body.getOrDefault("id", "0")));
-        customer.setName(body.get("name"));
-        customer.setTel(body.getOrDefault("phone", ""));
+        customer.setNum(body.getOrDefault("num", ""));
+        customer.setName(body.getOrDefault("name", ""));
         customer.setAddress(body.getOrDefault("address", ""));
+        customer.setTel(body.getOrDefault("tel", ""));
+        customer.setFax(body.getOrDefault("fax", ""));
+        customer.setCode(body.getOrDefault("code", ""));
+        customer.setBank(body.getOrDefault("bank", ""));
+        customer.setAccount(body.getOrDefault("account", ""));
         boolean ok = customerService.updateCustomer(customer);
         result.put("success", ok);
         result.put("message", ok ? "更新成功" : "更新失败");
