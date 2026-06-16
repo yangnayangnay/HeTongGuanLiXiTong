@@ -338,7 +338,7 @@ public class ContractQueryPanel extends JPanel {
         attachmentPanel.add(lblAttachmentInfo);
 
         // 下载附件按钮（默认隐藏，有附件时显示）
-        btnDownloadAttachment = new JButton("下载附件");
+        btnDownloadAttachment = new JButton("下载合同文档");
         btnDownloadAttachment.setFont(new Font("微软雅黑", Font.PLAIN, 11));
         btnDownloadAttachment.setBackground(new Color(66, 133, 244));
         btnDownloadAttachment.setOpaque(true);

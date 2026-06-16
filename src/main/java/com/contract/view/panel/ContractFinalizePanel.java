@@ -125,14 +125,14 @@ public class ContractFinalizePanel extends JPanel {
         refreshPanel.add(btnViewContract);
 
         // 上传附件按钮
-        JButton btnUpload = new JButton("上传附件");
+        JButton btnUpload = new JButton("上传合同文档");
         btnUpload.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnUpload.setFocusPainted(false);
         btnUpload.addActionListener(e -> uploadAttachment());
         refreshPanel.add(btnUpload);
 
         // 下载附件按钮
-        JButton btnDownload = new JButton("下载附件");
+        JButton btnDownload = new JButton("下载合同文档");
         btnDownload.setFont(new Font("微软雅黑", Font.PLAIN, 13));
         btnDownload.setFocusPainted(false);
         btnDownload.addActionListener(e -> downloadAttachment());

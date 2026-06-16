@@ -220,8 +220,10 @@ public class ContractDraftPanel extends JPanel {
         gbc.anchor = GridBagConstraints.NORTHWEST;  // 标签左上对齐
         formPanel.add(createLabel("合同内容:"), gbc);
 
-        // 合同内容区域面板（包含模板按钮和文本区）
+        // 合同内容区域面板（包含模板按钮、提示文字和文本区）
         JPanel contentPanel = new JPanel(new BorderLayout(5, 5));
+        // 顶部面板：加载模板按钮 + 提示文字
+        JPanel contentTopPanel = new JPanel(new BorderLayout(5, 2));
         // 加载模板按钮：点击后将默认合同模板填充到文本区域
         JButton btnLoadTemplate = new JButton("加载模板");
         btnLoadTemplate.setFont(new Font("微软雅黑", Font.PLAIN, 12));
@@ -229,7 +231,13 @@ public class ContractDraftPanel extends JPanel {
         btnLoadTemplate.setBackground(new Color(241, 196, 15));
         btnLoadTemplate.setOpaque(true);
         btnLoadTemplate.addActionListener(e -> loadContractTemplate());
-        contentPanel.add(btnLoadTemplate, BorderLayout.NORTH);
+        contentTopPanel.add(btnLoadTemplate, BorderLayout.WEST);
+        // 提示文字：说明可以手动输入或上传文档
+        JLabel lblContentHint = new JLabel("可手动输入合同内容，或点击'上传合同文档'按钮上传PDF/Word文件");
+        lblContentHint.setFont(new Font("微软雅黑", Font.PLAIN, 11));
+        lblContentHint.setForeground(Color.GRAY);
+        contentTopPanel.add(lblContentHint, BorderLayout.CENTER);
+        contentPanel.add(contentTopPanel, BorderLayout.NORTH);
 
         gbc.gridx = 1; gbc.gridy = row; gbc.weightx = 1; gbc.gridwidth = 3;
         gbc.anchor = GridBagConstraints.CENTER;      // 文本区居中
@@ -251,12 +259,12 @@ public class ContractDraftPanel extends JPanel {
         JPanel attachPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
 
         // 上传附件按钮：点击后弹出文件选择器选择PDF/Word文档
-        btnUploadFile = new JButton("上传附件");
+        btnUploadFile = new JButton("上传合同文档");
         btnUploadFile.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnUploadFile.setFocusPainted(false);
         btnUploadFile.setBackground(new Color(46, 204, 113));
         btnUploadFile.setOpaque(true);
-        btnUploadFile.setForeground(Color.WHITE);
+        btnUploadFile.setForeground(new Color(20, 80, 40));
         btnUploadFile.addActionListener(e -> uploadAttachment());
         attachPanel.add(btnUploadFile);
 
@@ -266,7 +274,7 @@ public class ContractDraftPanel extends JPanel {
         btnOCR.setFocusPainted(false);
         btnOCR.setBackground(new Color(230, 126, 34));  // 橙色背景
         btnOCR.setOpaque(true);
-        btnOCR.setForeground(Color.WHITE);
+        btnOCR.setForeground(new Color(100, 50, 0));
         btnOCR.setToolTipText("通过OCR识别图片中的合同文字内容");
         btnOCR.addActionListener(e -> performOCRRecognition());
         attachPanel.add(btnOCR);
@@ -278,7 +286,7 @@ public class ContractDraftPanel extends JPanel {
         attachPanel.add(lblFileName);
 
         // 下载附件按钮：将已上传的附件保存到用户选择的本地路径
-        btnDownloadFile = new JButton("下载");
+        btnDownloadFile = new JButton("下载合同文档");
         btnDownloadFile.setFont(new Font("微软雅黑", Font.PLAIN, 12));
         btnDownloadFile.setFocusPainted(false);
         btnDownloadFile.setEnabled(false);  // 默认禁用，有文件后才启用
@@ -595,15 +603,41 @@ public class ContractDraftPanel extends JPanel {
         // 创建文件选择器对话框
         JFileChooser chooser = new JFileChooser();
         chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter(
-            "合同文档 (PDF, Word)", "pdf", "docx", "doc"));
+            "合同文档 (PDF, Word, TXT)", "pdf", "docx", "doc", "txt"));
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
         File selectedFile = chooser.getSelectedFile();
         String selectedName = selectedFile.getName();
+        String ext = FileUploadUtil.getFileExtension(selectedName);
 
-        // 校验文件类型
+        // 如果是文本文件，将内容填充到合同内容文本区域
+        if ("txt".equalsIgnoreCase(ext)) {
+            try {
+                byte[] fileData = FileUploadUtil.readFileToBytes(selectedFile);
+                if (fileData == null) {
+                    JOptionPane.showMessageDialog(this, "文件读取失败！", "错误", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                String textContent = new String(fileData, "UTF-8");
+                txtContent.setText(textContent);
+                // 同时保存为附件
+                this.currentFileData = fileData;
+                this.currentFileName = selectedName;
+                lblFileName.setText(selectedName + " (" + formatFileSize(fileData.length) + ")");
+                lblFileName.setForeground(new Color(39, 174, 96));
+                btnDownloadFile.setEnabled(true);
+                JOptionPane.showMessageDialog(this, "文本文件内容已填充到合同内容区域！", "成功", JOptionPane.INFORMATION_MESSAGE);
+                FileLogger.info("ContractDraftPanel", "uploadAttachment", "文本文件上传: " + selectedName);
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "读取文件失败: " + e.getMessage(), "错误", JOptionPane.ERROR_MESSAGE);
+                FileLogger.error("ContractDraftPanel", "uploadAttachment", "读取文本文件失败", e);
+            }
+            return;
+        }
+
+        // 校验文件类型（非文本文件走原有逻辑）
         if (!FileUploadUtil.isAllowedFileType(selectedName)) {
-            JOptionPane.showMessageDialog(this, "仅支持PDF、DOCX、DOC格式！", "提示", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "仅支持PDF、DOCX、DOC、TXT格式！", "提示", JOptionPane.WARNING_MESSAGE);
             return;
         }
 

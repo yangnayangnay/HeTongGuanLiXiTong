@@ -192,7 +192,7 @@ public class RegisterFrame extends JFrame {
         btnCancel.setFont(new Font("微软雅黑", Font.PLAIN, 14));
         btnCancel.setPreferredSize(new Dimension(130, 40));
         btnCancel.setBackground(BTN_CANCEL_BG);
-        btnCancel.setForeground(Color.WHITE);
+        btnCancel.setForeground(Color.BLACK);
         btnCancel.setOpaque(true);
         btnCancel.setContentAreaFilled(true);
         btnCancel.setFocusPainted(false);
