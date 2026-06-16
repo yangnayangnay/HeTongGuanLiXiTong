@@ -47,13 +47,13 @@ public class ContractVersionDao {
             if (ver.getContent() != null) {
                 pstmt.setString(4, ver.getContent());
             } else {
-                pstmt.setNull(4, java.sql.Types.LONGVARCHAR);
+                pstmt.setNull(4, java.sql.Types.CLOB);
             }
             // BLOB字段处理
             if (ver.getFileData() != null) {
                 pstmt.setBytes(5, ver.getFileData());
             } else {
-                pstmt.setNull(5, java.sql.Types.LONGVARBINARY);
+                pstmt.setNull(5, java.sql.Types.BLOB);
             }
             pstmt.setString(6, ver.getFileName());
             pstmt.setString(7, ver.getModifier());
@@ -182,8 +182,8 @@ public class ContractVersionDao {
         try {
             conn = DBUtil.getConnection();
             pstmt = conn.prepareStatement(
-                "SELECT IFNULL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
-            FileLogger.debug("ContractVersionDao", "getNextVersionNumber", "SQL=SELECT IFNULL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
+                "SELECT NVL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
+            FileLogger.debug("ContractVersionDao", "getNextVersionNumber", "SQL=SELECT NVL(MAX(version_no), 0) FROM t_contract_version WHERE contract_num = ?");
             pstmt.setString(1, contractNum);
             rs = pstmt.executeQuery();
             if (rs.next()) {
