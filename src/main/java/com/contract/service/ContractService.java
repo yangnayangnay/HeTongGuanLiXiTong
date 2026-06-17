@@ -10,9 +10,11 @@ import com.contract.entity.ContractProcess;
 import com.contract.entity.ContractState;
 import com.contract.entity.ContractAttachment;
 import com.contract.entity.Log;
+import com.contract.entity.User;
 import com.contract.util.NetworkUtil;
 import com.contract.util.FileLogger;
 import com.contract.util.EmailService;
+import com.contract.util.DBUtil;
 import com.contract.dao.UserDao;
 import com.contract.service.ContractVersionService;
 import org.springframework.stereotype.Service;
@@ -79,11 +81,28 @@ public class ContractService {
      */
     public boolean draftContract(Contract contract) {
         FileLogger.info("ContractService", "draftContract", "开始起草合同, 合同名称: " + contract.getName() + ", 客户: " + contract.getCustomer());
-        // 生成合同编号：HT + 当前日期 + 4位流水号
+        // 生成合同编号：HT + 当前日期 + 序列号，确保唯一
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd");
-        String num = "HT" + sdf.format(new Date()) + String.format("%04d", contractDao.findAll().size() + 1);
+        String datePart = sdf.format(new Date());
+        String num;
+        int seq = DBUtil.getNextId("seq_contract");
+        num = "HT" + datePart + String.format("%04d", seq);
+        // 确保编号唯一，如果已存在则追加序号
+        while (contractDao.findByNum(num) != null) {
+            seq++;
+            num = "HT" + datePart + String.format("%04d", seq);
+        }
         contract.setNum(num);
         FileLogger.info("ContractService", "draftContract", "生成合同编号: " + num);
+
+        // 将合同内容中的合同编号占位符替换为实际编号
+        String contractContent = contract.getContent();
+        if (contractContent != null && !contractContent.isEmpty()) {
+            contractContent = contractContent.replace("{{合同编号}}", num);
+            contractContent = contractContent.replace("{{contractNo}}", num);
+            contractContent = contractContent.replace("{{编号}}", num);
+            contract.setContent(contractContent);
+        }
 
         boolean result = contractDao.insert(contract);
         if (result) {
@@ -123,11 +142,15 @@ public class ContractService {
      */
     public boolean assignContract(String conNum, List<String> countersignUsers, List<String> approveUsers, List<String> signUsers) {
         FileLogger.info("ContractService", "assignContract", "开始分配合同人员, 合同编号: " + conNum + ", 会签人数: " + countersignUsers.size() + ", 审批人数: " + approveUsers.size() + ", 签订人数: " + signUsers.size());
-        // 验证合同当前状态必须是"起草"才能分配
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state == null || state.getType() != 1) {
             FileLogger.info("ContractService", "assignContract", "分配失败, 合同状态不正确, 合同编号: " + conNum + ", 当前状态: " + (state != null ? state.getType() : "无"));
-            return false;  // 状态不对，不允许分配
+            return false;
+        }
+        List<ContractProcess> existingProcesses = processDao.findByConNum(conNum);
+        if (existingProcesses != null && !existingProcesses.isEmpty()) {
+            FileLogger.warn("ContractService", "assignContract", "分配失败, 合同已分配过人员, 合同编号: " + conNum);
+            return false;
         }
 
         // 为每位会签人员创建流程记录（type=1表示会签）
@@ -142,14 +165,15 @@ public class ContractService {
             processDao.insert(cp);
         }
 
-        // 发送邮件通知会签人员
+        // 发送邮件通知会签人员（附带合同附件）
+        Contract contractForEmail = contractDao.findByNum(conNum);
         for (String userName : countersignUsers) {
             try {
                 com.contract.entity.User u = userDao.findByName(userName);
                 if (u != null && u.getEmail() != null) {
-                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
-                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
-                        "会签", 5, 5000);
+                    sendEmailWithContract(u.getEmail(), userName, conNum,
+                        contractForEmail != null ? contractForEmail.getName() : conNum,
+                        "会签", contractForEmail);
                 }
             } catch (Exception e) {
                 FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
@@ -157,6 +181,7 @@ public class ContractService {
         }
 
         // 为每位审批人员创建流程记录（type=2表示审批）
+        // 注意：审批人员此时不发送邮件通知，等合同定稿后才通知
         for (String userName : approveUsers) {
             ContractProcess cp = new ContractProcess();
             cp.setConNum(conNum);
@@ -168,21 +193,8 @@ public class ContractService {
             processDao.insert(cp);
         }
 
-        // 发送邮件通知审批人员
-        for (String userName : approveUsers) {
-            try {
-                com.contract.entity.User u = userDao.findByName(userName);
-                if (u != null && u.getEmail() != null) {
-                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
-                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
-                        "审批", 5, 5000);
-                }
-            } catch (Exception e) {
-                FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
-            }
-        }
-
         // 为每位签订人员创建流程记录（type=3表示签订）
+        // 注意：签订人员此时不发送邮件通知，等合同审批通过后才通知
         for (String userName : signUsers) {
             ContractProcess cp = new ContractProcess();
             cp.setConNum(conNum);
@@ -192,20 +204,6 @@ public class ContractService {
             cp.setContent("");
             cp.setTime(new Date());
             processDao.insert(cp);
-        }
-
-        // 发送邮件通知签订人员
-        for (String userName : signUsers) {
-            try {
-                com.contract.entity.User u = userDao.findByName(userName);
-                if (u != null && u.getEmail() != null) {
-                    EmailService.sendWithRetry(u.getEmail(), userName, conNum,
-                        contractDao.findByNum(conNum) != null ? contractDao.findByNum(conNum).getName() : conNum,
-                        "签订", 5, 5000);
-                }
-            } catch (Exception e) {
-                FileLogger.error("ContractService", "assignContract", "发送邮件失败: " + userName + ", " + e.getMessage(), e);
-            }
         }
 
         FileLogger.info("ContractService", "assignContract", "分配合同人员成功, 合同编号: " + conNum);
@@ -309,6 +307,22 @@ public class ContractService {
             stateDao.insert(cs);
             FileLogger.info("ContractService", "finalizeContract", "状态变更: 会签完成 -> 定稿完成, 合同编号: " + conNum);
 
+            // 定稿完成后通知审批人员
+            List<ContractProcess> approveList = processDao.findByConNumAndType(conNum, 2);
+            for (ContractProcess ap : approveList) {
+                if (ap.getState() == 0) { // 只通知待处理的审批人员
+                    try {
+                        User u = userDao.findByName(ap.getUserName());
+                        if (u != null && u.getEmail() != null) {
+                            sendEmailWithContract(u.getEmail(), ap.getUserName(), conNum,
+                                contract.getName(), "审批", contract);
+                        }
+                    } catch (Exception e) {
+                        FileLogger.error("ContractService", "finalizeContract", "通知审批人员失败: " + e.getMessage(), e);
+                    }
+                }
+            }
+
             Log finalizeLog = new Log(0, userName, "定稿合同: " + conNum, null);
             finalizeLog.setIpAddress(NetworkUtil.getLocalIPAddress());
             finalizeLog.setOldValue("状态=会签完成");
@@ -356,17 +370,79 @@ public class ContractService {
                         cs.setTime(new Date());
                         stateDao.insert(cs);
                         FileLogger.info("ContractService", "approveContract", "状态变更: 定稿完成 -> 审批完成, 合同编号: " + cp.getConNum());
+
+                        // 审批全部通过后通知签订人员
+                        Contract contract = contractDao.findByNum(cp.getConNum());
+                        String contractName = contract != null ? contract.getName() : cp.getConNum();
+                        List<ContractProcess> signList = processDao.findByConNumAndType(cp.getConNum(), 3);
+                        for (ContractProcess sp : signList) {
+                            if (sp.getState() == 0) {
+                                try {
+                                    User u = userDao.findByName(sp.getUserName());
+                                    if (u != null && u.getEmail() != null) {
+                                        sendEmailWithContract(u.getEmail(), sp.getUserName(), cp.getConNum(),
+                                            contractName, "签订", contract);
+                                    }
+                                } catch (Exception e) {
+                                    FileLogger.error("ContractService", "approveContract", "通知签订人员失败: " + e.getMessage(), e);
+                                }
+                            }
+                        }
                     } else {
                         FileLogger.info("ContractService", "approveContract", "审批进行中, 合同编号: " + cp.getConNum() + ", 尚有未完成审批");
                     }
                 } else {
-                    // 审批否决：状态回退到"起草"（type=1），需重新走流程
+                    // 审批否决：状态回退到"会签完成"（type=2），需重新定稿
                     ContractState cs = new ContractState();
                     cs.setConNum(cp.getConNum());
-                    cs.setType(1); // 回退到起草
+                    cs.setType(2); // 回退到会签完成
                     cs.setTime(new Date());
                     stateDao.insert(cs);
-                    FileLogger.warn("ContractService", "approveContract", "状态变更: 定稿完成 -> 起草（审批否决回退）, 合同编号: " + cp.getConNum());
+                    FileLogger.warn("ContractService", "approveContract", "状态变更: 定稿完成 -> 会签完成（审批否决回退）, 合同编号: " + cp.getConNum());
+
+                    // 为每个审批人创建新的待处理记录，保留否决意见作为历史
+                    List<ContractProcess> approveList = processDao.findByConNumAndType(cp.getConNum(), 2);
+                    for (ContractProcess ap : approveList) {
+                        if (ap.getState() == 1 || ap.getState() == 2) {
+                            ContractProcess newProcess = new ContractProcess();
+                            newProcess.setConNum(cp.getConNum());
+                            newProcess.setType(2);
+                            newProcess.setState(0);
+                            newProcess.setUserName(ap.getUserName());
+                            newProcess.setContent("");
+                            newProcess.setTime(new Date());
+                            processDao.insert(newProcess);
+                        }
+                    }
+                    FileLogger.info("ContractService", "approveContract", "已为审批人创建新待处理记录, 合同编号: " + cp.getConNum());
+
+                    // 通知起草人和会签人员
+                    Contract contract = contractDao.findByNum(cp.getConNum());
+                    String contractName = contract != null ? contract.getName() : cp.getConNum();
+                    // 通知起草人
+                    if (contract != null && contract.getUserName() != null) {
+                        try {
+                            User drafter = userDao.findByName(contract.getUserName());
+                            if (drafter != null && drafter.getEmail() != null) {
+                                EmailService.sendTaskNotification(drafter.getEmail(), contract.getUserName(),
+                                    cp.getConNum(), contractName, "审批否决通知");
+                            }
+                        } catch (Exception ex) {
+                            FileLogger.error("ContractService", "approveContract", "通知起草人失败: " + ex.getMessage(), ex);
+                        }
+                    }
+                    List<ContractProcess> countersignList = processDao.findByConNumAndType(cp.getConNum(), 1);
+                    for (ContractProcess csp : countersignList) {
+                        try {
+                            User csUser = userDao.findByName(csp.getUserName());
+                            if (csUser != null && csUser.getEmail() != null) {
+                                EmailService.sendTaskNotification(csUser.getEmail(), csp.getUserName(),
+                                    cp.getConNum(), contractName, "审批否决通知");
+                            }
+                        } catch (Exception ex) {
+                            FileLogger.error("ContractService", "approveContract", "通知会签人失败: " + ex.getMessage(), ex);
+                        }
+                    }
                 }
                 Log approveLog = new Log(0, userName, (approved ? "审批通过" : "审批否决") + "合同: " + cp.getConNum(), null);
                 approveLog.setIpAddress(NetworkUtil.getLocalIPAddress());
@@ -375,7 +451,7 @@ public class ContractService {
                     approveLog.setNewValue("状态=审批完成");
                 } else {
                     approveLog.setOldValue("状态=定稿完成");
-                    approveLog.setNewValue("状态=起草（回退）");
+                    approveLog.setNewValue("状态=会签完成（审批否决回退）");
                 }
                 logDao.insert(approveLog);
                 FileLogger.info("ContractService", "approveContract", "审批操作完成, 合同编号: " + cp.getConNum() + ", 结果: " + (approved ? "通过" : "否决"));
@@ -431,6 +507,92 @@ public class ContractService {
     }
 
     /**
+     * 将签名信息插入到合同内容的对应位置
+     * 合同内容中应包含【甲方签名】和【乙方签名】标记，签名将替换对应标记
+     * 如果没有标记，则在内容末尾追加签名区
+     */
+    public void insertSignatureToContract(String conNum, String party, String userName, String signInfo) {
+        Contract contract = contractDao.findByNum(conNum);
+        if (contract == null) return;
+        String content = contract.getContent();
+        if (content == null) content = "";
+
+        String timestamp = new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date());
+
+        String signatureContent;
+        if (signInfo.contains("[签名图片]") && signInfo.contains("data:")) {
+            String imgUrl = signInfo.replace("[签名图片]", "").trim();
+            signatureContent = "\n" + party + "签名: " + userName + " (" + timestamp + ")\n" +
+                "<img src=\"" + imgUrl + "\" alt=\"" + party + "签名\" style=\"max-height:80px;border:1px solid #ccc;border-radius:4px;padding:2px;display:block;\">\n";
+        } else {
+            signatureContent = "\n" + party + "签名: " + userName + " (" + timestamp + ")\n";
+        }
+
+        String marker = "【" + party + "签名】";
+        if (content.contains(marker)) {
+            content = content.replace(marker, signatureContent);
+        } else {
+            if (!content.contains("甲方签名:") && !content.contains("乙方签名:")) {
+                content += "\n\n========== 签名区 ==========\n";
+            }
+            content += "\n" + signatureContent;
+        }
+
+        contract.setContent(content);
+
+        try {
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
+            com.itextpdf.text.pdf.PdfWriter.getInstance(document, baos);
+            document.open();
+            com.itextpdf.text.pdf.BaseFont bfChinese = com.itextpdf.text.pdf.BaseFont.createFont(
+                "STSong-Light", "UniGB-UCS2-H", com.itextpdf.text.pdf.BaseFont.NOT_EMBEDDED);
+            com.itextpdf.text.Font fontChinese = new com.itextpdf.text.Font(bfChinese, 12, com.itextpdf.text.Font.NORMAL);
+            com.itextpdf.text.Font fontTitle = new com.itextpdf.text.Font(bfChinese, 18, com.itextpdf.text.Font.BOLD);
+            com.itextpdf.text.Paragraph title = new com.itextpdf.text.Paragraph(contract.getName() != null ? contract.getName() : "合同", fontTitle);
+            title.setAlignment(com.itextpdf.text.Element.ALIGN_CENTER);
+            title.setSpacingAfter(20);
+            document.add(title);
+            String[] lines = content.split("\n");
+            for (String line : lines) {
+                line = line.trim();
+                if (line.isEmpty()) { document.add(new com.itextpdf.text.Paragraph(" ", fontChinese)); continue; }
+                if (line.contains("<img") && line.contains("src=")) {
+                    java.util.regex.Matcher m = java.util.regex.Pattern.compile("src=\"([^\"]+)\"").matcher(line);
+                    if (m.find()) {
+                        String src = m.group(1);
+                        try {
+                            if (src.startsWith("data:image")) {
+                                String[] parts = src.split(",", 2);
+                                if (parts.length == 2) {
+                                    byte[] imgBytes = java.util.Base64.getDecoder().decode(parts[1]);
+                                    com.itextpdf.text.Image img = com.itextpdf.text.Image.getInstance(imgBytes);
+                                    img.scaleToFit(150, 60);
+                                    document.add(img);
+                                }
+                            }
+                        } catch (Exception imgEx) {
+                            document.add(new com.itextpdf.text.Paragraph("[签名图片]", fontChinese));
+                        }
+                    }
+                } else {
+                    document.add(new com.itextpdf.text.Paragraph(line, fontChinese));
+                }
+            }
+            document.close();
+            contract.setFileData(baos.toByteArray());
+            contract.setFileName(contract.getName() != null ? contract.getName() + "_signed.pdf" : "contract_signed.pdf");
+            contract.setFileType("pdf");
+        } catch (Exception e) {
+            FileLogger.error("ContractService", "insertSignatureToContract", "生成签名PDF失败: " + e.getMessage(), e);
+        }
+
+        contractDao.update(contract);
+        FileLogger.info("ContractService", "insertSignatureToContract",
+            "签名已插入合同并更新PDF, 编号: " + conNum + ", 签约方: " + party + ", 签署人: " + userName);
+    }
+
+    /**
      * 根据ID获取流程记录
      *
      * @param id 流程记录ID
@@ -462,12 +624,35 @@ public class ContractService {
      * @return 状态类型码（1-5）；无记录返回0
      */
     public int getContractStateType(String conNum) {
-        FileLogger.info("ContractService", "getContractStateType", "获取合同状态类型, 合同编号: " + conNum);
         ContractState state = stateDao.findLatestByConNum(conNum);
         if (state != null) {
             return state.getType();
         }
         return 0;
+    }
+
+    public java.util.Map<String, Integer> getAllContractStateTypes() {
+        java.util.Map<String, Integer> map = new java.util.HashMap<>();
+        try {
+            java.sql.Connection conn = DBUtil.getConnection();
+            java.sql.PreparedStatement ps = conn.prepareStatement("SELECT conNum, type FROM (SELECT conNum, type, ROW_NUMBER() OVER (PARTITION BY conNum ORDER BY id DESC) rn FROM t_contract_state) sub WHERE sub.rn = 1");
+            java.sql.ResultSet rs = ps.executeQuery();
+            while (rs.next()) {
+                map.put(rs.getString("conNum"), rs.getInt("type"));
+            }
+            DBUtil.close(conn, ps, rs);
+            FileLogger.info("ContractService", "getAllContractStateTypes", "批量查询合同状态完成, 共" + map.size() + "条");
+        } catch (Exception e) {
+            FileLogger.error("ContractService", "getAllContractStateTypes", "批量查询失败，回退逐个查询: " + e.getMessage(), e);
+            List<Contract> all = contractDao.findAll();
+            for (Contract c : all) {
+                ContractState state = stateDao.findLatestByConNum(c.getNum());
+                if (state != null) {
+                    map.put(c.getNum(), state.getType());
+                }
+            }
+        }
+        return map;
     }
 
     /**
@@ -476,6 +661,30 @@ public class ContractService {
     public Contract findByNum(String num) {
         FileLogger.info("ContractService", "findByNum", "根据编号查找合同, 合同编号: " + num);
         return contractDao.findByNum(num);
+    }
+
+    public boolean updateContract(Contract contract) {
+        return contractDao.update(contract);
+    }
+
+    /**
+     * 发送邮件并附带合同文件附件
+     * 如果合同有附件则附带，没有附件则将合同内容作为txt附件
+     */
+    private void sendEmailWithContract(String toEmail, String userName, String conNum,
+                                        String contractName, String taskType, Contract contract) {
+        byte[] attachmentData = null;
+        String attachmentName = null;
+        // 只有实际上传了合同文件才附附件，没有文件则发纯文本邮件
+        if (contract != null && contract.getFileData() != null && contract.getFileData().length > 0) {
+            attachmentData = contract.getFileData();
+            attachmentName = contract.getFileName() != null ? contract.getFileName() : contractName + ".bin";
+        }
+        if (attachmentData != null) {
+            EmailService.sendTaskNotificationWithAttachment(toEmail, userName, conNum, contractName, taskType, attachmentData, attachmentName);
+        } else {
+            EmailService.sendWithRetry(toEmail, userName, conNum, contractName, taskType, 5, 5000);
+        }
     }
 
     /**

@@ -29,8 +29,10 @@ import java.util.Date;
  */
 public class FileLogger {
 
-    /** 日志目录路径 */
-    private static final String LOG_DIR = System.getProperty("user.home") + File.separator + ".contract" + File.separator + "logs";
+    /** 日志目录路径（优先使用环境变量，其次项目目录，最后用户目录） */
+    private static final String LOG_DIR = System.getProperty("contract.log.dir",
+        System.getenv("CONTRACT_LOG_DIR") != null ? System.getenv("CONTRACT_LOG_DIR") :
+        System.getProperty("user.home") + File.separator + ".contract" + File.separator + "logs");
     /** 单个日志文件最大大小：2GB */
     private static final long MAX_FILE_SIZE = 2L * 1024 * 1024 * 1024;  // 2GB
     /** 日期格式（用于文件名和日志时间戳） */

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,72 +10,48 @@
 </head>
 <body>
     <div style="padding: 20px;">
-        <!-- 页面标题 -->
         <div class="page-header">
             <h4><i class="fas fa-project-diagram"></i> 流程查询</h4>
         </div>
 
-        <!-- 筛选区域 -->
         <div class="content-card">
             <div class="search-bar">
                 <label style="font-weight: 500; margin-bottom: 0;">合同状态：</label>
-                <select class="form-control" id="stateFilter" style="width: auto; min-width: 150px;" onchange="filterByState()">
+                <select class="form-control" id="stateFilter" style="width: auto; min-width: 150px;">
                     <option value="">全部状态</option>
                     <option value="1">起草</option>
-                    <option value="2">会签</option>
-                    <option value="3">定稿</option>
-                    <option value="4">审批</option>
-                    <option value="5">签订</option>
+                    <option value="2">会签完成</option>
+                    <option value="3">定稿完成</option>
+                    <option value="4">审批完成</option>
+                    <option value="5">签订完成</option>
                 </select>
-                <input type="text" class="form-control" id="searchContract" placeholder="合同编号或名称"
-                       style="min-width: 200px;">
-                <button type="button" class="btn btn-primary" onclick="searchFlow()">
-                    <i class="fas fa-search"></i> 查询
-                </button>
+                <input type="text" class="form-control" id="searchContract" placeholder="合同编号或名称" style="min-width: 200px;">
+                <input type="date" class="form-control" id="startDate" placeholder="开始日期" style="min-width: 150px;">
+                <input type="date" class="form-control" id="endDate" placeholder="结束日期" style="min-width: 150px;">
+                <button type="button" class="btn btn-primary" onclick="searchFlow()"><i class="fas fa-search"></i> 查询</button>
+                <button type="button" class="btn btn-secondary" onclick="resetSearch()"><i class="fas fa-redo"></i> 重置</button>
             </div>
         </div>
 
-        <!-- 流程历史列表 -->
         <div class="content-card">
-            <div class="card-title">
-                <i class="fas fa-history"></i> 流程历史
-            </div>
+            <div class="card-title"><i class="fas fa-history"></i> 合同流程状态</div>
             <div class="table-wrapper">
                 <table class="data-table">
                     <thead>
                         <tr>
                             <th>合同编号</th>
                             <th>合同名称</th>
-                            <th>流程类型</th>
-                            <th>操作人</th>
-                            <th>处理状态</th>
-                            <th>处理意见</th>
-                            <th>操作时间</th>
+                            <th>起草人</th>
+                            <th>会签人</th>
+                            <th>定稿人</th>
+                            <th>审批人</th>
+                            <th>签订人</th>
+                            <th>当前状态</th>
+                            <th>更新时间</th>
                         </tr>
                     </thead>
                     <tbody id="flowList">
-                        <tr th:each="process : ${processes}">
-                            <td th:text="${process.conNum}">HT2024001</td>
-                            <td th:text="${process.contractName}">合同名称</td>
-                            <td>
-                                <span class="badge badge-countersign" th:if="${process.type == 1}">会签</span>
-                                <span class="badge badge-approve" th:if="${process.type == 2}">审批</span>
-                                <span class="badge badge-sign" th:if="${process.type == 3}">签订</span>
-                            </td>
-                            <td th:text="${process.userName}">操作人</td>
-                            <td>
-                                <span class="badge badge-pending" th:if="${process.state == 0}">未完成</span>
-                                <span class="badge badge-completed" th:if="${process.state == 1}">已完成</span>
-                                <span class="badge badge-rejected" th:if="${process.state == 2}">已否决</span>
-                            </td>
-                            <td th:text="${process.content}">意见内容</td>
-                            <td th:text="${process.time != null ? #dates.format(process.time, 'yyyy-MM-dd HH:mm') : ''}">2024-01-01</td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(processes)}">
-                            <td colspan="7" class="text-center" style="padding: 30px; color: #999;">
-                                <i class="fas fa-inbox"></i> 暂无流程记录
-                            </td>
-                        </tr>
+                        <tr><td colspan="9" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -84,56 +60,64 @@
 
     <script src="/js/app.js"></script>
     <script>
-        function filterByState() {
-            searchFlow();
-        }
-
         function searchFlow() {
             var state = document.getElementById('stateFilter').value;
             var keyword = document.getElementById('searchContract').value.trim();
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
             var params = [];
             if (state) params.push('state=' + state);
             if (keyword) params.push('keyword=' + encodeURIComponent(keyword));
+            if (startDate) params.push('startDate=' + startDate);
+            if (endDate) params.push('endDate=' + endDate);
+
+            document.getElementById('flowList').innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
 
             fetchData('/api/contract/flow?' + params.join('&'), function(result) {
                 if (result.success) {
                     renderFlowList(result.data || []);
                 } else {
-                    showMessage(result.message || '查询失败', 'danger');
+                    document.getElementById('flowList').innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 30px; color: #e74c3c;"><i class="fas fa-exclamation-circle"></i> ' + (result.message || '查询失败') + '</td></tr>';
                 }
             });
+        }
+
+        function resetSearch() {
+            document.getElementById('stateFilter').value = '';
+            document.getElementById('searchContract').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            searchFlow();
         }
 
         function renderFlowList(list) {
             var tbody = document.getElementById('flowList');
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无流程记录</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无流程记录</td></tr>';
                 return;
             }
+            var stateNames = {1: '起草', 2: '会签完成', 3: '定稿完成', 4: '审批完成', 5: '签订完成'};
+            var stateClasses = {1: 'badge-pending', 2: 'badge-countersign', 3: 'badge-info', 4: 'badge-approve', 5: 'badge-sign'};
             var html = '';
             list.forEach(function(p) {
-                var typeBadge = '';
-                if (p.type === 1) typeBadge = '<span class="badge badge-countersign">会签</span>';
-                else if (p.type === 2) typeBadge = '<span class="badge badge-approve">审批</span>';
-                else if (p.type === 3) typeBadge = '<span class="badge badge-sign">签订</span>';
-
-                var stateBadge = '';
-                if (p.state === 0) stateBadge = '<span class="badge badge-pending">未完成</span>';
-                else if (p.state === 1) stateBadge = '<span class="badge badge-completed">已完成</span>';
-                else if (p.state === 2) stateBadge = '<span class="badge badge-rejected">已否决</span>';
-
+                var st = p.stateType || 1;
+                var stateBadge = '<span class="badge ' + (stateClasses[st] || 'badge-pending') + '">' + (stateNames[st] || '未知') + '</span>';
                 html += '<tr>' +
                     '<td>' + (p.conNum || '') + '</td>' +
                     '<td>' + (p.contractName || '') + '</td>' +
-                    '<td>' + typeBadge + '</td>' +
                     '<td>' + (p.userName || '') + '</td>' +
+                    '<td>' + (p.countersignUsers || '-') + '</td>' +
+                    '<td>' + (p.finalizer || '-') + '</td>' +
+                    '<td>' + (p.approveUsers || '-') + '</td>' +
+                    '<td>' + (p.signUsers || '-') + '</td>' +
                     '<td>' + stateBadge + '</td>' +
-                    '<td>' + (p.content || '') + '</td>' +
                     '<td>' + formatDate(p.time) + '</td>' +
                     '</tr>';
             });
             tbody.innerHTML = html;
         }
+
+        searchFlow();
     </script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,184 +10,128 @@
 </head>
 <body>
     <div style="padding: 20px;">
-        <!-- 页面标题 -->
-        <div class="page-header">
-            <h4><i class="fas fa-thumbs-up"></i> 审批合同</h4>
-        </div>
-
-        <!-- 待审批合同列表 -->
+        <div class="page-header"><h4><i class="fas fa-thumbs-up"></i> 审批合同</h4></div>
         <div class="content-card">
-            <div class="card-title">
-                <i class="fas fa-list"></i> 待审批合同
-            </div>
+            <div class="card-title"><i class="fas fa-list"></i> 待审批合同</div>
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>合同编号</th>
-                            <th>合同名称</th>
-                            <th>客户</th>
-                            <th>起草人</th>
-                            <th>开始时间</th>
-                            <th>结束时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="contract : ${contracts}">
-                            <td th:text="${contract.num}">HT2024001</td>
-                            <td th:text="${contract.name}">合同名称</td>
-                            <td th:text="${contract.customer}">客户名称</td>
-                            <td th:text="${contract.userName}">起草人</td>
-                            <td th:text="${contract.beginTime != null ? #dates.format(contract.beginTime, 'yyyy-MM-dd') : ''}">2024-01-01</td>
-                            <td th:text="${contract.endTime != null ? #dates.format(contract.endTime, 'yyyy-MM-dd') : ''}">2024-12-31</td>
-                            <td class="text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                        th:data-num="${contract.num}" onclick="viewContract(this.dataset.num)">
-                                    <i class="fas fa-eye"></i> 查看
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-info"
-                                        th:data-num="${contract.num}" onclick="downloadContract(this.dataset.num)">
-                                    <i class="fas fa-download"></i> 下载
-                                </button>
-                                <button type="button" class="btn btn-sm btn-success"
-                                        th:data-num="${contract.num}" onclick="openApprove(this.dataset.num)">
-                                    <i class="fas fa-check"></i> 审批
-                                </button>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(contracts)}">
-                            <td colspan="7" class="text-center" style="padding: 30px; color: #999;">
-                                <i class="fas fa-inbox"></i> 暂无待审批合同
-                            </td>
-                        </tr>
-                    </tbody>
+                    <thead><tr><th>合同编号</th><th>合同名称</th><th>客户</th><th>起草人</th><th>开始时间</th><th>结束时间</th><th>操作</th></tr></thead>
+                    <tbody id="contractList"><tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
-
-    <!-- 查看合同详情模态框 -->
     <div id="viewModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog" style="max-width: 700px;">
-            <div class="modal-header">
-                <h5><i class="fas fa-file-contract"></i> 合同详情</h5>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('viewModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body" id="contractDetail">
-            </div>
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header"><h5><i class="fas fa-file-contract"></i> 合同详情</h5><button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('viewModal')"><i class="fas fa-times"></i></button></div>
+            <div class="c-modal-body" id="contractDetail"></div>
         </div>
     </div>
-
-    <!-- 审批模态框 -->
     <div id="approveModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog">
-            <div class="modal-header">
-                <h5><i class="fas fa-thumbs-up"></i> 审批合同</h5>
-                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('approveModal')">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="modal-body">
+        <div class="c-modal-dialog">
+            <div class="c-modal-header"><h5><i class="fas fa-thumbs-up"></i> 审批合同</h5><button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('approveModal')"><i class="fas fa-times"></i></button></div>
+            <div class="c-modal-body">
                 <input type="hidden" id="apContractNum">
-                <div class="form-group">
-                    <label>合同编号</label>
-                    <input type="text" class="form-control" id="apContractNumDisplay" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="apContent">审批意见</label>
-                    <textarea class="form-control" id="apContent" rows="4"
-                              placeholder="请输入审批意见"></textarea>
-                </div>
+                <div class="form-group"><label>合同编号</label><input type="text" class="form-control" id="apContractNumDisplay" readonly></div>
+                <div class="form-group"><label for="apContent">审批意见</label><textarea class="form-control" id="apContent" rows="4" placeholder="请输入审批意见"></textarea></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success" onclick="submitApprove(1)">
-                    <i class="fas fa-check"></i> 通过
-                </button>
-                <button type="button" class="btn btn-danger" onclick="submitApprove(2)">
-                    <i class="fas fa-times"></i> 拒绝
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="closeModal('approveModal')">
-                    取消
-                </button>
+            <div class="c-modal-footer">
+                <button type="button" class="btn btn-success" onclick="submitApprove(1)"><i class="fas fa-check"></i> 通过</button>
+                <button type="button" class="btn btn-danger" onclick="submitApprove(2)"><i class="fas fa-times"></i> 拒绝</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('approveModal')">取消</button>
             </div>
         </div>
     </div>
-
     <script src="/js/app.js"></script>
     <script>
+        function loadContracts() {
+            document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+            fetchData('/api/tasks/pending', function(result) {
+                if (!result.success) { document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="color:#e74c3c;">加载失败</td></tr>'; return; }
+                var tasks = (result.data || []).filter(function(t) { return t.type === 2; });
+                if (tasks.length === 0) { document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无待审批合同</td></tr>'; return; }
+                var html = '';
+                tasks.forEach(function(t) {
+                    html += '<tr><td>' + (t.conNum || '') + '</td><td>' + (t.contractName || '') + '</td><td>-</td><td>-</td><td>-</td><td>-</td><td class="text-nowrap">' +
+                        '<button type="button" class="btn btn-sm btn-outline-warning" onclick="viewOpinions(\'' + t.conNum + '\')"><i class="fas fa-comments"></i> 意见</button> ' +
+                        '<button type="button" class="btn btn-sm btn-outline-primary" onclick="viewContract(\'' + t.conNum + '\')"><i class="fas fa-eye"></i> 查看</button> ' +
+                        '<button type="button" class="btn btn-sm btn-outline-info" onclick="downloadContract(\'' + t.conNum + '\')"><i class="fas fa-download"></i> 下载</button> ' +
+                        '<button type="button" class="btn btn-sm btn-success" onclick="openApprove(\'' + t.conNum + '\')"><i class="fas fa-check"></i> 审批</button></td></tr>';
+                });
+                document.getElementById('contractList').innerHTML = html;
+            });
+        }
         function viewContract(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
-                if (result.success) {
-                    var c = result.data;
-                    document.getElementById('contractDetail').innerHTML =
-                        '<div class="detail-grid">' +
-                        '<div class="detail-item"><span class="detail-label">合同编号：</span><span class="detail-value">' + (c.num || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">合同名称：</span><span class="detail-value">' + (c.name || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">客户：</span><span class="detail-value">' + (c.customer || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">起草人：</span><span class="detail-value">' + (c.userName || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
-                        '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
-                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
-                    openModal('viewModal');
-                } else {
-                    showMessage(result.message || '获取合同详情失败', 'danger');
-                }
+                if (!result.success) { showMessage('获取详情失败', 'danger'); return; }
+                var c = result.data;
+                document.getElementById('contractDetail').innerHTML = '<div class="detail-grid">' +
+                    '<div class="detail-item"><span class="detail-label">合同编号：</span><span class="detail-value">' + (c.num||'') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">合同名称：</span><span class="detail-value">' + (c.name||'') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">客户：</span><span class="detail-value">' + (c.customer||'') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">起草人：</span><span class="detail-value">' + (c.userName||'') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div></div>' +
+                    '<div style="margin-top:16px;"><strong>合同内容：</strong><div style="margin-top:8px;padding:12px;background:#f8f9fa;border-radius:4px;white-space:pre-line;">' + renderContractContent(c.content) + '</div></div>' +
+                    (c.fileName ? '<div style="margin-top:12px;"><strong>合同附件：</strong><a href="/api/files/download/'+c.num+'" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> '+c.fileName+'</a></div>' : '');
+                openModal('viewModal');
             });
         }
-
         function downloadContract(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
-                if (result.success) {
-                    var c = result.data;
-                    var content = c.content || '';
-                    if (!content) {
-                        showMessage('合同内容为空，无法下载', 'danger');
-                        return;
-                    }
-                    var name = c.name || '合同';
-                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = name + '.txt';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    showMessage('合同内容已下载', 'success');
-                } else {
-                    showMessage(result.message || '获取合同详情失败', 'danger');
-                }
+                if (!result.success) return; var c = result.data; var content = c.content || '';
+                if (!content) { showMessage('合同内容为空', 'danger'); return; }
+                fetch('/api/contract/downloadContent',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:content,name:c.name||'合同',format:'pdf'})}).then(function(r){return r.blob()}).then(function(blob){var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=(c.name||'合同')+'.pdf';a.click();URL.revokeObjectURL(url);});
             });
         }
-
-        function openApprove(num) {
-            document.getElementById('apContractNum').value = num;
-            document.getElementById('apContractNumDisplay').value = num;
-            document.getElementById('apContent').value = '';
-            openModal('approveModal');
-        }
-
+        function openApprove(num) { document.getElementById('apContractNum').value = num; document.getElementById('apContractNumDisplay').value = num; document.getElementById('apContent').value = ''; openModal('approveModal'); }
         function submitApprove(state) {
             var num = document.getElementById('apContractNum').value;
             var content = document.getElementById('apContent').value.trim();
-            submitForm('/api/contract/approve', {
-                contractNum: num,
-                state: state,
-                content: content || (state === 1 ? '审批通过' : '审批拒绝')
-            }, function(result) {
+            submitForm('/api/contract/approve', {contractNum: num, state: state, content: content || (state === 1 ? '审批通过' : '审批拒绝')}, function(result) {
+                if (result.success) { closeModal('approveModal'); showMessage(state === 1 ? '审批通过' : '已拒绝', state === 1 ? 'success' : 'warning'); notifyTaskCompleted(); setTimeout(function(){loadContracts();}, 1000); }
+                else { showMessage(result.message || '审批操作失败', 'danger'); }
+            });
+        }
+        function viewOpinions(num) {
+            fetchData('/api/contract/opinions?num=' + encodeURIComponent(num), function(result) {
                 if (result.success) {
-                    showMessage(state === 1 ? '审批通过' : '已拒绝', state === 1 ? 'success' : 'warning');
-                    closeModal('approveModal');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    var html = '';
+                    var list = result.data || [];
+                    if (list.length === 0) {
+                        html = '<div style="text-align: center; padding: 20px; color: #999;">暂无历史意见</div>';
+                    } else {
+                        list.forEach(function(item) {
+                            var stateColor = item.state === 1 ? '#27ae60' : (item.state === 2 ? '#e74c3c' : '#f39c12');
+                            html += '<div style="border-bottom: 1px solid #eee; padding: 12px 0;">' +
+                                '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">' +
+                                '<div><strong><i class="fas fa-user"></i> ' + (item.userName || '') + '</strong> ' +
+                                '<span class="badge" style="background:' + (item.type === 1 ? '#3498db' : item.type === 2 ? '#9b59b6' : '#27ae60') + ';color:#fff;margin-left:6px;">' + (item.typeName || '') + '</span> ' +
+                                '<span class="badge" style="background:' + stateColor + ';color:#fff;">' + (item.stateName || '') + '</span></div>' +
+                                '<span style="color: #999; font-size: 12px;">' + formatDate(item.time) + '</span>' +
+                                '</div>' +
+                                '<div style="padding: 8px; background: #f8f9fa; border-radius: 4px;">' + (item.content || '无意见') + '</div>' +
+                                '</div>';
+                        });
+                    }
+                    document.getElementById('opinionsList').innerHTML = html;
+                    openModal('opinionsModal');
                 } else {
-                    showMessage(result.message || '审批操作失败', 'danger');
+                    showMessage(result.message || '获取意见失败', 'danger');
                 }
             });
         }
+        loadContracts();
     </script>
+
+    <div id="opinionsModal" class="modal-overlay" style="display: none;">
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header">
+                <h5><i class="fas fa-comments"></i> 历史意见</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('opinionsModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="c-modal-body" id="opinionsList"></div>
+        </div>
+    </div>
 </body>
 </html>

@@ -195,9 +195,8 @@ public class ContractProcessDao {
         ResultSet rs = null;
         try {
             conn = DBUtil.getConnection();
-            // 三条件联合查询：操作人+流程类型+状态
-            pstmt = conn.prepareStatement("SELECT * FROM t_contract_process WHERE userName = ? AND type = ? AND state = ? ORDER BY id");
-            FileLogger.debug("ContractProcessDao", "findByUserNameAndTypeAndState", "SQL=SELECT * FROM t_contract_process WHERE userName = ? AND type = ? AND state = ? ORDER BY id");
+            // JOIN合同表获取合同名称
+            pstmt = conn.prepareStatement("SELECT p.*, c.name AS contractName FROM t_contract_process p LEFT JOIN t_contract c ON p.conNum = c.num WHERE p.userName = ? AND p.type = ? AND p.state = ? ORDER BY p.id");
             pstmt.setString(1, userName);
             pstmt.setInt(2, type);
             pstmt.setInt(3, state);
@@ -282,6 +281,37 @@ public class ContractProcessDao {
     }
 
     /**
+     * 重置指定合同和类型的所有流程记录状态为待处理（state=0）
+     * <p>审批否决回退时使用，确保重新审批时所有人从头开始</p>
+     *
+     * @param conNum 合同编号
+     * @param type   流程类型
+     * @return true-重置成功；false-重置失败
+     */
+    public boolean resetByConNumAndType(String conNum, int type) {
+        long startTime = System.currentTimeMillis();
+        FileLogger.info("ContractProcessDao", "resetByConNumAndType", "开始重置流程状态, 合同编号: " + conNum + ", 类型: " + type);
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        try {
+            conn = DBUtil.getConnection();
+            pstmt = conn.prepareStatement("UPDATE t_contract_process SET state=0, time=NULL, content=NULL WHERE conNum=? AND type=? AND state IN (1, 2)");
+            pstmt.setString(1, conNum);
+            pstmt.setInt(2, type);
+            boolean result = pstmt.executeUpdate() >= 0;
+            long cost = System.currentTimeMillis() - startTime;
+            FileLogger.info("ContractProcessDao", "resetByConNumAndType", "重置流程状态" + (result ? "成功" : "失败") + ", 合同编号: " + conNum + ", 耗时" + cost + "ms");
+            return result;
+        } catch (Exception e) {
+            FileLogger.error("ContractProcessDao", "resetByConNumAndType", "重置流程状态失败: " + e.getMessage(), e);
+            e.printStackTrace();
+        } finally {
+            DBUtil.close(conn, pstmt);
+        }
+        return false;
+    }
+
+    /**
      * 将ResultSet映射为ContractProcess对象的私有方法
      */
     private ContractProcess mapProcess(ResultSet rs) throws Exception {
@@ -293,6 +323,12 @@ public class ContractProcessDao {
         cp.setUserName(rs.getString("userName"));
         cp.setContent(rs.getString("content"));
         cp.setTime(rs.getTimestamp("time"));  // 使用getTimestamp保留时分秒精度
+        // 尝试从结果集中获取合同名称（JOIN查询时可用）
+        try {
+            cp.setContractName(rs.getString("contractName"));
+        } catch (Exception e) {
+            // 如果结果集中没有contractName列，忽略
+        }
         return cp;
     }
 }

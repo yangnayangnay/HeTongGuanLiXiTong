@@ -112,14 +112,14 @@
 
     <!-- 添加/编辑用户模态框 -->
     <div id="userModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog">
-            <div class="modal-header">
+        <div class="c-modal-dialog">
+            <div class="c-modal-header">
                 <h5 id="userModalTitle"><i class="fas fa-user-plus"></i> 添加用户</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('userModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="c-modal-body">
                 <input type="hidden" id="userId">
                 <div class="form-group">
                     <label for="uName">用户名 <span class="required">*</span></label>
@@ -134,7 +134,7 @@
                     <input type="email" class="form-control" id="uEmail" placeholder="请输入邮箱">
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="c-modal-footer">
                 <button type="button" class="btn btn-primary" onclick="saveUser()">
                     <i class="fas fa-save"></i> 保存
                 </button>
@@ -147,14 +147,14 @@
 
     <!-- 分配角色模态框 -->
     <div id="roleModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog">
-            <div class="modal-header">
+        <div class="c-modal-dialog">
+            <div class="c-modal-header">
                 <h5><i class="fas fa-user-tag"></i> 分配角色</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('roleModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="c-modal-body">
                 <input type="hidden" id="roleUserId">
                 <div class="form-group">
                     <label>用户名</label>
@@ -168,7 +168,7 @@
                     </select>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="c-modal-footer">
                 <button type="button" class="btn btn-primary" onclick="saveRole()">
                     <i class="fas fa-save"></i> 保存
                 </button>
@@ -230,9 +230,8 @@
             var url = id ? '/api/user/update' : '/api/user/add';
             submitForm(url, data, function(result) {
                 if (result.success) {
-                    showMessage(id ? '用户更新成功' : '用户添加成功', 'success');
                     closeModal('userModal');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage(id ? '用户更新成功' : '用户添加成功', 'success');
                 } else {
                     showMessage(result.message || '操作失败', 'danger');
                 }
@@ -245,8 +244,7 @@
 
             submitForm('/api/user/approve', {id: id, status: status}, function(result) {
                 if (result.success) {
-                    showMessage('审核' + statusText, 'success');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage('审核' + statusText, 'success');
                 } else {
                     showMessage(result.message || '操作失败', 'danger');
                 }
@@ -270,9 +268,8 @@
 
             submitForm('/api/user/assignRole', {userId: document.getElementById('roleUserName').value, roleName: roleName}, function(result) {
                 if (result.success) {
-                    showMessage('角色分配成功', 'success');
                     closeModal('roleModal');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage('角色分配成功', 'success');
                 } else {
                     showMessage(result.message || '角色分配失败', 'danger');
                 }
@@ -282,8 +279,7 @@
         function deleteUser(id) {
             deleteData('/api/user/delete?id=' + id, function(result) {
                 if (result.success) {
-                    showMessage('用户删除成功', 'success');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage('用户删除成功', 'success');
                 } else {
                     showMessage(result.message || '删除失败', 'danger');
                 }

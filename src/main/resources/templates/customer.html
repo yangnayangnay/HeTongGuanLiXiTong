@@ -72,14 +72,14 @@
 
     <!-- 添加/编辑客户模态框 -->
     <div id="customerModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog" style="max-width: 650px;">
-            <div class="modal-header">
+        <div class="c-modal-dialog" style="max-width: 650px;">
+            <div class="c-modal-header">
                 <h5 id="customerModalTitle"><i class="fas fa-building"></i> 添加客户</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('customerModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="c-modal-body">
                 <input type="hidden" id="custId">
                 <div class="form-row">
                     <div class="form-group">
@@ -120,7 +120,7 @@
                     <input type="text" class="form-control" id="custAccount" name="account" placeholder="请输入银行账号">
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="c-modal-footer">
                 <button type="button" class="btn btn-primary" onclick="saveCustomer()">
                     <i class="fas fa-save"></i> 保存
                 </button>
@@ -195,9 +195,8 @@
 
             submitForm(url, data, function(result) {
                 if (result.success) {
-                    showMessage(id ? '客户更新成功' : '客户添加成功', 'success');
                     closeModal('customerModal');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage(id ? '客户更新成功' : '客户添加成功', 'success');
                 } else {
                     showMessage(result.message || '操作失败', 'danger');
                 }
@@ -207,8 +206,7 @@
         function deleteCustomer(id) {
             deleteData('/api/customer/delete?id=' + id, function(result) {
                 if (result.success) {
-                    showMessage('客户删除成功', 'success');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    reloadWithMessage('客户删除成功', 'success');
                 } else {
                     showMessage(result.message || '删除失败', 'danger');
                 }

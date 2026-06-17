@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,62 +10,13 @@
 </head>
 <body>
     <div style="padding: 20px;">
-        <!-- 页面标题 -->
-        <div class="page-header">
-            <h4><i class="fas fa-check-double"></i> 定稿合同</h4>
-        </div>
-
-        <!-- 待定稿合同列表 -->
+        <div class="page-header"><h4><i class="fas fa-check-double"></i> 定稿合同</h4></div>
         <div class="content-card">
-            <div class="card-title">
-                <i class="fas fa-list"></i> 待定稿合同
-            </div>
+            <div class="card-title"><i class="fas fa-list"></i> 待定稿合同</div>
             <div class="table-wrapper">
                 <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>合同编号</th>
-                            <th>合同名称</th>
-                            <th>客户</th>
-                            <th>起草人</th>
-                            <th>开始时间</th>
-                            <th>结束时间</th>
-                            <th>操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr th:each="contract : ${contracts}">
-                            <td th:text="${contract.num}">HT2024001</td>
-                            <td th:text="${contract.name}">合同名称</td>
-                            <td th:text="${contract.customer}">客户名称</td>
-                            <td th:text="${contract.userName}">起草人</td>
-                            <td th:text="${contract.beginTime != null ? #dates.format(contract.beginTime, 'yyyy-MM-dd') : ''}">2024-01-01</td>
-                            <td th:text="${contract.endTime != null ? #dates.format(contract.endTime, 'yyyy-MM-dd') : ''}">2024-12-31</td>
-                            <td class="text-nowrap">
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                        th:data-num="${contract.num}" onclick="viewOpinions(this.dataset.num)">
-                                    <i class="fas fa-comments"></i> 会签意见
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-info"
-                                        th:data-num="${contract.num}" onclick="downloadContract(this.dataset.num)">
-                                    <i class="fas fa-download"></i> 下载
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                        th:data-num="${contract.num}" onclick="viewContract(this.dataset.num)">
-                                    <i class="fas fa-eye"></i> 查看合同
-                                </button>
-                                <button type="button" class="btn btn-sm btn-success"
-                                        th:data-num="${contract.num}" onclick="openFinalize(this.dataset.num)">
-                                    <i class="fas fa-edit"></i> 定稿
-                                </button>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(contracts)}">
-                            <td colspan="7" class="text-center" style="padding: 30px; color: #999;">
-                                <i class="fas fa-inbox"></i> 暂无待定稿合同
-                            </td>
-                        </tr>
-                    </tbody>
+                    <thead><tr><th>合同编号</th><th>合同名称</th><th>客户</th><th>起草人</th><th>开始时间</th><th>结束时间</th><th>操作</th></tr></thead>
+                    <tbody id="contractList"><tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -73,42 +24,42 @@
 
     <!-- 查看合同详情模态框 -->
     <div id="viewModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog" style="max-width: 700px;">
-            <div class="modal-header">
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header">
                 <h5><i class="fas fa-file-contract"></i> 合同详情</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('viewModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="contractDetail">
+            <div class="c-modal-body" id="contractDetail">
             </div>
         </div>
     </div>
 
     <!-- 会签意见模态框 -->
     <div id="opinionsModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog" style="max-width: 700px;">
-            <div class="modal-header">
-                <h5><i class="fas fa-comments"></i> 会签意见</h5>
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header">
+                <h5><i class="fas fa-comments"></i> 历史意见</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('opinionsModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body" id="opinionsList">
+            <div class="c-modal-body" id="opinionsList">
             </div>
         </div>
     </div>
 
     <!-- 定稿模态框 -->
     <div id="finalizeModal" class="modal-overlay" style="display: none;">
-        <div class="modal-dialog" style="max-width: 700px;">
-            <div class="modal-header">
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header">
                 <h5><i class="fas fa-edit"></i> 修改合同内容并定稿</h5>
                 <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('finalizeModal')">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="modal-body">
+            <div class="c-modal-body">
                 <input type="hidden" id="fzContractNum">
                 <div class="form-group">
                     <label>合同名称</label>
@@ -122,9 +73,21 @@
                 <div class="form-group">
                     <label>合同附件</label>
                     <div id="fzFileArea">无附件</div>
+                    <div style="margin-top: 8px;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="document.getElementById('fzFileInput').click()">
+                            <i class="fas fa-upload"></i> 上传新合同文件
+                        </button>
+                        <input type="file" id="fzFileInput" style="display:none;" accept=".pdf,.doc,.docx,.txt,.jpg,.png" onchange="uploadFinalizeFile(this)">
+                        <div id="fzUploadProgress" style="display:none;margin-top:8px;">
+                            <div style="background:#e9ecef;border-radius:4px;height:20px;overflow:hidden;">
+                                <div id="fzProgressBar" style="background:#3498db;height:100%;width:0%;transition:width 0.3s;text-align:center;color:#fff;font-size:11px;line-height:20px;"></div>
+                            </div>
+                            <div id="fzUploadStatus" style="font-size:12px;color:#666;margin-top:4px;"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer">
+            <div class="c-modal-footer">
                 <button type="button" class="btn btn-success" onclick="submitFinalize()">
                     <i class="fas fa-check"></i> 提交定稿
                 </button>
@@ -137,6 +100,62 @@
 
     <script src="/js/app.js"></script>
     <script>
+        function loadContracts() {
+            document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 加载中...</td></tr>';
+            fetchData('/api/contracts/finalize', function(result) {
+                if (!result.success) { document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="color:#e74c3c;">加载失败</td></tr>'; return; }
+                var contracts = result.data || [];
+                if (contracts.length === 0) { document.getElementById('contractList').innerHTML = '<tr><td colspan="7" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无待定稿合同</td></tr>'; return; }
+                var html = '';
+                contracts.forEach(function(c) {
+                    html += '<tr><td>' + (c.num || '') + '</td><td>' + (c.name || '') + '</td><td>' + (c.customer || '') + '</td><td>' + (c.userName || '') + '</td><td>' + formatDate(c.beginTime) + '</td><td>' + formatDate(c.endTime) + '</td><td class="text-nowrap">' +
+                        '<button type="button" class="btn btn-sm btn-outline-warning" onclick="viewOpinions(\'' + c.num + '\')"><i class="fas fa-comments"></i> 历史意见</button> ' +
+                        '<button type="button" class="btn btn-sm btn-outline-info" onclick="downloadContract(\'' + c.num + '\')"><i class="fas fa-download"></i> 下载</button> ' +
+                        '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="viewContract(\'' + c.num + '\')"><i class="fas fa-eye"></i> 查看</button> ' +
+                        '<button type="button" class="btn btn-sm btn-success" onclick="openFinalize(\'' + c.num + '\')"><i class="fas fa-edit"></i> 定稿</button></td></tr>';
+                });
+                document.getElementById('contractList').innerHTML = html;
+                // 对每个合同加载退回原因
+                contracts.forEach(function(c) {
+                    loadRejectReason(c.num);
+                });
+            });
+        }
+
+        function loadRejectReason(num) {
+            fetchData('/api/contract/opinions?num=' + encodeURIComponent(num), function(result) {
+                if (!result.success) return;
+                var list = result.data || [];
+                var rejectReasons = [];
+                list.forEach(function(item) {
+                    if (item.state === 2) {
+                        rejectReasons.push(item);
+                    }
+                });
+                if (rejectReasons.length === 0) return;
+                var reasonHtml = '<div style="margin:6px 0;padding:8px 12px;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;font-size:12px;">' +
+                    '<strong style="color:#856404;"><i class="fas fa-exclamation-triangle"></i> 退回原因：</strong>';
+                rejectReasons.forEach(function(r) {
+                    reasonHtml += '<div style="margin-top:4px;"><span class="badge" style="background:#9b59b6;color:#fff;">' + (r.typeName || '') + '</span> ' +
+                        '<strong>' + (r.userName || '') + '</strong>：' + (r.content || '无') +
+                        ' <span style="color:#999;">(' + formatDate(r.time) + ')</span></div>';
+                });
+                reasonHtml += '</div>';
+                // 在对应合同行后面插入退回原因
+                var rows = document.getElementById('contractList').querySelectorAll('tr');
+                for (var i = 0; i < rows.length; i++) {
+                    var firstTd = rows[i].querySelector('td');
+                    if (firstTd && firstTd.textContent.trim() === num) {
+                        var colCount = rows[i].querySelectorAll('td').length;
+                        var newRow = document.createElement('tr');
+                        newRow.innerHTML = '<td colspan="' + colCount + '" style="padding:0 8px 8px;">' + reasonHtml + '</td>';
+                        rows[i].after(newRow);
+                        break;
+                    }
+                }
+            });
+        }
+
         function viewContract(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
                 if (result.success) {
@@ -150,7 +169,7 @@
                         '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
                         '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
                         '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div></div>' +
+                        '<div style="margin-top: 16px;"><strong>合同内容：</strong><div style="margin-top: 8px; padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-line;">' + renderContractContent(c.content) + '</div></div>' +
                         (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
                     openModal('viewModal');
                 } else {
@@ -169,14 +188,20 @@
                         return;
                     }
                     var name = c.name || '合同';
-                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = name + '.txt';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    showMessage('合同内容已下载', 'success');
+                    fetch('/api/contract/downloadContent', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({content: content, name: name, format: 'pdf'})
+                    }).then(function(r) { return r.blob(); })
+                    .then(function(blob) {
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = name + '.pdf';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showMessage('合同已导出为PDF', 'success');
+                    });
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');
                 }
@@ -189,12 +214,15 @@
                     var html = '';
                     var list = result.data || [];
                     if (list.length === 0) {
-                        html = '<div style="text-align: center; padding: 20px; color: #999;">暂无会签意见</div>';
+                        html = '<div style="text-align: center; padding: 20px; color: #999;">暂无历史意见</div>';
                     } else {
                         list.forEach(function(item) {
+                            var stateColor = item.state === 1 ? '#27ae60' : (item.state === 2 ? '#e74c3c' : '#f39c12');
                             html += '<div style="border-bottom: 1px solid #eee; padding: 12px 0;">' +
-                                '<div style="display: flex; justify-content: space-between; margin-bottom: 6px;">' +
-                                '<strong><i class="fas fa-user"></i> ' + item.userName + '</strong>' +
+                                '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">' +
+                                '<div><strong><i class="fas fa-user"></i> ' + (item.userName || '') + '</strong> ' +
+                                '<span class="badge" style="background:' + (item.type === 1 ? '#3498db' : item.type === 2 ? '#9b59b6' : '#27ae60') + ';color:#fff;margin-left:6px;">' + (item.typeName || '') + '</span> ' +
+                                '<span class="badge" style="background:' + stateColor + ';color:#fff;">' + (item.stateName || '') + '</span></div>' +
                                 '<span style="color: #999; font-size: 12px;">' + formatDate(item.time) + '</span>' +
                                 '</div>' +
                                 '<div style="padding: 8px; background: #f8f9fa; border-radius: 4px;">' + (item.content || '无意见') + '</div>' +
@@ -204,7 +232,7 @@
                     document.getElementById('opinionsList').innerHTML = html;
                     openModal('opinionsModal');
                 } else {
-                    showMessage(result.message || '获取会签意见失败', 'danger');
+                    showMessage(result.message || '获取意见失败', 'danger');
                 }
             });
         }
@@ -228,6 +256,95 @@
             });
         }
 
+        var fzUploadedFile = false;
+
+        function uploadFinalizeFile(input) {
+            if (!input.files || !input.files[0]) return;
+            var file = input.files[0];
+            var contractNum = document.getElementById('fzContractNum').value;
+            var CHUNK_SIZE = 1024 * 1024; // 1MB per chunk
+            var totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+            var currentChunk = 0;
+            var uploadId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+
+            document.getElementById('fzUploadProgress').style.display = 'block';
+            document.getElementById('fzUploadStatus').textContent = '准备上传...';
+
+            // Check if there's a previous incomplete upload
+            var savedProgress = localStorage.getItem('upload_' + contractNum + '_' + file.name);
+            if (savedProgress) {
+                try {
+                    var prev = JSON.parse(savedProgress);
+                    if (prev.uploadId && prev.totalChunks === totalChunks && prev.currentChunk > 0) {
+                        if (confirm('检测到上次未完成的上传（进度: ' + Math.round(prev.currentChunk / prev.totalChunks * 100) + '%），是否续传？')) {
+                            uploadId = prev.uploadId;
+                            currentChunk = prev.currentChunk;
+                        } else {
+                            localStorage.removeItem('upload_' + contractNum + '_' + file.name);
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            function uploadChunk() {
+                var start = currentChunk * CHUNK_SIZE;
+                var end = Math.min(start + CHUNK_SIZE, file.size);
+                var chunk = file.slice(start, end);
+                var formData = new FormData();
+                formData.append('file', chunk);
+                formData.append('chunkIndex', currentChunk);
+                formData.append('totalChunks', totalChunks);
+                formData.append('uploadId', uploadId);
+                formData.append('fileName', file.name);
+                formData.append('contractNum', contractNum);
+
+                var pct = Math.round((currentChunk + 1) / totalChunks * 100);
+                document.getElementById('fzProgressBar').style.width = pct + '%';
+                document.getElementById('fzProgressBar').textContent = pct + '%';
+                document.getElementById('fzUploadStatus').textContent = '上传中... ' + (currentChunk + 1) + '/' + totalChunks + ' 块';
+
+                fetch('/api/contract/uploadChunk', {
+                    method: 'POST',
+                    body: formData
+                }).then(function(r) { return r.json(); })
+                .then(function(result) {
+                    if (result.success) {
+                        currentChunk++;
+                        localStorage.setItem('upload_' + contractNum + '_' + file.name, JSON.stringify({
+                            uploadId: uploadId, totalChunks: totalChunks, currentChunk: currentChunk
+                        }));
+                        if (currentChunk < totalChunks) {
+                            uploadChunk();
+                        } else {
+                            // All chunks uploaded, finalize
+                            document.getElementById('fzUploadStatus').textContent = '合并文件中...';
+                            fetch('/api/contract/mergeChunks', {
+                                method: 'POST',
+                                headers: {'Content-Type': 'application/json'},
+                                body: JSON.stringify({uploadId: uploadId, fileName: file.name, contractNum: contractNum, totalChunks: totalChunks})
+                            }).then(function(r) { return r.json(); })
+                            .then(function(mergeResult) {
+                                if (mergeResult.success) {
+                                    document.getElementById('fzUploadStatus').innerHTML = '<span style="color:#27ae60;"><i class="fas fa-check"></i> 上传完成</span>';
+                                    document.getElementById('fzFileArea').innerHTML = '<i class="fas fa-file"></i> ' + file.name;
+                                    fzUploadedFile = true;
+                                    localStorage.removeItem('upload_' + contractNum + '_' + file.name);
+                                } else {
+                                    document.getElementById('fzUploadStatus').innerHTML = '<span style="color:#e74c3c;">合并失败: ' + (mergeResult.message || '') + '</span>';
+                                }
+                            });
+                        }
+                    } else {
+                        document.getElementById('fzUploadStatus').innerHTML = '<span style="color:#e74c3c;">上传失败: ' + (result.message || '') + '，可重新上传续传</span>';
+                    }
+                }).catch(function() {
+                    document.getElementById('fzUploadStatus').innerHTML = '<span style="color:#e74c3c;">网络错误，可重新上传续传</span>';
+                });
+            }
+
+            uploadChunk();
+        }
+
         function submitFinalize() {
             var num = document.getElementById('fzContractNum').value;
             var content = document.getElementById('fzContent').value.trim();
@@ -235,19 +352,27 @@
                 showMessage('请输入合同内容', 'danger');
                 return;
             }
+            var btn = document.querySelector('.c-modal-footer .btn-success');
+            var origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 提交中...';
             submitForm('/api/contract/finalize', {
                 contractNum: num,
                 content: content
             }, function(result) {
+                btn.disabled = false;
+                btn.innerHTML = origHtml;
                 if (result.success) {
-                    showMessage('定稿提交成功', 'success');
                     closeModal('finalizeModal');
-                    setTimeout(function() { location.reload(); }, 1500);
+                    showMessage('定稿提交成功', 'success');
+                    notifyTaskCompleted();
+                    setTimeout(function(){loadContracts();}, 1000);
                 } else {
                     showMessage(result.message || '定稿提交失败', 'danger');
                 }
             });
         }
     </script>
+    <script>loadContracts();</script>
 </body>
 </html>

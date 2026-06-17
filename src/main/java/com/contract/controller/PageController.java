@@ -2,6 +2,7 @@ package com.contract.controller;
 
 import com.contract.entity.*;
 import com.contract.service.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -13,14 +14,29 @@ import java.util.stream.Collectors;
 @Controller
 public class PageController {
 
-    private UserService userService = new UserService();
-    private RoleService roleService = new RoleService();
-    private CustomerService customerService = new CustomerService();
-    private ContractService contractService = new ContractService();
-    private LogService logService = new LogService();
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private RoleService roleService;
+
+    @Autowired
+    private CustomerService customerService;
+
+    @Autowired
+    private ContractService contractService;
+
+    @Autowired
+    private LogService logService;
 
     @GetMapping({"/", "/login"})
     public String login() { return "login"; }
+
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/login";
+    }
 
     @GetMapping("/register")
     public String register() { return "register"; }
@@ -58,8 +74,9 @@ public class PageController {
     @GetMapping("/finalize")
     public String finalizePage(Model model) {
         List<Contract> all = contractService.findAll();
+        Map<String, Integer> stateMap = contractService.getAllContractStateTypes();
         List<Contract> result = all.stream()
-            .filter(c -> contractService.getContractStateType(c.getNum()) == 2)
+            .filter(c -> stateMap.getOrDefault(c.getNum(), 0) == 2)
             .collect(Collectors.toList());
         model.addAttribute("contracts", result);
         return "finalize";
@@ -82,37 +99,59 @@ public class PageController {
     }
 
     @GetMapping("/assign")
-    public String assign(Model model) {
-        model.addAttribute("contracts", contractService.getUnassignedContracts());
-        List<User> allUsers = userService.findAll();
-        model.addAttribute("countersignUsers", allUsers);
-        model.addAttribute("approveUsers", allUsers);
-        model.addAttribute("signUsers", allUsers);
+    public String assign() {
         return "assign";
     }
 
     @GetMapping("/query")
-    public String query(Model model) {
-        List<Contract> contracts = contractService.findAll();
-        for (Contract c : contracts) {
-            c.setStateType(contractService.getContractStateType(c.getNum()));
-        }
-        model.addAttribute("contracts", contracts);
+    public String query() {
         return "query";
     }
 
     @GetMapping("/flow")
     public String flow(Model model) {
-        List<ContractProcess> allProcesses = new ArrayList<>();
+        List<Map<String, Object>> flowList = new ArrayList<>();
         List<Contract> allContracts = contractService.findAll();
+        Map<String, Integer> stateMap = contractService.getAllContractStateTypes();
         for (Contract c : allContracts) {
-            List<ContractProcess> procs = contractService.getContractProcesses(c.getNum());
-            for (ContractProcess p : procs) {
-                p.setContractName(c.getName());
+            Map<String, Object> item = new HashMap<>();
+            item.put("conNum", c.getNum());
+            item.put("contractName", c.getName());
+            item.put("userName", c.getUserName());
+            int stateType = stateMap.getOrDefault(c.getNum(), 0);
+            item.put("stateType", stateType);
+            List<com.contract.entity.ContractState> states = contractService.getContractStates(c.getNum());
+            if (states != null && !states.isEmpty()) {
+                item.put("time", states.get(states.size() - 1).getTime());
+            } else {
+                item.put("time", null);
             }
-            allProcesses.addAll(procs);
+            List<com.contract.entity.ContractProcess> processes = contractService.getContractProcesses(c.getNum());
+            StringBuilder countersignUsers = new StringBuilder();
+            StringBuilder approveUsers = new StringBuilder();
+            StringBuilder signUsers = new StringBuilder();
+            if (processes != null) {
+                for (com.contract.entity.ContractProcess p : processes) {
+                    String status = p.getState() == 1 ? "✓" : "待";
+                    if (p.getType() == 1) {
+                        if (countersignUsers.length() > 0) countersignUsers.append(", ");
+                        countersignUsers.append(p.getUserName()).append(status);
+                    } else if (p.getType() == 2) {
+                        if (approveUsers.length() > 0) approveUsers.append(", ");
+                        approveUsers.append(p.getUserName()).append(status);
+                    } else if (p.getType() == 3) {
+                        if (signUsers.length() > 0) signUsers.append(", ");
+                        signUsers.append(p.getUserName()).append(status);
+                    }
+                }
+            }
+            item.put("countersignUsers", countersignUsers.toString());
+            item.put("approveUsers", approveUsers.toString());
+            item.put("signUsers", signUsers.toString());
+            item.put("finalizer", stateType >= 3 ? c.getUserName() : "");
+            flowList.add(item);
         }
-        model.addAttribute("processes", allProcesses);
+        model.addAttribute("processes", flowList);
         return "flow";
     }
 
@@ -150,17 +189,7 @@ public class PageController {
     }
 
     @GetMapping("/pending")
-    public String pending(HttpSession session, Model model) {
-        String userName = (String) session.getAttribute("userName");
-        if (userName == null) {
-            model.addAttribute("countersignTasks", Collections.emptyList());
-            model.addAttribute("approveTasks", Collections.emptyList());
-            model.addAttribute("signTasks", Collections.emptyList());
-            return "pending";
-        }
-        model.addAttribute("countersignTasks", contractService.getUserPendingProcesses(userName, 1));
-        model.addAttribute("approveTasks", contractService.getUserPendingProcesses(userName, 2));
-        model.addAttribute("signTasks", contractService.getUserPendingProcesses(userName, 3));
+    public String pending() {
         return "pending";
     }
 
@@ -174,18 +203,28 @@ public class PageController {
     public String statistics() { return "statistics"; }
 
     @GetMapping("/kanban")
-    public String kanban() { return "kanban"; }
+    public String kanban() {
+        return "kanban";
+    }
 
     private List<Contract> getContractsForUser(String userName, int type) {
         List<ContractProcess> processes = contractService.getUserPendingProcesses(userName, type);
+        Map<String, Integer> stateMap = contractService.getAllContractStateTypes();
         List<Contract> result = new ArrayList<>();
         Set<String> seen = new HashSet<>();
         for (ContractProcess p : processes) {
             if (!seen.contains(p.getConNum())) {
                 Contract c = contractService.findByNum(p.getConNum());
                 if (c != null) {
-                    result.add(c);
-                    seen.add(p.getConNum());
+                    int stateType = stateMap.getOrDefault(c.getNum(), 0);
+                    boolean canShow = false;
+                    if (type == 1 && stateType == 1) canShow = true;
+                    else if (type == 2 && stateType == 3) canShow = true;
+                    else if (type == 3 && stateType == 4) canShow = true;
+                    if (canShow) {
+                        result.add(c);
+                        seen.add(p.getConNum());
+                    }
                 }
             }
         }

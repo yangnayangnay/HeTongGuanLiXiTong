@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -18,7 +18,7 @@
         <!-- 搜索区域 -->
         <div class="content-card">
             <div class="search-bar">
-                <input type="text" class="form-control" id="searchName" placeholder="按合同名称模糊查询"
+                <input type="text" class="form-control" id="searchName" placeholder="按合同名称或编号模糊查询"
                        style="min-width: 200px;">
                 <select class="form-control" id="searchState" style="min-width: 140px;">
                     <option value="">全部状态</option>
@@ -28,6 +28,8 @@
                     <option value="4">审批</option>
                     <option value="5">签订</option>
                 </select>
+                <input type="date" class="form-control" id="startDate" placeholder="开始日期" style="min-width: 150px;">
+                <input type="date" class="form-control" id="endDate" placeholder="结束日期" style="min-width: 150px;">
                 <button type="button" class="btn btn-primary" onclick="searchContracts()">
                     <i class="fas fa-search"></i> 查询
                 </button>
@@ -50,6 +52,10 @@
                             <th>合同名称</th>
                             <th>客户</th>
                             <th>起草人</th>
+                            <th>会签人</th>
+                            <th>定稿人</th>
+                            <th>审批人</th>
+                            <th>签订人</th>
                             <th>开始时间</th>
                             <th>结束时间</th>
                             <th>当前状态</th>
@@ -57,36 +63,9 @@
                         </tr>
                     </thead>
                     <tbody id="contractList">
-                        <tr th:each="contract : ${contracts}">
-                            <td th:text="${contract.num}">HT2024001</td>
-                            <td th:text="${contract.name}">合同名称</td>
-                            <td th:text="${contract.customer}">客户名称</td>
-                            <td th:text="${contract.userName}">起草人</td>
-                            <td th:text="${contract.beginTime != null ? #dates.format(contract.beginTime, 'yyyy-MM-dd') : ''}">2024-01-01</td>
-                            <td th:text="${contract.endTime != null ? #dates.format(contract.endTime, 'yyyy-MM-dd') : ''}">2024-12-31</td>
-                            <td th:switch="${contract.stateType}">
-                                <span class="badge badge-draft" th:case="1">起草</span>
-                                <span class="badge badge-countersign" th:case="2">会签</span>
-                                <span class="badge badge-finalize" th:case="3">定稿</span>
-                                <span class="badge badge-approve" th:case="4">审批</span>
-                                <span class="badge badge-sign" th:case="5">签订</span>
-                            </td>
-                            <td>
-                                <button type="button" class="btn btn-sm btn-outline-primary"
-                                        th:data-num="${contract.num}"
-                                        onclick="viewDetail(this.dataset.num)">
-                                    <i class="fas fa-eye"></i> 详情
-                                </button>
-                                <button type="button" class="btn btn-sm btn-outline-info"
-                                        th:data-num="${contract.num}"
-                                        onclick="downloadContract(this.dataset.num)">
-                                    <i class="fas fa-download"></i> 下载
-                                </button>
-                            </td>
-                        </tr>
-                        <tr th:if="${#lists.isEmpty(contracts)}">
-                            <td colspan="8" class="text-center" style="padding: 30px; color: #999;">
-                                <i class="fas fa-inbox"></i> 暂无合同数据
+                        <tr>
+                            <td colspan="12" class="text-center" style="padding: 30px; color: #999;">
+                                <i class="fas fa-spinner fa-spin"></i> 加载中...
                             </td>
                         </tr>
                     </tbody>
@@ -109,10 +88,19 @@
         function searchContracts() {
             var name = document.getElementById('searchName').value.trim();
             var state = document.getElementById('searchState').value;
+            var startDate = document.getElementById('startDate').value;
+            var endDate = document.getElementById('endDate').value;
             var url = '/api/contracts/query?name=' + encodeURIComponent(name);
             if (state) {
                 url += '&state=' + state;
             }
+            if (startDate) {
+                url += '&startDate=' + startDate;
+            }
+            if (endDate) {
+                url += '&endDate=' + endDate;
+            }
+            document.getElementById('contractList').innerHTML = '<tr><td colspan="12" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-spinner fa-spin"></i> 查询中...</td></tr>';
             fetchData(url, function(result) {
                 if (result.success) {
                     renderContractList(result.data || []);
@@ -125,13 +113,15 @@
         function resetSearch() {
             document.getElementById('searchName').value = '';
             document.getElementById('searchState').value = '';
-            location.reload();
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            searchContracts();
         }
 
         function renderContractList(list) {
             var tbody = document.getElementById('contractList');
             if (list.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无匹配的合同</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="12" class="text-center" style="padding: 30px; color: #999;"><i class="fas fa-inbox"></i> 暂无匹配的合同</td></tr>';
                 return;
             }
             var html = '';
@@ -141,6 +131,10 @@
                     '<td>' + (c.name || '') + '</td>' +
                     '<td>' + (c.customer || '') + '</td>' +
                     '<td>' + (c.userName || '') + '</td>' +
+                    '<td>' + (c.countersignUsers || '-') + '</td>' +
+                    '<td>' + (c.finalizer || '-') + '</td>' +
+                    '<td>' + (c.approveUsers || '-') + '</td>' +
+                    '<td>' + (c.signUsers || '-') + '</td>' +
                     '<td>' + formatDate(c.beginTime) + '</td>' +
                     '<td>' + formatDate(c.endTime) + '</td>' +
                     '<td>' + getContractStateBadge(c.stateName || '起草') + '</td>' +
@@ -152,30 +146,69 @@
 
         function viewDetail(num) {
             fetchData('/api/contract/detail?num=' + encodeURIComponent(num), function(result) {
-                if (result.success) {
-                    var c = result.data;
-                    var isAdmin = c.canViewFull;
-                    var contentHtml = isAdmin ?
-                        '<div style="padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-wrap;">' + (c.content || '无') + '</div>' :
-                        '<div style="padding: 12px; background: #fff3cd; border-radius: 4px; color: #856404;"><i class="fas fa-lock"></i> 您没有权限查看完整内容</div>';
-
-                    document.getElementById('detailContent').innerHTML =
-                        '<div class="detail-grid">' +
-                        '<div class="detail-item"><span class="detail-label">合同编号：</span><span class="detail-value">' + (c.num || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">合同名称：</span><span class="detail-value">' + (c.name || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">客户：</span><span class="detail-value">' + (c.customer || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">起草人：</span><span class="detail-value">' + (c.userName || '') + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
-                        '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
-                        '</div>' +
-                        '<div style="margin-top: 16px;"><strong>合同内容：</strong>' + contentHtml + '</div>' +
-                        (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
-
-                    document.getElementById('detailSection').style.display = 'block';
-                    document.getElementById('detailSection').scrollIntoView({behavior: 'smooth'});
-                } else {
+                if (!result.success) {
                     showMessage(result.message || '获取合同详情失败', 'danger');
+                    return;
                 }
+                var c = result.data;
+                var contentHtml = c.canViewFull ?
+                    '<div style="padding: 12px; background: #f8f9fa; border-radius: 4px; white-space: pre-line;">' + renderContractContent(c.content) + '</div>' :
+                    '<div style="padding: 12px; background: #fff3cd; border-radius: 4px; color: #856404;"><i class="fas fa-lock"></i> 您没有权限查看完整内容</div>';
+
+                var stateNames = {0:'无',1:'起草',2:'会签完成',3:'定稿完成',4:'审批完成',5:'签订完成'};
+                var stateBadge = '<span class="badge badge-' + ({1:'draft',2:'countersign',3:'finalize',4:'approve',5:'sign'}[c.stateType] || 'draft') + '">' + (stateNames[c.stateType] || '未知') + '</span>';
+
+                var html = '<div class="detail-grid">' +
+                    '<div class="detail-item"><span class="detail-label">合同编号：</span><span class="detail-value">' + (c.num || '') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">合同名称：</span><span class="detail-value">' + (c.name || '') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">客户：</span><span class="detail-value">' + (c.customer || '') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">起草人：</span><span class="detail-value">' + (c.userName || '') + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">开始时间：</span><span class="detail-value">' + formatDate(c.beginTime) + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">结束时间：</span><span class="detail-value">' + formatDate(c.endTime) + '</span></div>' +
+                    '<div class="detail-item"><span class="detail-label">当前状态：</span><span class="detail-value">' + stateBadge + '</span></div>' +
+                    '</div>';
+
+                html += '<div style="margin-top: 16px; padding: 12px; background: #f0f4f8; border-radius: 8px;">' +
+                    '<strong><i class="fas fa-project-diagram"></i> 流程信息</strong>' +
+                    '<div id="flowInfo" style="margin-top: 8px;"><i class="fas fa-spinner fa-spin"></i> 加载中...</div></div>';
+
+                html += '<div style="margin-top: 16px;"><strong>合同内容：</strong>' + contentHtml + '</div>';
+                html += (c.fileName ? '<div style="margin-top: 12px;"><strong>合同附件：</strong><a href="/api/files/download/' + c.num + '" class="btn btn-sm btn-outline-primary ml-2" target="_blank"><i class="fas fa-download"></i> ' + c.fileName + '</a></div>' : '');
+
+                document.getElementById('detailContent').innerHTML = html;
+                document.getElementById('detailSection').style.display = 'block';
+                document.getElementById('detailSection').scrollIntoView({behavior: 'smooth'});
+
+                fetchData('/api/contracts/' + encodeURIComponent(num) + '/flow', function(flowResult) {
+                    var flowDiv = document.getElementById('flowInfo');
+                    if (!flowResult.success || !flowResult.data) {
+                        flowDiv.innerHTML = '<span style="color:#999;">暂无流程信息</span>';
+                        return;
+                    }
+                    var processes = flowResult.data.processes || [];
+                    var states = flowResult.data.states || [];
+                    var typeNames = {1:'会签',2:'审批',3:'签订'};
+                    var typeColors = {1:'#3498db',2:'#9b59b6',3:'#27ae60'};
+                    var stateLabels = {0:'待处理',1:'已完成',2:'已否决'};
+                    var stateColors = {0:'#f39c12',1:'#27ae60',2:'#e74c3c'};
+
+                    var flowHtml = '<table class="data-table" style="font-size:13px;"><thead><tr><th>环节</th><th>操作人</th><th>状态</th><th>意见</th><th>时间</th></tr></thead><tbody>';
+                    if (states.length > 0) {
+                        var latestState = states[states.length - 1];
+                        flowHtml += '<tr><td><span class="badge" style="background:#95a5a6;color:#fff;">起草</span></td><td>' + (c.userName || '') + '</td><td><span class="badge" style="background:#27ae60;color:#fff;">已完成</span></td><td>-</td><td>' + formatDate(latestState.time) + '</td></tr>';
+                    }
+                    processes.forEach(function(p) {
+                        var typeBadge = '<span class="badge" style="background:' + (typeColors[p.type] || '#999') + ';color:#fff;">' + (typeNames[p.type] || '未知') + '</span>';
+                        var stateBadge = '<span class="badge" style="background:' + (stateColors[p.state] || '#999') + ';color:#fff;">' + (stateLabels[p.state] || '未知') + '</span>';
+                        var opinion = p.content ? '<div style="padding:4px 8px;background:#f8f9fa;border-radius:4px;">' + p.content + '</div>' : '-';
+                        flowHtml += '<tr><td>' + typeBadge + '</td><td>' + (p.userName || '') + '</td><td>' + stateBadge + '</td><td>' + opinion + '</td><td>' + formatDate(p.time) + '</td></tr>';
+                    });
+                    if (processes.length === 0 && states.length === 0) {
+                        flowHtml += '<tr><td colspan="5" style="text-align:center;color:#999;">暂无流程记录</td></tr>';
+                    }
+                    flowHtml += '</tbody></table>';
+                    flowDiv.innerHTML = flowHtml;
+                });
             });
         }
 
@@ -189,19 +222,28 @@
                         return;
                     }
                     var name = c.name || '合同';
-                    var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-                    var url = URL.createObjectURL(blob);
-                    var a = document.createElement('a');
-                    a.href = url;
-                    a.download = name + '.txt';
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    showMessage('合同内容已下载', 'success');
+                    fetch('/api/contract/downloadContent', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({content: content, name: name, format: 'pdf'})
+                    }).then(function(r) { return r.blob(); })
+                    .then(function(blob) {
+                        var url = URL.createObjectURL(blob);
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.download = name + '.pdf';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        showMessage('合同已导出为PDF', 'success');
+                    });
                 } else {
                     showMessage(result.message || '获取合同详情失败', 'danger');
                 }
             });
         }
+
+        // 页面加载时通过AJAX获取合同列表
+        searchContracts();
     </script>
 </body>
 </html>

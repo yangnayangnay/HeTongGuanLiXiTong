@@ -8,6 +8,43 @@
 // ========================================
 
 /**
+ * 渲染合同内容（支持电子签名图片显示）
+ * 将 [电子签名]\n<img ...>\n[/电子签名] 标记渲染为实际图片
+ */
+function renderContractContent(content) {
+    if (!content) return '无';
+    // 先提取所有img标签，用占位符替换，避免转义时破坏
+    var imgTags = [];
+    var result = content.replace(/<img\s+src="([^"]*)"[^>]*>/gi, function(match) {
+        var idx = imgTags.length;
+        imgTags.push(match);
+        return '\n%%IMG_PLACEHOLDER_' + idx + '%%\n';
+    });
+    // 兼容旧格式：[电子签名]...[/电子签名]
+    result = result.replace(/\[电子签名\]\n?([\s\S]*?)\n?\[\/电子签名\]/g, function(match, inner) {
+        var idx = imgTags.length;
+        imgTags.push(inner.trim());
+        return '\n%%IMG_PLACEHOLDER_' + idx + '%%\n';
+    });
+    // 转义剩余HTML特殊字符
+    result = result.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // 将换行符转为HTML换行
+    result = result.replace(/\n/g, '<br>');
+    // 还原img标签占位符（这些是安全的，是我们自己提取的）
+    for (var i = 0; i < imgTags.length; i++) {
+        var tag = imgTags[i];
+        // 确保img标签有样式，display:block确保独占一行
+        if (tag.indexOf('style=') === -1) {
+            tag = tag.replace(/<img/, '<img style="max-height:60px;border:1px solid #ddd;border-radius:4px;padding:2px;margin:4px;display:block;"');
+        } else if (tag.indexOf('display:') === -1) {
+            tag = tag.replace(/style="/, 'style="display:block;');
+        }
+        result = result.replace('%%IMG_PLACEHOLDER_' + i + '%%', tag);
+    }
+    return result;
+}
+
+/**
  * 显示提示消息
  */
 function showMessage(message, type) {
@@ -32,9 +69,43 @@ function showMessage(message, type) {
 }
 
 /**
+ * 存储提示消息到sessionStorage，页面刷新后自动显示
+ * 用于操作成功后需要刷新页面的场景：先存储消息，再刷新页面
+ */
+function storeMessage(message, type) {
+    type = type || 'info';
+    sessionStorage.setItem('_pending_msg', JSON.stringify({message: message, type: type}));
+}
+
+/**
+ * 刷新页面并显示提示消息
+ * 替代 showMessage + setTimeout + location.reload 的模式
+ */
+function reloadWithMessage(message, type) {
+    storeMessage(message, type);
+    location.reload();
+}
+
+/**
+ * 通知父窗口任务已完成，刷新铃铛数量
+ */
+function notifyTaskCompleted() {
+    if (window.parent && window.parent !== window) {
+        window.parent.postMessage({type: 'taskCompleted'}, '*');
+    }
+}
+
+/**
  * 使用fetch API提交表单
  */
 function submitForm(url, data, callback) {
+    var btn = document.activeElement;
+    var origHtml = null;
+    if (btn && btn.tagName === 'BUTTON') {
+        origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 处理中...';
+    }
     fetch(url, {
         method: 'POST',
         headers: {
@@ -46,11 +117,13 @@ function submitForm(url, data, callback) {
         return response.json();
     })
     .then(function(result) {
+        if (btn && origHtml) { btn.disabled = false; btn.innerHTML = origHtml; }
         if (callback) {
             callback(result);
         }
     })
     .catch(function(error) {
+        if (btn && origHtml) { btn.disabled = false; btn.innerHTML = origHtml; }
         console.error('请求失败:', error);
         showMessage('操作失败，请稍后重试', 'danger');
     });
@@ -84,6 +157,9 @@ function submitFormWithFile(url, formData, callback) {
 function fetchData(url, callback) {
     fetch(url)
     .then(function(response) {
+        if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+        }
         return response.json();
     })
     .then(function(result) {
@@ -93,7 +169,7 @@ function fetchData(url, callback) {
     })
     .catch(function(error) {
         console.error('请求失败:', error);
-        showMessage('加载数据失败，请稍后重试', 'danger');
+        showMessage('加载数据失败: ' + error.message, 'danger');
     });
 }
 
@@ -137,6 +213,12 @@ function adjustDate(inputId, years, months) {
     date.setFullYear(date.getFullYear() + years);
     date.setMonth(date.getMonth() + months);
     input.value = date.toISOString().split('T')[0];
+    // 触发change事件，以便进行日期联动校验
+    if (typeof input.onchange === 'function') input.onchange();
+    else if (input.getAttribute('onchange')) {
+        var fn = new Function(input.getAttribute('onchange'));
+        fn.call(input);
+    }
 }
 
 /**
@@ -283,18 +365,44 @@ function closeModal(modalId) {
     }
 }
 
-// 点击遮罩关闭模态框
+// 点击遮罩不关闭模态框（防止误操作丢失编辑内容）
+// 只能通过关闭按钮关闭模态框
+document.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
+
 document.addEventListener('click', function(e) {
     if (e.target.classList.contains('modal-overlay')) {
-        e.target.style.display = 'none';
+        e.preventDefault();
+        e.stopPropagation();
     }
-});
+}, true);
+
+document.addEventListener('mouseup', function(e) {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
 
 // ========================================
 // 页面加载完成后执行
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    // 检查是否有待显示的提示消息（页面刷新后恢复）
+    try {
+        var pendingMsg = sessionStorage.getItem('_pending_msg');
+        if (pendingMsg) {
+            sessionStorage.removeItem('_pending_msg');
+            var msgObj = JSON.parse(pendingMsg);
+            showMessage(msgObj.message, msgObj.type);
+        }
+    } catch(e) {}
+
     // 初始化日期输入框默认值
     var dateInputs = document.querySelectorAll('input[type="date"]');
     dateInputs.forEach(function(input) {

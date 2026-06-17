@@ -850,9 +850,10 @@ select.form-control {
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    pointer-events: auto;
 }
 
-.modal-dialog {
+.c-modal-dialog {
     background: var(--white);
     border-radius: 8px;
     box-shadow: var(--shadow-lg);
@@ -860,9 +861,10 @@ select.form-control {
     max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
+    pointer-events: auto;
 }
 
-.modal-header {
+.c-modal-header {
     padding: 16px 20px;
     border-bottom: 1px solid var(--gray-200);
     display: flex;
@@ -870,17 +872,17 @@ select.form-control {
     align-items: center;
 }
 
-.modal-header h5 {
+.c-modal-header h5 {
     font-size: 16px;
     font-weight: 600;
     margin: 0;
 }
 
-.modal-body {
+.c-modal-body {
     padding: 20px;
 }
 
-.modal-footer {
+.c-modal-footer {
     padding: 12px 20px;
     border-top: 1px solid var(--gray-200);
     display: flex;

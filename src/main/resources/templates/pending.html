@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,128 +11,115 @@
 <body>
     <div style="padding: 20px;">
         <!-- 页面标题 -->
-        <div class="page-header">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
             <h4><i class="fas fa-bell"></i> 我的待办</h4>
+            <button class="btn btn-sm btn-outline-primary" onclick="loadPending()"><i class="fas fa-sync-alt"></i> 刷新</button>
         </div>
 
-        <!-- 待会签任务 -->
-        <div class="todo-group" th:if="${not #lists.isEmpty(countersignTasks)}">
-            <div class="group-title">
-                <i class="fas fa-users"></i> 待会签
-                <span class="badge badge-countersign" th:text="${#lists.size(countersignTasks)}">0</span>
-            </div>
-            <div class="content-card" style="margin-bottom: 0;">
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>合同编号</th>
-                                <th>合同名称</th>
-                                <th>客户</th>
-                                <th>起草人</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="task : ${countersignTasks}">
-                                <td th:text="${task.conNum}">HT2024001</td>
-                                <td th:text="${task.contractName}">合同名称</td>
-                                <td>-</td>
-                                <td th:text="${task.userName}">操作人</td>
-                                <td>
-                                    <a href="/countersign" class="btn btn-sm btn-success" target="contentFrame">
-                                        <i class="fas fa-pen"></i> 去会签
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- 加载中提示 -->
+        <div class="content-card" id="loadingTip" style="text-align:center;padding:40px;color:#999;">
+            <i class="fas fa-spinner fa-spin" style="font-size:24px;"></i>
+            <p style="margin-top:10px;">加载中...</p>
         </div>
 
-        <!-- 待审批任务 -->
-        <div class="todo-group" th:if="${not #lists.isEmpty(approveTasks)}">
-            <div class="group-title">
-                <i class="fas fa-thumbs-up"></i> 待审批
-                <span class="badge badge-approve" th:text="${#lists.size(approveTasks)}">0</span>
-            </div>
-            <div class="content-card" style="margin-bottom: 0;">
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>合同编号</th>
-                                <th>合同名称</th>
-                                <th>客户</th>
-                                <th>起草人</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="task : ${approveTasks}">
-                                <td th:text="${task.conNum}">HT2024001</td>
-                                <td th:text="${task.contractName}">合同名称</td>
-                                <td>-</td>
-                                <td th:text="${task.userName}">操作人</td>
-                                <td>
-                                    <a href="/approve" class="btn btn-sm btn-success" target="contentFrame">
-                                        <i class="fas fa-check"></i> 去审批
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 待签订任务 -->
-        <div class="todo-group" th:if="${not #lists.isEmpty(signTasks)}">
-            <div class="group-title">
-                <i class="fas fa-signature"></i> 待签订
-                <span class="badge badge-sign" th:text="${#lists.size(signTasks)}">0</span>
-            </div>
-            <div class="content-card" style="margin-bottom: 0;">
-                <div class="table-wrapper">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>合同编号</th>
-                                <th>合同名称</th>
-                                <th>客户</th>
-                                <th>起草人</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:each="task : ${signTasks}">
-                                <td th:text="${task.conNum}">HT2024001</td>
-                                <td th:text="${task.contractName}">合同名称</td>
-                                <td>-</td>
-                                <td th:text="${task.userName}">操作人</td>
-                                <td>
-                                    <a href="/sign" class="btn btn-sm btn-success" target="contentFrame">
-                                        <i class="fas fa-signature"></i> 去签订
-                                    </a>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- 无待办任务 -->
-        <div class="content-card" th:if="${#lists.isEmpty(countersignTasks) and #lists.isEmpty(approveTasks) and #lists.isEmpty(signTasks)}">
-            <div style="text-align: center; padding: 60px; color: #999;">
-                <i class="fas fa-check-circle" style="font-size: 48px; color: #27AE60; margin-bottom: 16px;"></i>
-                <p style="font-size: 16px;">暂无待办任务</p>
-                <p style="font-size: 13px;">所有任务已处理完毕</p>
-            </div>
-        </div>
+        <!-- 待办内容容器 -->
+        <div id="pendingContainer" style="display:none;"></div>
     </div>
 
     <script src="/js/app.js"></script>
+    <script>
+        function loadPending() {
+            document.getElementById('loadingTip').style.display = 'block';
+            document.getElementById('pendingContainer').style.display = 'none';
+            fetchData('/api/tasks/pending', function(result) {
+                document.getElementById('loadingTip').style.display = 'none';
+                document.getElementById('pendingContainer').style.display = 'block';
+                if (!result.success) {
+                    document.getElementById('pendingContainer').innerHTML =
+                        '<div class="content-card"><div style="text-align:center;padding:40px;color:#e74c3c;"><i class="fas fa-exclamation-circle"></i> ' + (result.message || '加载失败') + '</div></div>';
+                    return;
+                }
+                renderPending(result.data || []);
+            });
+        }
+
+        function renderPending(tasks) {
+            var finalizeTasks = [];
+            var countersignTasks = [];
+            var approveTasks = [];
+            var signTasks = [];
+            var userReviewTasks = [];
+            tasks.forEach(function(t) {
+                if (t.type === 0) finalizeTasks.push(t);
+                else if (t.type === 1) countersignTasks.push(t);
+                else if (t.type === 2) approveTasks.push(t);
+                else if (t.type === 3) signTasks.push(t);
+                else if (t.type === 4) userReviewTasks.push(t);
+            });
+
+            var html = '';
+            if (finalizeTasks.length === 0 && countersignTasks.length === 0 && approveTasks.length === 0 && signTasks.length === 0 && userReviewTasks.length === 0) {
+                html = '<div class="content-card"><div style="text-align:center;padding:60px;color:#999;">' +
+                    '<i class="fas fa-check-circle" style="font-size:48px;color:#27AE60;margin-bottom:16px;"></i>' +
+                    '<p style="font-size:16px;">暂无待办任务</p>' +
+                    '<p style="font-size:13px;">所有任务已处理完毕</p></div></div>';
+            } else {
+                if (userReviewTasks.length > 0) {
+                    html += renderUserReviewGroup(userReviewTasks);
+                }
+                if (finalizeTasks.length > 0) {
+                    html += renderGroup('待定稿', 'fa-edit', 'badge-finalize', finalizeTasks, '去定稿', '/finalize', 'fa-edit', 'btn-warning');
+                }
+                if (countersignTasks.length > 0) {
+                    html += renderGroup('待会签', 'fa-users', 'badge-countersign', countersignTasks, '去会签', '/countersign', 'fa-pen', 'btn-success');
+                }
+                if (approveTasks.length > 0) {
+                    html += renderGroup('待审批', 'fa-thumbs-up', 'badge-approve', approveTasks, '去审批', '/approve', 'fa-check', 'btn-success');
+                }
+                if (signTasks.length > 0) {
+                    html += renderGroup('待签订', 'fa-signature', 'badge-sign', signTasks, '去签订', '/sign', 'fa-signature', 'btn-success');
+                }
+            }
+            document.getElementById('pendingContainer').innerHTML = html;
+        }
+
+        function renderUserReviewGroup(tasks) {
+            var rows = '';
+            tasks.forEach(function(t) {
+                rows += '<tr>' +
+                    '<td>' + (t.userName || '') + '</td>' +
+                    '<td>新用户注册待审核</td>' +
+                    '<td><a href="/user" class="btn btn-sm btn-warning" target="contentFrame"><i class="fas fa-user-check"></i> 去审核</a></td>' +
+                    '</tr>';
+            });
+            return '<div class="todo-group">' +
+                '<div class="group-title"><i class="fas fa-user-clock"></i> 待审核用户' +
+                ' <span class="badge badge-pending">' + tasks.length + '</span></div>' +
+                '<div class="content-card" style="margin-bottom:0;"><div class="table-wrapper">' +
+                '<table class="data-table"><thead><tr><th>用户名</th><th>说明</th><th>操作</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody></table></div></div></div>';
+        }
+
+        function renderGroup(title, icon, badgeClass, tasks, btnText, btnHref, btnIcon, btnColor) {
+            var rows = '';
+            tasks.forEach(function(t) {
+                rows += '<tr>' +
+                    '<td>' + (t.conNum || '') + '</td>' +
+                    '<td>' + (t.contractName || '') + '</td>' +
+                    '<td>' + (t.customer || '-') + '</td>' +
+                    '<td>' + (t.userName || '-') + '</td>' +
+                    '<td><a href="' + btnHref + '" class="btn btn-sm ' + btnColor + '" target="contentFrame"><i class="fas ' + btnIcon + '"></i> ' + btnText + '</a></td>' +
+                    '</tr>';
+            });
+            return '<div class="todo-group">' +
+                '<div class="group-title"><i class="fas ' + icon + '"></i> ' + title +
+                ' <span class="badge ' + badgeClass + '">' + tasks.length + '</span></div>' +
+                '<div class="content-card" style="margin-bottom:0;"><div class="table-wrapper">' +
+                '<table class="data-table"><thead><tr><th>合同编号</th><th>合同名称</th><th>客户</th><th>起草人</th><th>操作</th></tr></thead>' +
+                '<tbody>' + rows + '</tbody></table></div></div></div>';
+        }
+
+        loadPending();
+    </script>
 </body>
 </html>

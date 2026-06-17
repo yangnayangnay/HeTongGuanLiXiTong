@@ -31,6 +31,20 @@
         <!-- 邮件设置 -->
         <div class="content-card" style="margin-top: 16px;">
             <div class="card-title"><i class="fas fa-envelope"></i> 邮件服务配置</div>
+            <div class="alert alert-warning" style="margin-bottom:12px;">
+                <i class="fas fa-exclamation-triangle"></i> <strong>重要：</strong>QQ邮箱需先开启SMTP服务并获取授权码（QQ邮箱 → 设置 → 账户 → POP3/SMTP服务 → 生成授权码），填入下方"授权码"栏位
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>发件人邮箱</label>
+                    <input type="email" class="form-control" id="senderEmail" value="2120951033@qq.com" onchange="autoDetectSmtp()">
+                    <small class="form-text text-muted">输入邮箱后自动识别SMTP服务器</small>
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>授权码</label>
+                    <input type="password" class="form-control" id="senderPassword" value="hocrfflyfocycabi">
+                </div>
+            </div>
             <div class="form-row">
                 <div class="form-group" style="flex:1;">
                     <label>SMTP服务器</label>
@@ -41,17 +55,15 @@
                     <input type="number" class="form-control" id="smtpPort" value="465">
                 </div>
             </div>
-            <div class="form-row">
+            <div class="form-row" style="margin-top:8px;">
                 <div class="form-group" style="flex:1;">
-                    <label>发件人邮箱</label>
-                    <input type="email" class="form-control" id="senderEmail" placeholder="your@email.com">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label>授权码</label>
-                    <input type="password" class="form-control" id="senderPassword" placeholder="SMTP授权码">
+                    <label>测试收件人邮箱</label>
+                    <input type="email" class="form-control" id="testEmailTo" value="2120951033@qq.com" placeholder="输入收件人邮箱">
                 </div>
             </div>
             <button class="btn btn-primary" onclick="saveEmailConfig()"><i class="fas fa-save"></i> 保存邮件配置</button>
+            <button class="btn btn-success ml-2" onclick="testEmail()"><i class="fas fa-paper-plane"></i> 发送测试邮件</button>
+            <span id="emailTestResult" style="margin-left: 10px;"></span>
         </div>
 
         <!-- AI设置 -->
@@ -88,6 +100,18 @@
             </div>
             <button class="btn btn-primary" onclick="saveReminderConfig()"><i class="fas fa-save"></i> 保存提醒设置</button>
         </div>
+
+        <!-- 电子签名设置 -->
+        <div class="content-card" style="margin-top: 16px;">
+            <div class="card-title"><i class="fas fa-signature"></i> 电子签名设置</div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="autoLoadSignature" onchange="saveSignatureConfig()">
+                    在起草合同时自动预放上次的电子签名
+                </label>
+                <small class="form-text text-muted">勾选后，起草合同页面会自动加载上次使用的电子签名；取消勾选则每次需要手动插入签名</small>
+            </div>
+        </div>
     </div>
 
     <script src="/js/app.js"></script>
@@ -101,6 +125,56 @@
         var savedTheme = localStorage.getItem('theme');
         if (savedTheme) document.body.className = 'theme-' + savedTheme;
 
+        // 常见邮箱SMTP服务器配置
+        var smtpConfigMap = {
+            'qq.com':       { host: 'smtp.qq.com',       port: 465, ssl: true },
+            '163.com':      { host: 'smtp.163.com',      port: 465, ssl: true },
+            '126.com':      { host: 'smtp.126.com',      port: 465, ssl: true },
+            'yeah.net':     { host: 'smtp.yeah.net',     port: 465, ssl: true },
+            'sina.com':     { host: 'smtp.sina.com',     port: 465, ssl: true },
+            'sina.cn':      { host: 'smtp.sina.cn',      port: 465, ssl: true },
+            'sohu.com':     { host: 'smtp.sohu.com',     port: 465, ssl: true },
+            '139.com':      { host: 'smtp.139.com',      port: 465, ssl: true },
+            'aliyun.com':   { host: 'smtp.aliyun.com',   port: 465, ssl: true },
+            'hotmail.com':  { host: 'smtp.office365.com', port: 587, ssl: false },
+            'outlook.com':  { host: 'smtp.office365.com', port: 587, ssl: false },
+            'live.com':     { host: 'smtp.office365.com', port: 587, ssl: false },
+            'live.cn':      { host: 'smtp.office365.com', port: 587, ssl: false },
+            'gmail.com':    { host: 'smtp.gmail.com',    port: 587, ssl: false },
+            'yahoo.com':    { host: 'smtp.mail.yahoo.com', port: 465, ssl: true },
+            'yahoo.cn':     { host: 'smtp.mail.yahoo.cn', port: 465, ssl: true },
+            'bjtu.edu.cn':  { host: 'mail.bjtu.edu.cn',  port: 465, ssl: true },
+            'edu.cn':       { host: '', port: 465, ssl: true }
+        };
+
+        function autoDetectSmtp() {
+            var email = document.getElementById('senderEmail').value.trim();
+            if (!email || email.indexOf('@') === -1) return;
+            var domain = email.split('@')[1].toLowerCase();
+            var config = smtpConfigMap[domain];
+            // 如果没有精确匹配，尝试顶级域名匹配
+            if (!config) {
+                var parts = domain.split('.');
+                for (var i = 1; i < parts.length; i++) {
+                    var suffix = parts.slice(i).join('.');
+                    if (smtpConfigMap[suffix]) {
+                        config = smtpConfigMap[suffix];
+                        break;
+                    }
+                }
+            }
+            if (config && config.host) {
+                document.getElementById('smtpHost').value = config.host;
+                document.getElementById('smtpPort').value = config.port;
+                showMessage('已自动识别邮箱: ' + domain + ' → ' + config.host + ':' + config.port, 'success');
+            } else if (domain) {
+                // 未识别的域名，推测为 smtp.域名
+                document.getElementById('smtpHost').value = 'smtp.' + domain;
+                document.getElementById('smtpPort').value = 465;
+                showMessage('未在已知列表中找到 ' + domain + '，已推测为 smtp.' + domain + '，请确认', 'info');
+            }
+        }
+
         function saveEmailConfig() {
             var config = {
                 host: document.getElementById('smtpHost').value,
@@ -108,11 +182,49 @@
                 email: document.getElementById('senderEmail').value,
                 password: document.getElementById('senderPassword').value
             };
+            if (!config.email || !config.password) {
+                showMessage('请填写发件人邮箱和授权码', 'danger');
+                return;
+            }
             submitForm('/api/settings/email', config, function(result) {
-                if (result.success) showMessage('邮件配置已保存', 'success');
+                if (result.success) showMessage('邮件配置已保存并启用', 'success');
                 else showMessage(result.message || '保存失败', 'danger');
             });
         }
+
+        function testEmail() {
+            var toEmail = document.getElementById('testEmailTo').value.trim();
+            if (!toEmail) {
+                showMessage('请填写测试收件人邮箱', 'danger');
+                return;
+            }
+            var email = document.getElementById('senderEmail').value.trim();
+            var password = document.getElementById('senderPassword').value.trim();
+            if (!email || !password) {
+                showMessage('请先填写发件人邮箱和授权码并保存', 'danger');
+                return;
+            }
+            document.getElementById('emailTestResult').innerHTML = '<i class="fas fa-spinner fa-spin"></i> 发送中...';
+            submitForm('/api/settings/testEmail', {toEmail: toEmail}, function(result) {
+                if (result.success) {
+                    document.getElementById('emailTestResult').innerHTML = '<span style="color:green;"><i class="fas fa-check"></i> 测试邮件已发送到 ' + toEmail + '</span>';
+                } else {
+                    document.getElementById('emailTestResult').innerHTML = '<span style="color:red;"><i class="fas fa-times"></i> ' + (result.message || '发送失败') + '</span>';
+                }
+            });
+        }
+
+        // 页面加载时从数据库获取已保存的邮件配置
+        (function loadSavedSettings() {
+            fetchData('/api/settings', function(result) {
+                if (result.success) {
+                    if (result.smtp_host) document.getElementById('smtpHost').value = result.smtp_host;
+                    if (result.smtp_port) document.getElementById('smtpPort').value = result.smtp_port;
+                    if (result.smtp_email) document.getElementById('senderEmail').value = result.smtp_email;
+                    if (result.smtp_password) document.getElementById('senderPassword').value = result.smtp_password;
+                }
+            });
+        })();
 
         function testAI() {
             document.getElementById('aiTestResult').textContent = '测试中...';
@@ -148,6 +260,21 @@
             };
             showMessage('提醒设置已保存', 'success');
         }
+
+        // 电子签名配置
+        function saveSignatureConfig() {
+            var autoLoad = document.getElementById('autoLoadSignature').checked;
+            localStorage.setItem('autoLoadSignature', autoLoad ? 'true' : 'false');
+            showMessage('电子签名设置已保存', 'success');
+        }
+
+        // 页面加载时恢复电子签名设置
+        (function loadSignatureConfig() {
+            var autoLoad = localStorage.getItem('autoLoadSignature');
+            if (autoLoad === 'true') {
+                document.getElementById('autoLoadSignature').checked = true;
+            }
+        })();
     </script>
 </body>
 </html>

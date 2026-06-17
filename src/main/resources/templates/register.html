@@ -131,8 +131,8 @@
             .then(function(response) { return response.json(); })
             .then(function(result) {
                 if (result.success) {
-                    showMessage('注册成功，请等待管理员审核', 'success');
-                    setTimeout(function() { window.location.href = '/login'; }, 2000);
+                    storeMessage('注册成功，请等待管理员审核', 'success');
+                    setTimeout(function() { window.location.href = '/login'; }, 500);
                 } else {
                     showMessage(result.message || '注册失败', 'danger');
                 }

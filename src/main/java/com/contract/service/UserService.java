@@ -350,6 +350,8 @@ public class UserService {
     public boolean assignRole(String username, String roleName) {
         FileLogger.info("UserService", "assignRole", "开始分配角色, 用户: " + username + ", 角色: " + roleName);
         try {
+            // 先删除旧角色，避免重复
+            rightDao.deleteByUserName(username);
             Right right = new Right();
             right.setUserName(username);
             right.setRoleName(roleName);
@@ -372,5 +374,9 @@ public class UserService {
     public User findByName(String name) {
         FileLogger.info("UserService", "findByName", "根据用户名查找用户, 用户名: " + name);
         return userDao.findByName(name);
+    }
+
+    public User findById(int id) {
+        return userDao.findById(id);
     }
 }

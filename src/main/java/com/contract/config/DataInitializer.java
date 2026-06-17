@@ -41,11 +41,48 @@ public class DataInitializer {
         } catch (Exception e) {
             log.error("数据库初始化失败", e);
         }
+
+        // 自动配置Ollama AI服务
+        try {
+            com.contract.util.AIAssistantService.configure("http://localhost:11434", "qwen2:7b");
+            log.info("Ollama AI服务已自动配置（http://localhost:11434, model: qwen2:7b）");
+        } catch (Exception e) {
+            log.warn("Ollama AI服务自动配置失败（Ollama可能未启动）: " + e.getMessage());
+        }
+
+        // 确保t_settings表存在（数据库已存在时跳过了建表，需补充创建）
+        try {
+            jdbcTemplate.execute("CREATE TABLE t_settings (key_name VARCHAR2(50) PRIMARY KEY, key_value VARCHAR2(500))");
+            log.info("t_settings表已创建");
+        } catch (Exception e) {
+            // 表已存在，忽略
+        }
+
+        // 从数据库加载邮件配置，强制更新授权码
+        try {
+            com.contract.util.EmailService.configure("smtp.qq.com", 465, "2120951033@qq.com", "hocrfflyfocycabi");
+            log.info("邮件服务已配置: smtp.qq.com / 2120951033@qq.com");
+            saveSetting("smtp_host", "smtp.qq.com");
+            saveSetting("smtp_port", "465");
+            saveSetting("smtp_email", "2120951033@qq.com");
+            saveSetting("smtp_password", "hocrfflyfocycabi");
+        } catch (Exception e) {
+            log.info("邮件配置失败: " + e.getMessage());
+        }
+
+
+        try {
+            jdbcTemplate.update("UPDATE t_user SET email = '18873604101@163.com' WHERE email = '24301023@bjtu.edu.cn' OR email IS NULL OR email = 'default@example.com'");
+            log.info("已更新用户默认邮箱");
+        } catch (Exception e) {
+            // ignore
+        }
+
     }
 
     private void executeSchema() {
         // Create tables
-        jdbcTemplate.execute("CREATE TABLE t_user (id NUMBER PRIMARY KEY, name VARCHAR2(40) NOT NULL, password VARCHAR2(100) NOT NULL, status NUMBER DEFAULT 0, email VARCHAR2(100) DEFAULT 'default@example.com', CONSTRAINT uk_user_name UNIQUE (name))");
+        jdbcTemplate.execute("CREATE TABLE t_user (id NUMBER PRIMARY KEY, name VARCHAR2(40) NOT NULL, password VARCHAR2(100) NOT NULL, status NUMBER DEFAULT 0, email VARCHAR2(100) DEFAULT '18873604101@163.com', CONSTRAINT uk_user_name UNIQUE (name))");
         jdbcTemplate.execute("CREATE SEQUENCE seq_user START WITH 1 INCREMENT BY 1");
 
         jdbcTemplate.execute("CREATE TABLE t_role (id NUMBER PRIMARY KEY, name VARCHAR2(40) NOT NULL, description VARCHAR2(100), functions VARCHAR2(500))");
@@ -78,6 +115,8 @@ public class DataInitializer {
         jdbcTemplate.execute("CREATE TABLE t_contract_version (id NUMBER PRIMARY KEY, contract_num VARCHAR2(50) NOT NULL, version_no NUMBER NOT NULL, content CLOB, file_data BLOB, file_name VARCHAR2(100), modifier VARCHAR2(40), modify_time TIMESTAMP DEFAULT SYSTIMESTAMP, change_summary VARCHAR2(500), CONSTRAINT uk_contract_version UNIQUE (contract_num, version_no))");
         jdbcTemplate.execute("CREATE SEQUENCE seq_contract_version START WITH 1 INCREMENT BY 1");
 
+        jdbcTemplate.execute("CREATE TABLE t_settings (key_name VARCHAR2(50) PRIMARY KEY, key_value VARCHAR2(500))");
+
         log.info("建表脚本执行完成");
     }
 
@@ -104,7 +143,7 @@ public class DataInitializer {
         jdbcTemplate.update("INSERT INTO t_role (id, name, description, functions) VALUES (seq_role.NEXTVAL, '签订人员', '签订合同', 'F05,F07,F08')");
 
         // Insert admin user
-        jdbcTemplate.update("INSERT INTO t_user (id, name, password, status, email) VALUES (seq_user.NEXTVAL, 'admin', 'admin123', 1, 'admin@example.com')");
+        jdbcTemplate.update("INSERT INTO t_user (id, name, password, status, email) VALUES (seq_user.NEXTVAL, 'admin', 'admin123', 1, '18873604101@163.com')");
 
         // Assign admin role
         jdbcTemplate.update("INSERT INTO t_right (id, userName, roleName, description) VALUES (seq_right.NEXTVAL, 'admin', '管理员', '系统管理员')");
@@ -114,5 +153,15 @@ public class DataInitializer {
         jdbcTemplate.update("INSERT INTO t_customer (id, num, name, address, tel, fax, code, bank, account) VALUES (seq_customer.NEXTVAL, 'C002', '测试贸易公司', '上海市浦东新区陆家嘴路100号', '021-98765432', '021-12345678', '200120', '中国建设银行', '6227000000007654321')");
 
         log.info("初始数据插入完成");
+    }
+
+    private void saveSetting(String key, String value) {
+        try {
+            jdbcTemplate.update("MERGE INTO t_settings t USING (SELECT ? AS key_name FROM dual) s ON (t.key_name = s.key_name) WHEN MATCHED THEN UPDATE SET key_value = ? WHEN NOT MATCHED THEN INSERT (key_name, key_value) VALUES (?, ?)",
+                key, value, key, value);
+        } catch (Exception e) {
+            // ignore
+        }
+
     }
 }

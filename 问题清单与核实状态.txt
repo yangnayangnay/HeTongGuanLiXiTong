@@ -1,0 +1,55 @@
+合同管理系统 - 问题清单与核实状态
+========================================
+更新时间: 2026-06-17 23:55
+
+【已完成】
+1. ✅ 铃铛任务数量实时刷新（5秒轮询）
+2. ✅ "加载合同模板"自动填入信息+推算合同编号
+3. ✅ AI智能起草功能保留
+4. ✅ 结束时间必填校验
+5. ✅ 电子签名从起草页面移除，只在签订时使用
+6. ✅ 签订只允许手写签名（canvas转base64）
+7. ✅ 防重复分配（后端校验）
+8. ✅ 合同查询添加起止时间筛选+编号搜索
+9. ✅ 退出登录跳转登录页
+10. ✅ 定稿已完成的合同返回成功
+11. ✅ 邮件配置预设（QQ邮箱+授权码）
+12. ✅ 流程查询添加各环节操作人列
+13. ✅ 合同查询添加各环节操作人列
+14. ✅ 合同查询详情展示流程信息（起草/会签/定稿/审批/签订）
+15. ✅ DataInitializer编译错误修复
+16. ✅ 停止启动时发送测试邮件
+17. ✅ 邮件内容taskType改为具体类型（会签/定稿/审批/签订/审批否决通知）
+18. ✅ 定稿成功后显示成功消息+自动刷新列表（不再显示失败）
+19. ✅ 签订成功后显示成功消息+自动刷新列表
+20. ✅ 看板/统计页面改为AJAX加载数据
+21. ✅ 流程查询页面改为AJAX加载（修复500错误）
+22. ✅ ContractDao CLOB/BLOB写入修复（签名图片大文本问题）
+23. ✅ iframe加载时显示loading遮罩
+24. ✅ 批量查询合同状态优化（getAllContractStateTypes，1次SQL替代N次）
+25. ✅ countersign/approve/sign/finalize页面改为先渲染框架再AJAX加载
+26. ✅ 按钮点击时显示加载状态（spinner）
+27. ✅ 查询/搜索时显示加载中提示
+28. ✅ 邮件configure()调用顺序修复（放到saveSetting之前，避免异常中断）
+29. ✅ saveSetting方法修复（删除误放的DELETE语句，该语句导致每次保存设置都清空合同数据）
+30. ✅ 删除测试数据清理代码（已从DataInitializer中移除）
+31. ✅ sign.html残留Thymeleaf代码修复（修复500错误）
+32. ✅ sign.html函数名统一（openSign/confirmSign统一为openSign）
+33. ✅ pending.html 改为AJAX加载（调用 /api/tasks/pending，按type分组渲染）
+34. ✅ query.html 改为纯AJAX加载（页面加载时调用searchContracts()，移除Thymeleaf渲染）
+35. ✅ assign.html 改为AJAX加载（调用 /api/contracts/unassigned 和 /api/contracts/assignable-users）
+36. ✅ 新增 /api/contracts/assignable-users API接口（按功能权限F02/F04/F05过滤用户）
+37. ✅ /api/tasks/pending 接口增强（新增customer和userName字段返回）
+38. ✅ PageController简化（pending/query/assign/kanban方法不再传Model数据，避免冗余数据库查询）
+39. ✅ 流程看板(kanban.html)数据加载验证通过（使用 /api/statistics 和 /api/contracts/query）
+40. ✅ 统计分析(statistics.html)数据加载验证通过（使用 /api/statistics）
+
+【待验证（需重启应用）】
+1. ⚠️ 签名图片是否真正出现在合同PDF中
+2. ⚠️ 邮件发送是否正常工作（configure顺序已修复）
+3. ⚠️ 流程查询/合同查询操作人显示是否正确
+
+【未完成/需继续】
+（无）
+
+所有问题清单中的问题已全部处理完成。

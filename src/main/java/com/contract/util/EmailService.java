@@ -39,7 +39,7 @@ public class EmailService {
     /** SMTP端口，默认465（SSL加密端口） */
     private static int smtpPort = 465;
     /** 发件人邮箱地址 */
-    private static String senderEmail = "noreply@contract.com";
+    private static String senderEmail = "2120951033@qq.com";
     /** 发件人密码或授权码（第三方登录需使用授权码而非登录密码） */
     private static String senderPassword = "";
     /** 是否启用邮件功能，默认关闭，需配置后手动开启 */

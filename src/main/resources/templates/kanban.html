@@ -8,65 +8,129 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <style>
-        .kanban-board { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 16px; }
-        .kanban-column { min-width: 220px; flex: 1; background: #f5f6fa; border-radius: 8px; padding: 12px; }
-        .kanban-column-header { font-weight: bold; padding: 8px; margin-bottom: 8px; border-radius: 4px; color: #fff; text-align: center; }
-        .kanban-card { background: #fff; border-radius: 6px; padding: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; }
-        .kanban-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
-        .kanban-card-title { font-weight: bold; font-size: 13px; margin-bottom: 4px; }
-        .kanban-card-info { font-size: 11px; color: #666; }
+        .kanban-board { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 16px; min-height: 500px; }
+        .kanban-column { min-width: 160px; flex: 1; background: #f5f6fa; border-radius: 10px; padding: 0; display: flex; flex-direction: column; }
+        .kanban-column-header { font-weight: bold; padding: 12px 10px; border-radius: 10px 10px 0 0; color: #fff; text-align: center; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .kanban-column-body { padding: 8px; flex: 1; }
+        .kanban-card { background: #fff; border-radius: 8px; padding: 12px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border-left: 4px solid transparent; transition: transform 0.15s, box-shadow 0.15s; }
+        .kanban-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .kanban-card-title { font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #2c3e50; word-break: break-all; }
+        .kanban-card-info { font-size: 11px; color: #7f8c8d; margin-bottom: 3px; display: flex; align-items: center; gap: 4px; }
+        .kanban-count { background: rgba(255,255,255,0.3); border-radius: 10px; padding: 1px 8px; font-size: 12px; margin-left: 4px; }
+        .kanban-empty { text-align: center; padding: 20px 10px; color: #bdc3c7; font-size: 12px; }
+        .kanban-stats { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .kanban-stat-card { background: #fff; border-radius: 8px; padding: 12px 18px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 10px; flex: 1; min-width: 120px; }
+        .kanban-stat-num { font-size: 24px; font-weight: 700; }
+        .kanban-stat-label { font-size: 12px; color: #7f8c8d; }
     </style>
 </head>
 <body>
     <div style="padding: 20px;">
-        <div class="page-header">
+        <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
             <h4><i class="fas fa-columns"></i> 流程看板</h4>
+            <div>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadKanban()"><i class="fas fa-sync-alt"></i> 刷新</button>
+            </div>
         </div>
-        <div class="kanban-board" id="kanbanBoard">
+
+        <div class="kanban-stats">
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#2c3e50;" id="statTotal">0</div><div class="kanban-stat-label">合同总数</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#95a5a6;" id="statDraft">0</div><div class="kanban-stat-label">起草中</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#3498db;" id="statCountersign">0</div><div class="kanban-stat-label">会签中</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#f39c12;" id="statFinalize">0</div><div class="kanban-stat-label">定稿中</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#9b59b6;" id="statApprove">0</div><div class="kanban-stat-label">审批中</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#27ae60;" id="statSign">0</div><div class="kanban-stat-label">签订中</div></div></div>
+            <div class="kanban-stat-card"><div><div class="kanban-stat-num" style="color:#1abc9c;" id="statCompleted">0</div><div class="kanban-stat-label">已完成</div></div></div>
+        </div>
+
+        <div class="kanban-board">
             <div class="kanban-column">
-                <div class="kanban-column-header" style="background:#95a5a6;">起草</div>
-                <div id="col-draft"></div>
+                <div class="kanban-column-header" style="background:#95a5a6;"><i class="fas fa-file-alt"></i> 起草<span class="kanban-count" id="countDraft">0</span></div>
+                <div class="kanban-column-body" id="col1"></div>
             </div>
             <div class="kanban-column">
-                <div class="kanban-column-header" style="background:#3498db;">会签</div>
-                <div id="col-countersign"></div>
+                <div class="kanban-column-header" style="background:#3498db;"><i class="fas fa-users"></i> 会签<span class="kanban-count" id="countCountersign">0</span></div>
+                <div class="kanban-column-body" id="col2"></div>
             </div>
             <div class="kanban-column">
-                <div class="kanban-column-header" style="background:#f39c12;">定稿</div>
-                <div id="col-finalize"></div>
+                <div class="kanban-column-header" style="background:#f39c12;"><i class="fas fa-check-double"></i> 定稿<span class="kanban-count" id="countFinalize">0</span></div>
+                <div class="kanban-column-body" id="col3"></div>
             </div>
             <div class="kanban-column">
-                <div class="kanban-column-header" style="background:#9b59b6;">审批</div>
-                <div id="col-approve"></div>
+                <div class="kanban-column-header" style="background:#9b59b6;"><i class="fas fa-gavel"></i> 审批<span class="kanban-count" id="countApprove">0</span></div>
+                <div class="kanban-column-body" id="col4"></div>
             </div>
             <div class="kanban-column">
-                <div class="kanban-column-header" style="background:#27ae60;">签订</div>
-                <div id="col-sign"></div>
+                <div class="kanban-column-header" style="background:#27ae60;"><i class="fas fa-signature"></i> 签订<span class="kanban-count" id="countSign">0</span></div>
+                <div class="kanban-column-body" id="col5"></div>
+            </div>
+            <div class="kanban-column">
+                <div class="kanban-column-header" style="background:#1abc9c;"><i class="fas fa-check-circle"></i> 已完成<span class="kanban-count" id="countCompleted">0</span></div>
+                <div class="kanban-column-body" id="col6"></div>
             </div>
         </div>
     </div>
 
     <script src="/js/app.js"></script>
     <script>
-        fetchData('/api/contracts/query', function(result) {
-            if (result.success && result.data) {
-                var cols = {1: 'col-draft', 2: 'col-countersign', 3: 'col-finalize', 4: 'col-approve', 5: 'col-sign'};
-                result.data.forEach(function(c) {
-                    var stateType = c.stateType || 1;
-                    var colId = cols[stateType] || 'col-draft';
-                    var col = document.getElementById(colId);
-                    if (col) {
-                        var card = document.createElement('div');
-                        card.className = 'kanban-card';
-                        card.innerHTML = '<div class="kanban-card-title">' + (c.name || '') + '</div>' +
-                            '<div class="kanban-card-info"><i class="fas fa-hashtag"></i> ' + (c.num || '') + '</div>' +
-                            '<div class="kanban-card-info"><i class="fas fa-building"></i> ' + (c.customer || '无') + '</div>' +
-                            '<div class="kanban-card-info"><i class="fas fa-user"></i> ' + (c.userName || '') + '</div>';
-                        col.appendChild(card);
-                    }
+        function renderCard(c, borderColor) {
+            return '<div class="kanban-card" style="border-left-color:' + borderColor + ';">' +
+                '<div class="kanban-card-title">' + (c.name || '') + '</div>' +
+                '<div class="kanban-card-info"><i class="fas fa-hashtag"></i> ' + (c.num || '') + '</div>' +
+                '<div class="kanban-card-info"><i class="fas fa-building"></i> ' + (c.customer || '') + '</div>' +
+                '<div class="kanban-card-info"><i class="fas fa-user"></i> ' + (c.userName || '') + '</div>' +
+                '</div>';
+        }
+
+        function loadKanban() {
+            fetchData('/api/statistics', function(result) {
+                if (!result.success) return;
+                var d = result.data;
+                document.getElementById('statTotal').textContent = d.total || 0;
+                document.getElementById('statDraft').textContent = d.draft || 0;
+                document.getElementById('statCountersign').textContent = d.countersign || 0;
+                document.getElementById('statFinalize').textContent = d.finalize || 0;
+                document.getElementById('statApprove').textContent = d.approve || 0;
+                document.getElementById('statSign').textContent = d.sign || 0;
+                document.getElementById('statCompleted').textContent = d.completed || 0;
+                document.getElementById('countDraft').textContent = d.draft || 0;
+                document.getElementById('countCountersign').textContent = d.countersign || 0;
+                document.getElementById('countFinalize').textContent = d.finalize || 0;
+                document.getElementById('countApprove').textContent = d.approve || 0;
+                document.getElementById('countSign').textContent = d.sign || 0;
+                document.getElementById('countCompleted').textContent = d.completed || 0;
+            });
+
+            fetchData('/api/contracts/query', function(result) {
+                if (!result.success) return;
+                var contracts = result.data || [];
+                // 状态映射：stateType表示"已完成到哪一步"，看板列显示"当前进行中"
+                // stateType=0 → 起草中(col1), stateType=1 → 会签中(col2),
+                // stateType=2 → 定稿中(col3), stateType=3 → 审批中(col4),
+                // stateType=4 → 签订中(col5), stateType=5 → 已完成(col6)
+                var cols = {0: [], 1: [], 2: [], 3: [], 4: [], 5: []};
+                var colIndex = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6};
+                var colors = {0: '#95a5a6', 1: '#3498db', 2: '#f39c12', 3: '#9b59b6', 4: '#27ae60', 5: '#1abc9c'};
+                contracts.forEach(function(c) {
+                    var st = c.stateType;
+                    if (st === undefined || st === null) st = 0;
+                    if (st < 0 || st > 5) st = 0;
+                    cols[st].push(c);
                 });
-            }
-        });
+                for (var s = 0; s <= 5; s++) {
+                    var ci = colIndex[s];
+                    var container = document.getElementById('col' + ci);
+                    if (!container) continue;
+                    if (cols[s].length === 0) {
+                        container.innerHTML = '<div class="kanban-empty"><i class="fas fa-inbox"></i><br>暂无合同</div>';
+                    } else {
+                        container.innerHTML = cols[s].map(function(c) { return renderCard(c, colors[s]); }).join('');
+                    }
+                }
+            });
+        }
+
+        loadKanban();
     </script>
 </body>
 </html>

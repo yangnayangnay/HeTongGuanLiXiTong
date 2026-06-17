@@ -155,6 +155,83 @@ public class AIAssistantService {
     }
 
     /**
+     * AI自动填入合同信息
+     * <p>基于模板填充合同信息，而非完全生成</p>
+     *
+     * @param contractName 合同名称
+     * @param customerName 客户/对方企业名
+     * @param userName 当前用户名（作为甲方）
+     * @return AI生成的合同草稿内容
+     */
+    public static String generateContractDraft(String contractName, String customerName, String userName) {
+        FileLogger.info("AIAssistantService", "generateContractDraft", "开始AI生成合同草稿");
+        if (!aiEnabled) {
+            return null;
+        }
+
+        try {
+            // 优化提示词：基于模板填充，明确区分合同名称和编号
+            String prompt = "你是合同填写助手。请基于以下模板，将提供的信息填入对应位置。\n\n" +
+                "【模板内容】\n" +
+                "合同编号：{{合同编号}}\n" +
+                "合同名称：{{合同名称}}\n" +
+                "甲方：{{甲方}}\n" +
+                "乙方：{{乙方}}\n" +
+                "签订日期：{{签订日期}}\n" +
+                "合同期限：自{{开始日期}}至{{结束日期}}\n\n" +
+                "【需要填入的信息】\n" +
+                "合同名称：" + (contractName != null && !contractName.isEmpty() ? contractName : "待定") + "\n" +
+                "甲方：" + (userName != null && !userName.isEmpty() ? userName : "待定") + "\n" +
+                "乙方：" + (customerName != null && !customerName.isEmpty() ? customerName : "待定") + "\n" +
+                "签订日期：" + java.time.LocalDate.now() + "\n" +
+                "开始日期：" + java.time.LocalDate.now() + "\n" +
+                "结束日期：" + java.time.LocalDate.now().plusYears(1) + "\n\n" +
+                "【重要说明】\n" +
+                "1. 合同编号保持为{{合同编号}}，由系统自动生成\n" +
+                "2. 合同名称使用提供的名称，不要编造编号\n" +
+                "3. 只输出填充后的模板内容，不要添加额外条款或解释\n" +
+                "4. 保持模板原有结构，只替换占位符";
+
+            URL url = new URL(ollamaUrl + "/api/generate");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setDoOutput(true);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(5000);  // 连接超时5秒
+            conn.setReadTimeout(60000);    // 读取超时60秒（优化后）
+
+            String jsonBody = "{\"model\":\"" + modelName + "\",\"prompt\":\"" + escapeJson(prompt) + "\",\"stream\":false}";
+            OutputStream os = conn.getOutputStream();
+            os.write(jsonBody.getBytes("UTF-8"));
+            os.flush();
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), "UTF-8"));
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            String respStr = response.toString();
+            int start = respStr.indexOf("\"response\":\"") + 12;
+            if (start > 11) {
+                int end = findJsonStringEnd(respStr, start);
+                if (end > start) {
+                    String result = unescapeJson(respStr.substring(start, end));
+                    FileLogger.info("AIAssistantService", "generateContractDraft", "AI草稿生成完成, 长度: " + result.length());
+                    return result;
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            FileLogger.error("AIAssistantService", "generateContractDraft", "AI草稿生成失败: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
      * 检查AI服务是否可用
      * @return true表示AI服务可正常连接；false表示不可用
      */

@@ -80,6 +80,32 @@ public class UserDao {
     }
 
     /**
+     * 根据ID查找用户
+     */
+    public User findById(int id) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        try {
+            conn = DBUtil.getConnection();
+            pstmt = conn.prepareStatement("SELECT * FROM t_user WHERE id = ?");
+            pstmt.setInt(1, id);
+            rs = pstmt.executeQuery();
+            if (rs.next()) {
+                User user = new User(rs.getInt("id"), rs.getString("name"),
+                    rs.getString("password"), rs.getInt("status"));
+                user.setEmail(rs.getString("email"));
+                return user;
+            }
+        } catch (Exception e) {
+            FileLogger.error("UserDao", "findById", "查询异常: " + e.getMessage(), e);
+        } finally {
+            DBUtil.close(conn, pstmt, rs);
+        }
+        return null;
+    }
+
+    /**
      * 查找所有用户
      * <p>获取系统中所有用户的列表，按ID升序排列</p>
      * <p>主要用于用户管理界面展示和用户选择下拉框填充</p>

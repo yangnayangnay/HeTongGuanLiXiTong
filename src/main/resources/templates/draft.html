@@ -28,8 +28,8 @@
                                placeholder="请输入合同名称" required>
                     </div>
                     <div class="form-group">
-                        <label for="customer">客户</label>
-                        <select class="form-control" id="customer" name="customer">
+                        <label for="customer">客户 <span class="required">*</span></label>
+                        <select class="form-control" id="customer" name="customer" required>
                             <option value="">-- 请选择客户 --</option>
                             <option th:each="c : ${customers}" th:value="${c.name}" th:text="${c.name}">客户名称</option>
                         </select>
@@ -38,8 +38,8 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="beginTime">开始时间</label>
-                        <input type="date" class="form-control" id="beginTime" name="beginTime" data-default-today>
+                        <label for="beginTime">开始时间 <span class="required">*</span></label>
+                        <input type="date" class="form-control" id="beginTime" name="beginTime" data-default-today required onchange="syncEndDate()">
                         <div class="date-shortcuts">
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="adjustDate('beginTime', 0, -6)">减半年</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="adjustDate('beginTime', 0, 6)">加半年</button>
@@ -48,8 +48,8 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="endTime">结束时间</label>
-                        <input type="date" class="form-control" id="endTime" name="endTime">
+                        <label for="endTime">结束时间 <span class="required">*</span></label>
+                        <input type="date" class="form-control" id="endTime" name="endTime" required onchange="validateEndDate()">
                         <div class="date-shortcuts">
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="adjustDate('endTime', 0, -6)">减半年</button>
                             <button type="button" class="btn btn-outline-primary btn-sm" onclick="adjustDate('endTime', 0, 6)">加半年</button>
@@ -60,7 +60,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="content">合同内容
+                    <label for="content">合同内容 <span class="required">*</span></label>
                         <button type="button" class="btn btn-sm btn-outline-info ml-2" onclick="loadTemplate()">
                             <i class="fas fa-file-alt"></i> 加载合同模板
                         </button>
@@ -70,12 +70,15 @@
                         <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="uploadContractFile()">
                             <i class="fas fa-upload"></i> 上传文件
                         </button>
-                        <button type="button" class="btn btn-sm btn-outline-warning ml-1" onclick="insertSignature()">
-                            <i class="fas fa-signature"></i> 插入签名
+                        <button type="button" class="btn btn-sm btn-outline-dark ml-1" onclick="aiReview()">
+                            <i class="fas fa-robot"></i> AI审查
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-primary ml-1" onclick="aiFillContract()">
+                            <i class="fas fa-magic"></i> AI智能起草
                         </button>
                     </label>
                     <textarea class="form-control" id="content" name="content" rows="8"
-                              placeholder="请输入合同内容条款，或点击'加载合同模板'一键填充"></textarea>
+                              placeholder="请输入合同内容条款，或点击'加载合同模板'一键填充" required></textarea>
                 </div>
 
                 <div class="form-group">
@@ -105,12 +108,114 @@
 
     <script src="/js/app.js"></script>
     <script>
+        var templateRaw = '';
+
+        function fillTemplate() {
+            if (!templateRaw) return;
+            var template = templateRaw;
+            var contractName = document.getElementById('name').value.trim();
+            var customer = document.getElementById('customer').value;
+            var beginTime = document.getElementById('beginTime').value;
+            var endTime = document.getElementById('endTime').value;
+
+            var today = new Date();
+            var datePart = today.getFullYear() +
+                ('0' + (today.getMonth() + 1)).slice(-2) +
+                ('0' + today.getDate()).slice(-2);
+            var predictedNum = 'HT' + datePart + 'XXXX';
+
+            if (contractName) {
+                template = template.replace(/{{合同名称}}/g, contractName);
+                template = template.replace(/{{contractName}}/g, contractName);
+            }
+            if (customer) {
+                template = template.replace(/{{客户名称}}/g, customer);
+                template = template.replace(/{{乙方}}/g, customer);
+                template = template.replace(/{{customer}}/g, customer);
+            }
+            template = template.replace(/{{甲方}}/g, '我方');
+            if (beginTime) {
+                template = template.replace(/{{开始日期}}/g, beginTime);
+                template = template.replace(/{{beginTime}}/g, beginTime);
+            }
+            if (endTime) {
+                template = template.replace(/{{结束日期}}/g, endTime);
+                template = template.replace(/{{endTime}}/g, endTime);
+            }
+            template = template.replace(/{{合同编号}}/g, predictedNum);
+            template = template.replace(/{{contractNum}}/g, predictedNum);
+            document.getElementById('content').value = template;
+        }
+
+        (function autoLoadTemplate() {
+            fetchData('/api/contract/template', function(result) {
+                if (result.success) {
+                    templateRaw = result.data;
+                    fillTemplate();
+                }
+            });
+        })();
+
+        document.getElementById('name').addEventListener('input', fillTemplate);
+        document.getElementById('customer').addEventListener('change', fillTemplate);
+        document.getElementById('beginTime').addEventListener('change', fillTemplate);
+        document.getElementById('endTime').addEventListener('change', fillTemplate);
+
+        function syncEndDate() {
+            var begin = document.getElementById('beginTime').value;
+            var endInput = document.getElementById('endTime');
+            if (begin) {
+                endInput.min = begin;
+                if (endInput.value && endInput.value < begin) {
+                    endInput.value = begin;
+                    showMessage('结束时间已调整为不早于开始时间', 'info');
+                }
+            }
+        }
+
+        // 结束时间选择时实时校验
+        function validateEndDate() {
+            var begin = document.getElementById('beginTime').value;
+            var end = document.getElementById('endTime').value;
+            if (begin && end && end < begin) {
+                document.getElementById('endTime').value = begin;
+                showMessage('结束时间不能早于开始时间，已自动调整', 'warning');
+            }
+        }
+
         document.getElementById('draftForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
             var name = document.getElementById('name').value.trim();
             if (!name) {
                 showMessage('请输入合同名称', 'danger');
+                return;
+            }
+
+            var customer = document.getElementById('customer').value;
+            if (!customer) {
+                showMessage('请选择客户', 'danger');
+                return;
+            }
+
+            var beginTime = document.getElementById('beginTime').value;
+            var endTime = document.getElementById('endTime').value;
+            if (!beginTime) {
+                showMessage('请选择开始时间', 'danger');
+                return;
+            }
+            if (!endTime) {
+                showMessage('请选择结束时间', 'danger');
+                return;
+            }
+            if (endTime < beginTime) {
+                showMessage('结束时间不能早于开始时间', 'danger');
+                return;
+            }
+
+            var content = document.getElementById('content').value.trim();
+            if (!content) {
+                showMessage('请输入合同内容', 'danger');
                 return;
             }
 
@@ -135,14 +240,26 @@
             });
         });
         function loadTemplate() {
-            fetchData('/api/contract/template', function(result) {
-                if (result.success) {
-                    document.getElementById('content').value = result.data;
-                    showMessage('合同模板已加载', 'success');
-                } else {
-                    showMessage('加载模板失败', 'danger');
+            var currentContent = document.getElementById('content').value.trim();
+            if (currentContent && templateRaw) {
+                if (!confirm('将重新根据当前信息填充模板，是否继续？')) {
+                    return;
                 }
-            });
+            }
+            if (!templateRaw) {
+                fetchData('/api/contract/template', function(result) {
+                    if (result.success) {
+                        templateRaw = result.data;
+                        fillTemplate();
+                        showMessage('合同模板已加载并填入信息', 'success');
+                    } else {
+                        showMessage('加载模板失败', 'danger');
+                    }
+                });
+            } else {
+                fillTemplate();
+                showMessage('合同模板已重新填入信息', 'success');
+            }
         }
 
         function downloadContractContent() {
@@ -152,14 +269,20 @@
                 return;
             }
             var name = document.getElementById('name').value || '合同';
-            var blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
-            var url = URL.createObjectURL(blob);
-            var a = document.createElement('a');
-            a.href = url;
-            a.download = name + '.txt';
-            a.click();
-            URL.revokeObjectURL(url);
-            showMessage('合同内容已下载', 'success');
+            fetch('/api/contract/downloadContent', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({content: content, name: name, format: 'pdf'})
+            }).then(function(r) { return r.blob(); })
+            .then(function(blob) {
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = name + '.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+                showMessage('合同已导出为PDF', 'success');
+            });
         }
 
         function uploadContractFile() {
@@ -187,31 +310,68 @@
             input.click();
         }
 
-        function insertSignature() {
-            var input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = function(e) {
-                var file = e.target.files[0];
-                if (!file) return;
-                var formData = new FormData();
-                formData.append('file', file);
-                fetch('/api/contract/uploadSignature', {
-                    method: 'POST',
-                    body: formData
-                }).then(function(r) { return r.json(); })
-                .then(function(result) {
-                    if (result.success) {
-                        var content = document.getElementById('content');
-                        content.value += '\n[签名图片]\n' + result.signatureUrl;
-                        showMessage('签名图片已插入', 'success');
-                    } else {
-                        showMessage(result.message || '签名上传失败', 'danger');
-                    }
-                });
-            };
-            input.click();
+
+        function aiFillContract() {
+            var name = document.getElementById('name').value.trim();
+            var customer = document.getElementById('customer').value;
+            if (!name && !customer) {
+                showMessage('请先填写合同名称或选择客户，AI才能智能填入', 'danger');
+                return;
+            }
+            var currentContent = document.getElementById('content').value.trim();
+            if (currentContent) {
+                if (!confirm('当前合同内容已有内容，AI智能起草将覆盖当前内容，是否继续？')) {
+                    return;
+                }
+            }
+            document.getElementById('content').value = 'AI正在生成合同草稿，请稍候...';
+            submitForm('/api/ai/fillContract', {name: name, customer: customer}, function(result) {
+                if (result.success) {
+                    document.getElementById('content').value = result.data;
+
+                    showMessage('AI已根据合同名称和客户信息智能生成合同草稿', 'success');
+                } else {
+                    document.getElementById('content').value = currentContent;
+                    showMessage(result.message || 'AI智能起草失败', 'danger');
+                }
+            });
+        }
+
+        function aiReview() {
+            var content = document.getElementById('content').value;
+            if (!content.trim()) {
+                showMessage('请先输入合同内容再进行AI审查', 'danger');
+                return;
+            }
+            document.getElementById('aiReviewResult').innerHTML = '<div style="text-align:center;padding:20px;"><i class="fas fa-spinner fa-spin"></i> AI正在审查中，请稍候...</div>';
+            openModal('aiReviewModal');
+            submitForm('/api/ai/review', {content: content}, function(result) {
+                if (result.success) {
+                    document.getElementById('aiReviewResult').innerHTML =
+                        '<div style="white-space:pre-wrap;padding:12px;background:#f8f9fa;border-radius:4px;max-height:400px;overflow-y:auto;">' + (result.data || '无审查结果') + '</div>';
+                } else {
+                    document.getElementById('aiReviewResult').innerHTML =
+                        '<div style="color:#e74c3c;padding:12px;"><i class="fas fa-exclamation-triangle"></i> ' + (result.message || 'AI审查失败') + '</div>';
+                }
+            });
         }
     </script>
+
+    <!-- AI审查结果模态框 -->
+    <div id="aiReviewModal" class="modal-overlay" style="display: none;">
+        <div class="c-modal-dialog" style="max-width: 700px;">
+            <div class="c-modal-header">
+                <h5><i class="fas fa-robot"></i> AI合同审查结果</h5>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="closeModal('aiReviewModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="c-modal-body" id="aiReviewResult">
+            </div>
+            <div class="c-modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('aiReviewModal')">关闭</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

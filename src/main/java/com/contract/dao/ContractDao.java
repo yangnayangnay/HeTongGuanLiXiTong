@@ -65,13 +65,22 @@ public class ContractDao {
             // 将java.util.Date转换为java.sql.Date存入数据库
             pstmt.setDate(5, contract.getBeginTime() != null ? new java.sql.Date(contract.getBeginTime().getTime()) : null);
             pstmt.setDate(6, contract.getEndTime() != null ? new java.sql.Date(contract.getEndTime().getTime()) : null);
-            pstmt.setString(7, contract.getContent());   // 参数7：合同正文
-            pstmt.setString(8, contract.getUserName());  // 参数8：创建人
-            // 参数9-11：附件相关字段（BLOB用setBytes写入二进制数据）
-            pstmt.setBytes(9, contract.getFileData());   // 参数9：附件二进制数据
-            pstmt.setString(10, contract.getFileName()); // 参数10：附件文件名
-            pstmt.setString(11, contract.getFileType()); // 参数11：文件类型
-            pstmt.setDouble(12, contract.getAmount());   // 参数12：合同金额
+            String content = contract.getContent();
+            if (content != null && content.length() > 30000) {
+                pstmt.setClob(7, new java.io.StringReader(content));
+            } else {
+                pstmt.setString(7, content);
+            }
+            pstmt.setString(8, contract.getUserName());
+            byte[] fileData = contract.getFileData();
+            if (fileData != null && fileData.length > 0) {
+                pstmt.setBinaryStream(9, new java.io.ByteArrayInputStream(fileData), fileData.length);
+            } else {
+                pstmt.setBytes(9, fileData);
+            }
+            pstmt.setString(10, contract.getFileName());
+            pstmt.setString(11, contract.getFileType());
+            pstmt.setDouble(12, contract.getAmount());
             boolean result = pstmt.executeUpdate() > 0;
             long cost = System.currentTimeMillis() - startTime;
             FileLogger.info("ContractDao", "insert", "新增合同" + (result ? "成功" : "失败") + ", 合同编号: " + contract.getNum() + ", 耗时" + cost + "ms");
@@ -100,21 +109,27 @@ public class ContractDao {
         PreparedStatement pstmt = null;
         try {
             conn = DBUtil.getConnection();
-            // 根据合同编号（num）更新合同信息（含附件字段和金额）
             pstmt = conn.prepareStatement("UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=?, amount=? WHERE num=?");
-            FileLogger.debug("ContractDao", "update", "SQL=UPDATE t_contract SET name=?, customer=?, beginTime=?, endTime=?, content=?, file_data=?, file_name=?, file_type=?, amount=? WHERE num=?");
-            pstmt.setString(1, contract.getName());     // 参数1：新合同名称
-            pstmt.setString(2, contract.getCustomer()); // 参数2：新客户名称
-            // 日期类型转换
+            pstmt.setString(1, contract.getName());
+            pstmt.setString(2, contract.getCustomer());
             pstmt.setDate(3, contract.getBeginTime() != null ? new java.sql.Date(contract.getBeginTime().getTime()) : null);
             pstmt.setDate(4, contract.getEndTime() != null ? new java.sql.Date(contract.getEndTime().getTime()) : null);
-            pstmt.setString(5, contract.getContent());   // 参数5：新合同内容
-            // 参数6-8：更新附件相关字段
-            pstmt.setBytes(6, contract.getFileData());   // 参数6：附件二进制数据
-            pstmt.setString(7, contract.getFileName()); // 参数7：附件文件名
-            pstmt.setString(8, contract.getFileType()); // 参数8：文件类型
-            pstmt.setDouble(9, contract.getAmount());    // 参数9：合同金额
-            pstmt.setString(10, contract.getNum());       // 参数10：条件-合同编号
+            String content = contract.getContent();
+            if (content != null && content.length() > 30000) {
+                pstmt.setClob(5, new java.io.StringReader(content));
+            } else {
+                pstmt.setString(5, content);
+            }
+            byte[] fileData = contract.getFileData();
+            if (fileData != null && fileData.length > 0) {
+                pstmt.setBinaryStream(6, new java.io.ByteArrayInputStream(fileData), fileData.length);
+            } else {
+                pstmt.setBytes(6, fileData);
+            }
+            pstmt.setString(7, contract.getFileName());
+            pstmt.setString(8, contract.getFileType());
+            pstmt.setDouble(9, contract.getAmount());
+            pstmt.setString(10, contract.getNum());
             boolean result = pstmt.executeUpdate() > 0;
             long cost = System.currentTimeMillis() - startTime;
             FileLogger.info("ContractDao", "update", "更新合同" + (result ? "成功" : "失败") + ", 合同编号: " + contract.getNum() + ", 耗时" + cost + "ms");
