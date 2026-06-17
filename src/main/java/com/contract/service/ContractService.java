@@ -235,7 +235,8 @@ public class ContractService {
             if (cp != null) {
                 // 检查该合同的所有会签节点是否都已完成
                 List<ContractProcess> list = processDao.findByConNumAndType(cp.getConNum(), 1);
-                boolean allDone = list.stream().allMatch(p -> p.getState() == 1);
+                List<ContractProcess> activeList = list.stream().filter(p -> p.getState() != 2).collect(java.util.stream.Collectors.toList());
+                boolean allDone = !activeList.isEmpty() && activeList.stream().allMatch(p -> p.getState() == 1);
                 if (allDone) {
                     // 所有会签人都完成，更新合同状态为"会签完成"（type=2）
                     ContractState cs = new ContractState();
@@ -361,7 +362,8 @@ public class ContractService {
                 if (approved) {
                     // 审批通过：检查所有审批人是否都已通过
                     List<ContractProcess> list = processDao.findByConNumAndType(cp.getConNum(), 2);
-                    boolean allApproved = list.stream().allMatch(p -> p.getState() == 1);
+                    List<ContractProcess> activeList = list.stream().filter(p -> p.getState() != 2).collect(java.util.stream.Collectors.toList());
+                    boolean allApproved = !activeList.isEmpty() && activeList.stream().allMatch(p -> p.getState() == 1);
                     if (allApproved) {
                         // 全部通过，状态变为"审批完成"（type=4）
                         ContractState cs = new ContractState();
@@ -481,7 +483,8 @@ public class ContractService {
             if (cp != null) {
                 // 检查所有签订人是否都已完成
                 List<ContractProcess> list = processDao.findByConNumAndType(cp.getConNum(), 3);
-                boolean allDone = list.stream().allMatch(p -> p.getState() == 1);
+                List<ContractProcess> activeList = list.stream().filter(p -> p.getState() != 2).collect(java.util.stream.Collectors.toList());
+                boolean allDone = !activeList.isEmpty() && activeList.stream().allMatch(p -> p.getState() == 1);
                 if (allDone) {
                     // 全部签订完成，状态变为"签订完成"（type=5）
                     ContractState cs = new ContractState();

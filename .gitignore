@@ -40,3 +40,12 @@ doc/node_modules/
 *.sql.bak
 check_process.sql
 fix_process.sql
+del_contract.sql
+
+# Node.js (项目根目录)
+node_modules/
+package.json
+package-lock.json
+
+# AI辅助目录
+.arts/
