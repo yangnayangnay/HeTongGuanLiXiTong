@@ -28,21 +28,15 @@ Desktop.ini
 *.bak
 *~
 
-# Node.js
-node_modules/
-package-lock.json
-
-# 辅助工具
+# 转换脚本（辅助工具）
+doc/convert_to_docx.py
 doc/generate_docx.js
+doc/generate_pptx.js
 doc/package.json
 doc/package-lock.json
+doc/node_modules/
 
-# 临时SQL
+# 临时SQL脚本
+*.sql.bak
 check_process.sql
 fix_process.sql
-
-# AI辅助目录
-.arts/
-
-# 上传目录
-uploads/

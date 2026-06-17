@@ -36,7 +36,7 @@ import java.util.List;
 public class FileUploadUtil {
 
     /** 允许上传的文件类型扩展名列表 */
-    private static final String[] ALLOWED_EXTENSIONS = {"pdf", "docx", "doc"};
+    private static final String[] ALLOWED_EXTENSIONS = {"pdf", "docx", "doc", "jpg", "jpeg", "png", "bmp", "gif", "txt"};
 
     /**
      * 默认分块大小：每块1MB（1024*1024字节）

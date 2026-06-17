@@ -78,6 +78,18 @@ public class DataInitializer {
             // ignore
         }
 
+        try {
+            int usersWithoutRole = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM t_user u WHERE NOT EXISTS (SELECT 1 FROM t_right r WHERE r.userName = u.name)", Integer.class);
+            if (usersWithoutRole > 0) {
+                jdbcTemplate.update(
+                    "MERGE INTO t_right r USING (SELECT u.name AS userName FROM t_user u WHERE NOT EXISTS (SELECT 1 FROM t_right r2 WHERE r2.userName = u.name)) s ON (r.userName = s.userName AND r.roleName = '管理员') WHEN NOT MATCHED THEN INSERT (id, userName, roleName, description) VALUES (seq_right.NEXTVAL, s.userName, '管理员', '系统管理员')");
+                log.info("已为" + usersWithoutRole + "个无角色用户分配管理员角色");
+            }
+        } catch (Exception e) {
+            log.warn("分配默认角色失败: " + e.getMessage());
+        }
+
     }
 
     private void executeSchema() {

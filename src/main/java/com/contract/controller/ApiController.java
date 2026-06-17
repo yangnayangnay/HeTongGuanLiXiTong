@@ -2,7 +2,9 @@ package com.contract.controller;
 
 import com.contract.entity.*;
 import com.contract.service.*;
+import com.contract.util.ChunkUploadManager;
 import com.contract.util.FileLogger;
+import com.contract.util.FileUploadUtil;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +23,8 @@ import java.util.*;
 @RestController
 @RequestMapping("/api")
 public class ApiController {
+
+    private static final java.util.concurrent.ConcurrentHashMap<String, ChunkUploadManager> uploadSessions = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Autowired
     private UserService userService;
@@ -944,30 +948,36 @@ public class ApiController {
 
     @PostMapping("/files/upload")
     public Map<String, Object> uploadFile(@RequestParam String contractNum,
-                                          @RequestParam MultipartFile file) {
+                                          @RequestParam MultipartFile file,
+                                          HttpSession session) {
         Map<String, Object> result = new HashMap<>();
+        // 添加登录验证
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
         try {
             if (file.isEmpty()) {
                 result.put("success", false);
                 result.put("message", "文件不能为空");
                 return result;
             }
+            // 文件类型校验
+            if (!FileUploadUtil.isAllowedFileType(file.getOriginalFilename())) {
+                result.put("success", false);
+                result.put("message", "不支持的文件类型，仅允许: pdf, docx, doc, jpg, jpeg, png, bmp, gif, txt");
+                return result;
+            }
 
             ContractAttachment attachment = new ContractAttachment();
             attachment.setConNum(contractNum);
             attachment.setFileName(file.getOriginalFilename());
-            attachment.setType(getFileExtension(file.getOriginalFilename()));
+            attachment.setType(FileUploadUtil.getFileExtension(file.getOriginalFilename()));
             attachment.setUploadTime(new Date());
-
-            // 保存文件到服务器
-            String uploadDir = "uploads" + File.separator + contractNum;
-            File dir = new File(uploadDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
-            }
-            String filePath = uploadDir + File.separator + file.getOriginalFilename();
-            file.transferTo(new File(filePath));
-            attachment.setPath(filePath);
+            attachment.setFileData(file.getBytes());  // 直接存BLOB
+            attachment.setPath("");  // 不再使用文件系统路径
 
             boolean success = contractService.addAttachment(attachment);
             if (success) {
@@ -1989,17 +1999,41 @@ public class ApiController {
                                             @RequestParam("totalChunks") int totalChunks,
                                             @RequestParam("uploadId") String uploadId,
                                             @RequestParam("fileName") String fileName,
-                                            @RequestParam("contractNum") String contractNum) {
+                                            @RequestParam("contractNum") String contractNum,
+                                            HttpSession session) {
         Map<String, Object> result = new HashMap<>();
+        User currentUser = (User) session.getAttribute("currentUser");
+        if (currentUser == null) {
+            result.put("success", false);
+            result.put("message", "请先登录");
+            return result;
+        }
         try {
+            // 获取或创建上传会话
+            ChunkUploadManager manager = uploadSessions.computeIfAbsent(uploadId,
+                id -> new ChunkUploadManager(fileName, totalChunks, 0));
+
+            // 检查该分块是否已上传（断点续传）
+            if (manager.isChunkUploaded(chunkIndex)) {
+                result.put("success", true);
+                result.put("message", "分块已存在，跳过");
+                result.put("skipped", true);
+                return result;
+            }
+
             String uploadDir = System.getProperty("java.io.tmpdir") + File.separator + "contract_upload" + File.separator + uploadId;
             File dir = new File(uploadDir);
             if (!dir.exists()) dir.mkdirs();
             File chunkFile = new File(dir, chunkIndex + ".part");
             file.transferTo(chunkFile);
+
+            // 标记该分块已上传
+            manager.markChunkUploaded(chunkIndex);
+
             result.put("success", true);
             result.put("message", "分块上传成功");
-            FileLogger.info("ApiController", "uploadChunk", "分块上传: " + fileName + " 块" + chunkIndex + "/" + totalChunks);
+            result.put("progress", manager.getProgress());
+            FileLogger.info("ApiController", "uploadChunk", "分块上传: " + fileName + " 块" + chunkIndex + "/" + totalChunks + " 进度:" + manager.getProgress() + "%");
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "分块上传失败: " + e.getMessage());
@@ -2050,12 +2084,33 @@ public class ApiController {
             }
             dir.delete();
 
+            uploadSessions.remove(uploadId);
+
             result.put("success", true);
             result.put("message", "文件合并成功");
             FileLogger.info("ApiController", "mergeChunks", "文件合并完成: " + fileName + ", 大小: " + mergedBytes.length);
         } catch (Exception e) {
             result.put("success", false);
             result.put("message", "合并失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 查询断点续传进度
+     */
+    @GetMapping("/contract/uploadProgress")
+    public Map<String, Object> getUploadProgress(@RequestParam String uploadId) {
+        Map<String, Object> result = new HashMap<>();
+        ChunkUploadManager manager = uploadSessions.get(uploadId);
+        if (manager != null) {
+            result.put("success", true);
+            result.put("progress", manager.getProgress());
+            result.put("pendingChunks", manager.getPendingChunks());
+            result.put("isComplete", manager.isComplete());
+        } else {
+            result.put("success", false);
+            result.put("message", "上传会话不存在");
         }
         return result;
     }

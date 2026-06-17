@@ -38,8 +38,8 @@ public class ContractAttachmentDao {
         try {
             conn = DBUtil.getConnection();
             int id = DBUtil.getNextId("seq_contract_attachment");
-            pstmt = conn.prepareStatement("INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime) VALUES(?, ?, ?, ?, ?, ?)");
-            FileLogger.debug("ContractAttachmentDao", "insert", "SQL=INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime) VALUES(...)");
+            pstmt = conn.prepareStatement("INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime, file_data) VALUES(?, ?, ?, ?, ?, ?, ?)");
+            FileLogger.debug("ContractAttachmentDao", "insert", "SQL=INSERT INTO t_contract_attachment(id, conNum, fileName, path, type, uploadTime, file_data) VALUES(...)");
             pstmt.setInt(1, id);
             pstmt.setString(2, ca.getConNum());       // 关联合同编号
             pstmt.setString(3, ca.getFileName());     // 原始文件名
@@ -47,6 +47,11 @@ public class ContractAttachmentDao {
             pstmt.setString(5, ca.getType());         // 附件类型分类
             // 上传时间使用当前系统时间
             pstmt.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
+            if (ca.getFileData() != null) {
+                pstmt.setBinaryStream(7, new java.io.ByteArrayInputStream(ca.getFileData()), ca.getFileData().length);
+            } else {
+                pstmt.setNull(7, java.sql.Types.BLOB);
+            }
             boolean result = pstmt.executeUpdate() > 0;
             long cost = System.currentTimeMillis() - startTime;
             FileLogger.info("ContractAttachmentDao", "insert", "新增附件" + (result ? "成功" : "失败") + ", 合同编号: " + ca.getConNum() + ", 耗时" + cost + "ms");
@@ -89,6 +94,11 @@ public class ContractAttachmentDao {
                 ca.setPath(rs.getString("path"));
                 ca.setType(rs.getString("type"));
                 ca.setUploadTime(rs.getTimestamp("uploadTime"));
+                try {
+                    ca.setFileData(rs.getBytes("file_data"));
+                } catch (Exception e) {
+                    // 某些数据库驱动可能不支持直接getBytes
+                }
                 list.add(ca);
             }
             long cost = System.currentTimeMillis() - startTime;

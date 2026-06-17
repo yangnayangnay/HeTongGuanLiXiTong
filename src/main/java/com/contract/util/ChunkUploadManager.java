@@ -68,6 +68,31 @@ public class ChunkUploadManager {
     private long fileSize;
 
     /**
+     * 无参构造方法
+     */
+    public ChunkUploadManager() {}
+
+    /**
+     * 带参数的构造方法
+     * <p>直接初始化上传会话，无需再调用createUploadSession</p>
+     *
+     * @param fileName    要上传的文件名
+     * @param totalChunks 该文件被分割成的总块数
+     * @param fileSize    原始文件的总字节数
+     */
+    public ChunkUploadManager(String fileName, int totalChunks, long fileSize) {
+        this.uploadId = "UPLOAD_" + System.currentTimeMillis() + "_" + (int)(Math.random() * 10000);
+        this.fileName = fileName;
+        this.totalChunks = totalChunks;
+        this.fileSize = fileSize;
+        this.uploadedChunks = 0;
+        this.chunkStatus = new ArrayList<>();
+        for (int i = 0; i < totalChunks; i++) {
+            this.chunkStatus.add(false);
+        }
+    }
+
+    /**
      * 创建一个新的分块上传会话
      * <p>
      * 初始化上传管理器的所有状态信息，包括生成唯一上传ID、
@@ -154,6 +179,23 @@ public class ChunkUploadManager {
      */
     public boolean isComplete() {
         return uploadedChunks >= totalChunks && totalChunks > 0;
+    }
+
+    /**
+     * 判断指定分块是否已上传完成
+     * <p>
+     * 用于断点续传场景：在上传前检查该分块是否已经上传过，
+     * 如果已上传则跳过，避免重复传输。
+     * </p>
+     *
+     * @param chunkIndex 分块索引（从0开始）
+     * @return true-该分块已上传；false-未上传或索引越界
+     */
+    public boolean isChunkUploaded(int chunkIndex) {
+        if (chunkIndex < 0 || chunkIndex >= totalChunks) {
+            return false;
+        }
+        return chunkStatus.get(chunkIndex);
     }
 
     /**
